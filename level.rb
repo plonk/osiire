@@ -1,16 +1,21 @@
 
 class Cell
-  attr_accessor :lit, :explored, :type
+  attr_accessor :lit, :explored, :type, :objects
 
   def initialize type
     @type = type
     @lit = false
     @explored = false
+    @objects = []
   end
 
   def char
     if !@explored
       return ' '
+    end
+
+    if !@objects.empty?
+      return @objects.first.char
     end
 
     case @type
@@ -22,6 +27,12 @@ class Cell
     when :PASSAGE         then '#'
     else '?'
     end
+  end
+end
+
+class StairCase
+  def char
+    '%'
   end
 end
 
@@ -226,5 +237,17 @@ class Level
     fov.each_coords do |x, y|
       @dungeon[y][x].explored = true
     end
+  end
+
+  def cell(x, y)
+    @dungeon[y][x]
+  end
+
+  def put_object(x, y, object)
+    @dungeon[y][x].objects << object
+  end
+
+  def remove_object(x, y, object)
+    @dungeon[y][x].objects.delete(object)
   end
 end

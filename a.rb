@@ -6,10 +6,20 @@ require_relative 'level'
 
 class Game
   def main
-    @level = Level.new
-    x, y = @level.get_random_place(:FLOOR)
-    @hero = Hero.new(x, y)
+    @hero = Hero.new(0, 0)
+    new_level
+
     play_level
+  end
+
+  def new_level
+    @level = Level.new
+
+    x, y = @level.get_random_place(:FLOOR)
+    @hero.x, @hero.y = x, y
+
+    x, y = @level.get_random_place(:FLOOR)
+    @level.put_object(x, y, StairCase.new)
   end
 
   def play_level
@@ -54,8 +64,16 @@ class Game
     case c
     when 'h','j','k','l','y','u','b','n'
       hero_move(c)
+    when '>'
+      go_downstairs
     when 'q'
       @quitting = true
+    end
+  end
+
+  def go_downstairs
+    if @level.cell(@hero.x, @hero.y).objects.any? { |elt| elt.is_a?(StairCase) }
+      new_level
     end
   end
 
