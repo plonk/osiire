@@ -8,7 +8,6 @@ class Game
   def main
     @hero = Hero.new(0, 0)
     new_level
-
     play_level
   end
 
@@ -32,7 +31,7 @@ class Game
       @level.mark_explored(fov)
       @level.light_up(fov)
 
-      puts render
+      render
 
       c = read_command
       @level.darken(@level.fov(@hero))
@@ -102,6 +101,7 @@ class Game
   end
 
   def render
+    lines = \
     (0 ... @level.height).map do |y|
       (0 ... @level.width).map do |x|
         if @hero.x == x && @hero.y == y
@@ -111,10 +111,13 @@ class Game
         end
       end.join + "\n"
     end.join
+    puts lines
   end
 end
 
-system('stty cbreak -echo')
-at_exit { system('stty sane') }
-Game.new.main
+if __FILE__ == $0
+  system('stty cbreak -echo')
+  at_exit { system('stty sane') }
+  Game.new.main
+end
 

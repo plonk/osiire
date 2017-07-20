@@ -1,3 +1,8 @@
+require_relative 'monster'
+
+class Gold < Struct.new(:amount)
+  def char; '*' end
+end
 
 class Cell
   attr_accessor :lit, :explored, :type, :objects
@@ -10,12 +15,24 @@ class Cell
   end
 
   def char
+    visible_objects = @objects.select { |obj|
+      if @lit
+        true
+      else
+        if @explored
+          obj.is_a? Gold
+        else
+          false
+        end
+      end
+    }
+
     if !@explored
       return ' '
     end
 
-    if !@objects.empty?
-      return @objects.first.char
+    if !visible_objects.empty?
+      return visible_objects.first.char
     end
 
     case @type
@@ -36,7 +53,7 @@ class StairCase
   end
 end
 
-class Hero < Struct.new(:x, :y)
+class Hero < Struct.new(:x, :y, :curr_hp, :max_hp, :curr_strength, :max_strength, :gold)
 end
 
 class Rect < Struct.new(:top, :bottom, :left, :right)
