@@ -53,7 +53,8 @@ class StairCase
   end
 end
 
-class Hero < Struct.new(:x, :y, :curr_hp, :max_hp, :curr_strength, :max_strength, :gold)
+class Hero < Struct.new(:x, :y, :curr_hp, :max_hp, :curr_strength, :max_strength, :gold, :exp)
+  def name; 'よてえもん' end
 end
 
 class Rect < Struct.new(:top, :bottom, :left, :right)

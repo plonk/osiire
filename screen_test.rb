@@ -43,8 +43,8 @@ class Program
     monster = cell.objects.find { |obj| obj.is_a? Monster }
     if monster
       cell.objects.delete(monster)
-      # @hero.exp += monster.exp
-      add_message("よてえもんは #{monster.name}を たおした。")
+      @hero.exp += monster.exp
+      add_message("#{@hero.name}は #{monster.name}を たおした。")
     else
       @hero.x = x1
       @hero.y = y1
@@ -53,7 +53,7 @@ class Program
       if gold
         cell.objects.delete(gold)
         @hero.gold += gold.amount
-        add_message("よてえもんは #{gold.amount}Gを拾った。")
+        add_message("#{@hero.name}は #{gold.amount}Gを拾った。")
       end
     end
   end
@@ -164,7 +164,7 @@ class Program
 
     # キャラクターステータスの表示
     Curses.setpos(0, 0)
-    Curses.addstr("#{1}F HP #{@hero.curr_hp}/#{@hero.max_hp} Str #{@hero.curr_strength}/#{@hero.max_strength}                                                      #{@hero.gold} G")
+    Curses.addstr("#{1}F  HP #{@hero.curr_hp}/#{@hero.max_hp}  Str #{@hero.curr_strength}/#{@hero.max_strength}  Exp #{@hero.exp}  #{@hero.gold} G")
 
     # メッセージの表示。
     # Curses.setpos(Curses.lines - 1, 0)
@@ -178,7 +178,7 @@ class Program
   end
 
   def main
-    @hero = Hero.new(0, 0, 15, 15, 8, 8, 0)
+    @hero = Hero.new(0, 0, 15, 15, 8, 8, 0, 0)
     new_level
     play_level
   end
