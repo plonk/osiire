@@ -1,16 +1,21 @@
 require 'curses'
 require_relative 'room'
 require_relative 'level'
+require_relative 'dungeon'
 
 class Program
   def initialize
     Curses.init_screen
+    Curses.noecho
     Curses.crmode
     at_exit {
       Curses.close_screen
     }
     @message = ""
     @message_updated_at = Time.now
+    @hero = Hero.new(0, 0, 15, 15, 8, 8, 0, 0)
+    @level_number = 0
+    @dungeon = Dungeon.new
   end
 
   def hero_move(c)
@@ -22,6 +27,7 @@ class Program
             'u' => [+1, -1],
             'b' => [-1, +1],
             'n' => [+1, +1] }[c]
+    fail ArgumentError unless vec
     dx, dy = vec
     if dx * dy != 0
       allowed = @level.passable?(@hero, @hero.x + dx, @hero.y + dy) &&
@@ -71,11 +77,24 @@ class Program
     case c
     when 'h','j','k','l','y','u','b','n'
       hero_move(c)
+    when 'i'
+      open_inventory
     when '>'
       go_downstairs
     when 'q'
       @quitting = true
     end
+  end
+
+  def open_inventory
+    Curses.beep
+    w = Curses::Window.new(20, 25, 1, 0)
+    w.box("|", "-", "-")
+    w.setpos(1, 1)
+    w.addstr("何も持っていない")
+    w.refresh
+    w.getch
+    w.close
   end
 
   def go_downstairs
@@ -85,31 +104,11 @@ class Program
   end
 
   def new_level
-    @level = Level.new
-
+    @level_number += 1
+    @level = @dungeon.make_level(@level_number, @hero)
+    # 主人公を配置する。
     x, y = @level.get_random_place(:FLOOR)
     @hero.x, @hero.y = x, y
-
-    x, y = @level.get_random_place(:FLOOR)
-    @level.put_object(x, y, StairCase.new)
-
-    # 金を置く。
-    5.times do
-      x, y = @level.get_random_place(:FLOOR)
-      cell = @level.cell(x, y)
-      if cell.objects.empty?
-        cell.objects << Gold.new(rand(100..1000))
-      end
-    end
-
-    # モンスターを配置する。
-    5.times do
-      x, y = @level.get_random_place(:FLOOR)
-      cell = @level.cell(x, y)
-      if cell.objects.none? { |obj| obj.is_a? Monster }
-        cell.objects << Monster.make_monster('まんまる')
-      end
-    end
   end
 
   def play_level
@@ -164,7 +163,7 @@ class Program
 
     # キャラクターステータスの表示
     Curses.setpos(0, 0)
-    Curses.addstr("#{1}F  HP #{@hero.curr_hp}/#{@hero.max_hp}  Str #{@hero.curr_strength}/#{@hero.max_strength}  Exp #{@hero.exp}  #{@hero.gold} G")
+    Curses.addstr("#{@level_number}F  HP #{@hero.curr_hp}/#{@hero.max_hp}  Str #{@hero.curr_strength}/#{@hero.max_strength}  Exp #{@hero.exp}  #{@hero.gold} G")
 
     # メッセージの表示。
     # Curses.setpos(Curses.lines - 1, 0)
@@ -178,7 +177,6 @@ class Program
   end
 
   def main
-    @hero = Hero.new(0, 0, 15, 15, 8, 8, 0, 0)
     new_level
     play_level
   end

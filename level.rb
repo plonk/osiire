@@ -1,8 +1,5 @@
 require_relative 'monster'
-
-class Gold < Struct.new(:amount)
-  def char; '*' end
-end
+require_relative 'item'
 
 class Cell
   attr_accessor :lit, :explored, :type, :objects
@@ -54,6 +51,13 @@ class StairCase
 end
 
 class Hero < Struct.new(:x, :y, :curr_hp, :max_hp, :curr_strength, :max_strength, :gold, :exp)
+  attr_reader :inventory
+
+  def initialize(*args)
+    super
+    @inventory = []
+  end
+
   def name; 'よてえもん' end
 end
 
