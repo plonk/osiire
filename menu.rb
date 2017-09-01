@@ -1,4 +1,4 @@
-class InventoryMenu
+class Menu
   def initialize(items, opts = {})
     @items = items
     @y = opts[:y] || 0

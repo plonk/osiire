@@ -2,9 +2,10 @@ require 'curses'
 require_relative 'room'
 require_relative 'level'
 require_relative 'dungeon'
-require_relative 'inventory_menu'
+require_relative 'menu'
 
 class Program
+
   def initialize
     Curses.init_screen
     Curses.noecho
@@ -88,7 +89,7 @@ class Program
   end
 
   def open_inventory
-    menu = InventoryMenu.new(["ナン", "おおきなナン", "巨大なナン","特製ナン","まずそうなナン"], y: 2, x: 3, cols: 25)
+    menu = Menu.new(["ナン", "おおきなナン", "巨大なナン","特製ナン","まずそうなナン"], y: 2, x: 3, cols: 25)
     item = c = nil
 
     loop do
@@ -102,7 +103,7 @@ class Program
       when :chosen
         item, = args
 
-        action_menu = InventoryMenu.new(["食べる", "投げる", "置く"], y: 2, x: 3+25, cols: 9)
+        action_menu = Menu.new(["食べる", "投げる", "置く"], y: 2, x: 3+25, cols: 9)
         c, *args = action_menu.choose
         case c
         when :cancel
