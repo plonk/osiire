@@ -230,6 +230,7 @@ class Level
     end
   end
 
+  # 主体 subject の視野 Rect を返す。
   def fov(subject)
     r = room_at(subject.x, subject.y)
     if r

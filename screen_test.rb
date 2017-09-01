@@ -20,6 +20,7 @@ class Program
     @dungeon = Dungeon.new
   end
 
+  # String → :move
   def hero_move(c)
     vec = { 'h' => [-1,  0],
             'j' => [ 0, +1],
@@ -64,6 +65,8 @@ class Program
         add_message("#{@hero.name}は #{gold.amount}Gを拾った。")
       end
     end
+
+    return :move
   end
 
   def add_message(msg)
@@ -75,8 +78,11 @@ class Program
     @message_updated_at = Time.now
   end
 
+  # String → :action | :move | :nothing
   def dispatch_command(c)
     case c
+    when '?'
+      help
     when 'h','j','k','l','y','u','b','n'
       hero_move(c)
     when 'i'
@@ -84,10 +90,49 @@ class Program
     when '>'
       go_downstairs
     when 'q'
-      @quitting = true
+      set_quitting
     end
   end
 
+  # () → :nothing
+  def set_quitting
+      @quitting = true
+      :nothing
+  end
+
+  # () → :nothing
+  def help
+    text = <<EOD
+★ キャラクターの移動
+
+  y k u
+  h @ l
+  b j n
+
+★ コマンドキー
+
+     [Enter] 決定。
+     [Esc]   キャンセル。
+     i       道具一覧を開く。
+     >       階段を降りる。
+     ?       このヘルプを表示。
+     q       ゲームを終了する。
+EOD
+
+    win = Curses::Window.new(20, 50, 2, 4) # lines, cols, y, x
+    win.clear
+    win.box("|", "-", "-")
+    text.each_line.with_index(1) do |line, y|
+      win.setpos(y, 1)
+      win.addstr(line.chomp)
+    end
+    win.getch
+    win.close
+
+    return :nothing
+  end
+
+  # () → :action | :nothing
   def open_inventory
     menu = Menu.new(["ナン", "おおきなナン", "巨大なナン","特製ナン","まずそうなナン"], y: 2, x: 3, cols: 25)
     item = c = nil
@@ -99,7 +144,7 @@ class Program
       case command
       when :cancel
         Curses.beep
-        return
+        return :nothing
       when :chosen
         item, = args
 
@@ -120,6 +165,7 @@ class Program
       break if item and c
     end
     add_message("#{item}を#{c}。")
+    return :action
   ensure
     menu.close
   end
@@ -185,6 +231,12 @@ class Program
     Curses.refresh
   end
 
+  def monsters_move
+  end
+
+  def monsters_action
+  end
+
   def main
     new_level
 
@@ -201,7 +253,13 @@ class Program
 
       c = read_command
       @level.darken(@level.fov(@hero))
-      dispatch_command(c)
+      case dispatch_command(c)
+      when :action, :move
+        monsters_move
+        monsters_action
+      when :nothing
+      else fail
+      end
     end
   end
 end
