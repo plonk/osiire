@@ -97,7 +97,8 @@ class Program
 
       case command
       when :cancel
-        break
+        Curses.beep
+        return
       when :chosen
         item, = args
 
@@ -117,8 +118,9 @@ class Program
 
       break if item and c
     end
-    menu.close
     add_message("#{item}を#{c}。")
+  ensure
+    menu.close
   end
 
   def go_downstairs
