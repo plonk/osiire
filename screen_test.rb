@@ -2,6 +2,7 @@ require 'curses'
 require_relative 'room'
 require_relative 'level'
 require_relative 'dungeon'
+require_relative 'inventory_menu'
 
 class Program
   def initialize
@@ -87,14 +88,37 @@ class Program
   end
 
   def open_inventory
-    Curses.beep
-    w = Curses::Window.new(20, 25, 1, 0)
-    w.box("|", "-", "-")
-    w.setpos(1, 1)
-    w.addstr("何も持っていない")
-    w.refresh
-    w.getch
-    w.close
+    menu = InventoryMenu.new(["ナン", "おおきなナン", "巨大なナン","特製ナン","まずそうなナン"], y: 2, x: 3, cols: 25)
+    item = c = nil
+
+    loop do
+      item = c = nil
+      command, *args = menu.choose
+
+      case command
+      when :cancel
+        break
+      when :chosen
+        item, = args
+
+        action_menu = InventoryMenu.new(["食べる", "投げる", "置く"], y: 2, x: 3+25, cols: 9)
+        c, *args = action_menu.choose
+        case c
+        when :cancel
+          Curses.beep
+          action_menu.close
+          next
+        when :chosen
+          c, = args
+        else fail
+        end
+        action_menu.close
+      end
+
+      break if item and c
+    end
+    menu.close
+    add_message("#{item}を#{c}。")
   end
 
   def go_downstairs
@@ -109,24 +133,6 @@ class Program
     # 主人公を配置する。
     x, y = @level.get_random_place(:FLOOR)
     @hero.x, @hero.y = x, y
-  end
-
-  def play_level
-    @quitting = false
-
-    # メインループ
-    until @quitting
-      # 視界
-      fov = @level.fov(@hero)
-      @level.mark_explored(fov)
-      @level.light_up(fov)
-
-      render
-
-      c = read_command
-      @level.darken(@level.fov(@hero))
-      dispatch_command(c)
-    end
   end
 
   def read_command
@@ -178,7 +184,22 @@ class Program
 
   def main
     new_level
-    play_level
+
+    @quitting = false
+
+    # メインループ
+    until @quitting
+      # 視界
+      fov = @level.fov(@hero)
+      @level.mark_explored(fov)
+      @level.light_up(fov)
+
+      render
+
+      c = read_command
+      @level.darken(@level.fov(@hero))
+      dispatch_command(c)
+    end
   end
 end
 
