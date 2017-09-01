@@ -245,9 +245,9 @@ EOD
     # メインループ
     until @quitting
       # 視界
-      fov = @level.fov(@hero)
-      @level.mark_explored(fov)
-      @level.light_up(fov)
+      rect = @level.fov(@hero)
+      @level.mark_explored(rect)
+      @level.light_up(rect)
 
       render
 
