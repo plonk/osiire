@@ -42,7 +42,7 @@ class Program
 
     unless allowed
       #add_message("その方向へは進めない。")
-      return
+      return :nothing
     end
 
     x1 = @hero.x + dx
@@ -253,7 +253,9 @@ EOD
 
       c = read_command
       @level.darken(@level.fov(@hero))
-      case dispatch_command(c)
+      sym = dispatch_command(c)
+      #STDERR.puts sym.inspect
+      case sym
       when :action, :move
         monsters_move
         monsters_action
