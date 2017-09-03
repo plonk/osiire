@@ -28,12 +28,27 @@ class Dungeon
     end
   end
 
+
+  def make_monster(distribution)
+    denominator = distribution.map(&:last).inject(:+)
+    r = rand(denominator)
+    selected_monster = distribution.each do |name, prob|
+      if r < prob
+        break name
+      end
+      r -= prob
+    end
+    return Monster.make_monster(selected_monster)
+  end
+
   # モンスターを配置する。
   def place_monsters(level)
+    monster_distribution = MONSTER_TABLE.assoc(1)[1..-1]
+
     5.times do
       cell = level.cell(*level.get_random_place(:FLOOR))
       if cell.objects.none? { |obj| obj.is_a? Monster }
-        cell.objects << Monster.make_monster('スライム')
+        cell.objects << make_monster(monster_distribution)
       end
     end
   end
