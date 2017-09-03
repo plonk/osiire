@@ -1,11 +1,11 @@
 
 class Gold < Struct.new(:amount)
-  def char; '*' end
+  def char; '＊' end
 end
 
 class Item
   TYPES = [
-    [':', 'ナン']
+    ['凸', 'ナン']
   ]
 
   class << self
@@ -21,7 +21,6 @@ class Item
   attr :char, :name
 
   def initialize(char, name)
-    fail unless char =~ /\A[:print:]\z/
     @char     = char
     @name     = name
   end

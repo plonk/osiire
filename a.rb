@@ -105,7 +105,7 @@ class Game
     (0 ... @level.height).map do |y|
       (0 ... @level.width).map do |x|
         if @hero.x == x && @hero.y == y
-          '@'
+          @hero.char
         else
           @level.dungeon_char(x, y)
         end

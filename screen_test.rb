@@ -197,21 +197,21 @@ EOD
 
   def render
     # マップの描画
-    (0 ... Curses.lines).each do |y|
-      (0 ... Curses.cols).each do |x|
-        Curses.setpos(y, x)
+    (0 ... (Curses.lines)).each do |y|
+      (0 ... (Curses.cols/2)).each do |x|
+        Curses.setpos(y, x*2)
         # 画面座標から、レベル座標に変換する。
         y1 = y + @hero.y - Curses.lines/2
-        x1 = x + @hero.x - Curses.cols/2
+        x1 = x + @hero.x - Curses.cols/4
         if y1 >= 0 && y1 < @level.height &&
            x1 >= 0 && x1 < @level.width
           if @hero.x == x1 && @hero.y == y1
-            Curses.addch('@')
+            Curses.addstr('＠')
           else
-            Curses.addch(@level.dungeon_char(x1, y1))
+            Curses.addstr(@level.dungeon_char(x1, y1))
           end
         else
-          Curses.addch(' ')
+          Curses.addstr('　')
         end
       end
     end

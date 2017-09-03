@@ -25,7 +25,7 @@ class Cell
     }
 
     if !@explored
-      return ' '
+      return '　'
     end
 
     if !visible_objects.empty?
@@ -33,20 +33,20 @@ class Cell
     end
 
     case @type
-    when :WALL            then ' '
-    when :HORIZONTAL_WALL then '-'
-    when :VERTICAL_WALL   then '|'
+    when :WALL            then '　'
+    when :HORIZONTAL_WALL then '一'
+    when :VERTICAL_WALL   then '｜'
     when :FLOOR
-      if @lit then '.' else ' ' end
-    when :PASSAGE         then '#'
-    else '?'
+      if @lit then '・' else '　' end
+    when :PASSAGE         then '＃'
+    else '？'
     end
   end
 end
 
 class StairCase
   def char
-    '%'
+    '％'
   end
 end
 
@@ -56,6 +56,10 @@ class Hero < Struct.new(:x, :y, :curr_hp, :max_hp, :curr_strength, :max_strength
   def initialize(*args)
     super
     @inventory = []
+  end
+
+  def char
+    '＠'
   end
 
   def name; 'よてえもん' end

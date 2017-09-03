@@ -1,5 +1,8 @@
 # aka LevelGenerator
 class Dungeon
+  # [[Integer, [String,Integer], [String,Integer]...]...]
+  MONSTER_TABLE = eval(File.read(File.join(File.dirname(__FILE__), 'monster_table.rb')))
+
   # 金を置く。
   def place_gold(level)
     5.times do
@@ -30,7 +33,7 @@ class Dungeon
     5.times do
       cell = level.cell(*level.get_random_place(:FLOOR))
       if cell.objects.none? { |obj| obj.is_a? Monster }
-        cell.objects << Monster.make_monster('まんまる')
+        cell.objects << Monster.make_monster('スライム')
       end
     end
   end
