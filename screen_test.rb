@@ -62,7 +62,14 @@ class Program
       if gold
         cell.objects.delete(gold)
         @hero.gold += gold.amount
-        add_message("#{@hero.name}は #{gold.amount}Gを拾った。")
+        add_message("#{@hero.name}は #{gold.amount}G を拾った。")
+      end
+
+      item = cell.objects.find(&Item.method(:===))
+      if item
+        cell.objects.delete(item)
+        # TODO: インベントリにアイテムを追加する
+        add_message("#{@hero.name}は #{item.name} を拾った。")
       end
     end
 
