@@ -190,10 +190,14 @@ EOD
     menu.close
   end
 
+  # () -> :nothing
   def go_downstairs
     if @level.cell(@hero.x, @hero.y).objects.any? { |elt| elt.is_a?(StairCase) }
       new_level
+    else
+      add_message("ここに 階段は ない。")
     end
+    return :nothing
   end
 
   def new_level
