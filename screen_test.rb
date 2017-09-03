@@ -67,14 +67,24 @@ class Program
 
       item = cell.objects.find(&Item.method(:===))
       if item
-        cell.objects.delete(item)
-        # TODO: インベントリにアイテムを追加する
-        add_message("#{@hero.name}は #{item.name} を拾った。")
+        pick(cell.objects, item)
       end
     end
 
     return :move
   end
+
+  # ヒーロー @hero が配列 objects の要素 item を拾おうとする。
+  def pick(objects, item)
+    if @hero.inventory.size < 3
+      objects.delete(item)
+      @hero.inventory << item
+      add_message("#{@hero.name}は #{item.name}を 拾った。")
+    else
+      add_message("持ち物が いっぱいで #{item.name}が 拾えない。")
+    end
+  end
+
 
   def add_message(msg)
     if @message == msg
@@ -141,7 +151,7 @@ EOD
 
   # () → :action | :nothing
   def open_inventory
-    menu = Menu.new(["ナン", "おおきなナン", "巨大なナン","特製ナン","まずそうなナン"], y: 2, x: 3, cols: 25)
+    menu = Menu.new(@hero.inventory, y: 2, x: 3, cols: 25)
     item = c = nil
 
     loop do

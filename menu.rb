@@ -5,7 +5,8 @@ class Menu
     @x = opts[:x] || 0
     @cols = opts[:cols] || 25
     @index = 0
-    @win = Curses::Window.new(@items.size + 2, @cols, @y, @x) # lines, cols, y, x
+    winheight = [3, @items.size + 2].max
+    @win = Curses::Window.new(winheight, @cols, @y, @x) # lines, cols, y, x
   end
 
   def close
@@ -22,8 +23,9 @@ class Menu
     when 0
       @win.setpos(1, 1)
       @win.attron(Curses::A_BOLD)
-      @win.addstr("何も持っていない")
+      @win.addstr(" 何も持っていない")
       @win.attroff(Curses::A_BOLD)
+      @win.setpos(1, 1)
       @win.refresh
       @win.getch
       return [:cancel]

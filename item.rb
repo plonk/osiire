@@ -24,4 +24,8 @@ class Item
     @char     = char
     @name     = name
   end
+
+  def to_s
+    name
+  end
 end
