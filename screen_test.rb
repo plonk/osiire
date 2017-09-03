@@ -108,6 +108,9 @@ class Program
       go_downstairs
     when 'q'
       set_quitting
+    else
+      add_message("#{c.inspect} なんて 知らない。")
+      :nothing
     end
   end
 
