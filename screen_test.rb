@@ -242,7 +242,10 @@ EOD
 
     # キャラクターステータスの表示
     Curses.setpos(0, 0)
-    Curses.addstr("#{@level_number}F  HP #{@hero.curr_hp}/#{@hero.max_hp}  Str #{@hero.curr_strength}/#{@hero.max_strength}  Exp #{@hero.exp}  #{@hero.gold} G")
+    Curses.addstr("#{@level_number}F" \
+                  "  HP #{@hero.curr_hp}/#{@hero.max_hp}" \
+                  "  Str #{@hero.curr_strength}/#{@hero.max_strength}" \
+                  "  Exp #{@hero.exp}  #{@hero.gold} G")
 
     # メッセージの表示。
     # Curses.setpos(Curses.lines - 1, 0)
