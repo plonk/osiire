@@ -163,7 +163,7 @@ EOD
 
       case command
       when :cancel
-        Curses.beep
+        #Curses.beep
         return :nothing
       when :chosen
         item, = args
@@ -172,7 +172,7 @@ EOD
         c, *args = action_menu.choose
         case c
         when :cancel
-          Curses.beep
+          #Curses.beep
           action_menu.close
           next
         when :chosen
