@@ -116,8 +116,8 @@ class Program
 
   # () → :nothing
   def set_quitting
-      @quitting = true
-      :nothing
+    @quitting = true
+    :nothing
   end
 
   # () → :nothing
