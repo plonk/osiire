@@ -1,7 +1,9 @@
 # aka LevelGenerator
 class Dungeon
   # [[Integer, [String,Integer], [String,Integer]...]...]
-  MONSTER_TABLE = eval(File.read(File.join(File.dirname(__FILE__), 'monster_table.rb')))
+  MONSTER_TABLE = eval(IO.read(File.join(File.dirname(__FILE__), 'monster_table.rb')))
+  # [[Integer, [String,Integer], [String,Integer]...]...]
+  ITEM_TABLE = eval(IO.read(File.join(File.dirname(__FILE__), 'item_table.rb')))
 
   # 金を置く。
   def place_gold(level)
@@ -18,26 +20,37 @@ class Dungeon
     level.put_object(*level.get_random_place(:FLOOR), StairCase.new)
   end
 
-  # ナンを置く
-  def place_food(level)
-    5.times do
+  def make_item(distribution)
+    name = select(distribution)
+    return Item.make_item(name)
+  end
+
+  def place_items(level)
+    item_distribution = ITEM_TABLE.assoc(1)[1..-1] # 1Fに落ちるアイテムの分布
+    nitems = rand(3..5)
+    nitems.times do
       cell = level.cell(*level.get_random_place(:FLOOR))
-      if cell.objects.empty?
-        cell.objects << Item.make_item("ナン")
+      unless cell.objects.empty?
+        redo # 無限ループにならない為には…知らん
       end
+      cell.objects << make_item(item_distribution)
     end
   end
 
-
-  def make_monster(distribution)
+  def select(distribution)
     denominator = distribution.map(&:last).inject(:+)
     r = rand(denominator)
     selected_monster = distribution.each do |name, prob|
       if r < prob
-        break name
+        return name
       end
       r -= prob
     end
+    fail 'バグバグりん'
+  end
+
+  def make_monster(distribution)
+    selected_monster = select(distribution)
     return Monster.make_monster(selected_monster)
   end
 
@@ -60,7 +73,7 @@ class Dungeon
 
     place_stair_case(level)
     place_gold(level)
-    place_food(level)
+    place_items(level)
     place_monsters(level)
 
     return level
