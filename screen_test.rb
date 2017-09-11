@@ -76,7 +76,7 @@ class Program
 
   # ヒーロー @hero が配列 objects の要素 item を拾おうとする。
   def pick(objects, item)
-    if @hero.inventory.size < 3
+    if @hero.inventory.size < 20
       objects.delete(item)
       @hero.inventory << item
       add_message("#{@hero.name}は #{item.name}を 拾った。")
