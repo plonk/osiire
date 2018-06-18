@@ -4,6 +4,30 @@ require_relative 'level'
 require_relative 'dungeon'
 require_relative 'menu'
 
+class MessageLog
+  attr_reader :message, :updated_at
+
+  def initialize
+    @message = ""
+    @updated_at = Time.now
+  end
+
+  def add(msg)
+    if @message == msg
+      @message += msg
+    else
+      @message = msg
+    end
+    @updated_at = Time.now
+  end
+
+  def clear
+    @message = ""
+    @updated_at = Time.now
+  end
+
+end
+
 class Program
 
   def initialize
@@ -14,11 +38,10 @@ class Program
     at_exit {
       Curses.close_screen
     }
-    @message = ""
-    @message_updated_at = Time.now
     @hero = Hero.new(0, 0, 15, 15, 8, 8, 0, 0)
     @level_number = 0
     @dungeon = Dungeon.new
+    @log = MessageLog.new
   end
 
   # String → :move
@@ -47,7 +70,7 @@ class Program
     end
 
     unless allowed
-      #add_message("その方向へは進めない。")
+      #@log.add("その方向へは進めない。")
       return :nothing
     end
 
@@ -59,7 +82,7 @@ class Program
     if monster
       cell.objects.delete(monster)
       @hero.exp += monster.exp
-      add_message("#{@hero.name}は #{monster.name}を たおした。")
+      @log.add("#{@hero.name}は #{monster.name}を たおした。")
     else
       @hero.x = x1
       @hero.y = y1
@@ -68,7 +91,7 @@ class Program
       if gold
         cell.objects.delete(gold)
         @hero.gold += gold.amount
-        add_message("#{@hero.name}は #{gold.amount}G を拾った。")
+        @log.add("#{@hero.name}は #{gold.amount}G を拾った。")
       end
 
       item = cell.objects.find(&Item.method(:===))
@@ -85,21 +108,12 @@ class Program
     if @hero.inventory.size < 20
       objects.delete(item)
       @hero.inventory << item
-      add_message("#{@hero.name}は #{item.name}を 拾った。")
+      @log.add("#{@hero.name}は #{item.name}を 拾った。")
     else
-      add_message("持ち物が いっぱいで #{item.name}が 拾えない。")
+      @log.add("持ち物が いっぱいで #{item.name}が 拾えない。")
     end
   end
 
-
-  def add_message(msg)
-    if @message == msg
-      @message += msg
-    else
-      @message = msg
-    end
-    @message_updated_at = Time.now
-  end
 
   # String → :action | :move | :nothing
   def dispatch_command(c)
@@ -120,7 +134,7 @@ class Program
     when 'q'
       set_quitting
     else
-      add_message("#{c.inspect} なんて 知らない。")
+      @log.add("#{c.inspect} なんて 知らない。")
       :nothing
     end
   end
@@ -165,7 +179,7 @@ EOD
 
   # () → :action | :nothing
   def open_inventory
-    menu = Menu.new(@hero.inventory, y: 2, x: 3, cols: 25)
+    menu = Menu.new(@hero.inventory, y: 1, x: 0, cols: 25)
     item = c = nil
 
     loop do
@@ -195,7 +209,7 @@ EOD
 
       break if item and c
     end
-    add_message("#{item}を#{c}。")
+    @log.add("#{item}を#{c}。")
     return :action
   ensure
     menu.close
@@ -220,7 +234,7 @@ EOD
     if @level.cell(@hero.x, @hero.y).objects.any? { |elt| elt.is_a?(StairCase) }
       new_level
     else
-      add_message("ここに 階段は ない。")
+      @log.add("ここに 階段は ない。")
     end
     return :nothing
   end
@@ -236,15 +250,15 @@ EOD
   def read_command
     Curses.timeout = 100 # milliseconds
     until c = Curses.getch
-      if Time.now - @message_updated_at >= 1.5
-        @message = ""
+      if Time.now - @log.updated_at >= 1.5
+        @log.clear
         render
       end
     end
     return c
   end
 
-  def render
+  def render_map
     # マップの描画
     (0 ... (Curses.lines)).each do |y|
       (0 ... (Curses.cols/2)).each do |x|
@@ -264,23 +278,38 @@ EOD
         end
       end
     end
+  end
 
+  def move_cursor_to_hero
+    # カーソルをキャラクター位置に移動。
+    Curses.setpos(Curses.lines/2, Curses.cols/2)
+  end
+
+  def render
+    render_map()
+
+    render_status()
+
+    render_message()
+
+    move_cursor_to_hero()
+
+    Curses.refresh
+  end
+
+  def render_status
     # キャラクターステータスの表示
     Curses.setpos(0, 0)
     Curses.addstr("#{@level_number}F" \
                   "  HP #{@hero.curr_hp}/#{@hero.max_hp}" \
                   "  Str #{@hero.curr_strength}/#{@hero.max_strength}" \
                   "  Exp #{@hero.exp}  #{@hero.gold} G")
+  end
 
-    # メッセージの表示。
-    # Curses.setpos(Curses.lines - 1, 0)
+  # メッセージの表示。
+  def render_message
     Curses.setpos(1, 0)
-    Curses.addstr(@message)
-
-    # カーソルをキャラクター位置に移動。
-    Curses.setpos(Curses.lines/2, Curses.cols/2)
-
-    Curses.refresh
+    Curses.addstr(@log.message)
   end
 
   def monsters_move
