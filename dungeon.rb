@@ -5,16 +5,6 @@ class Dungeon
   # [[Integer, [String,Integer], [String,Integer]...]...]
   ITEM_TABLE = eval(IO.read(File.join(File.dirname(__FILE__), 'item_table.rb')))
 
-  # 金を置く。
-  def place_gold(level)
-    5.times do
-      cell = level.cell(*level.get_random_place(:FLOOR))
-      if cell.objects.empty?
-        cell.objects << Gold.new(rand(100..1000))
-      end
-    end
-  end
-
   # 階段を置く。
   def place_stair_case(level)
     level.put_object(*level.get_random_place(:FLOOR), StairCase.new)
@@ -30,10 +20,14 @@ class Dungeon
     nitems = rand(3..5)
     nitems.times do
       cell = level.cell(*level.get_random_place(:FLOOR))
-      unless cell.objects.empty?
-        redo # 無限ループにならない為には…知らん
+      if cell.objects.empty?
+        if rand < 0.1
+          # アイテムではなく金を置く。
+          cell.put_object(Gold.new(rand(100..1000)))
+        else
+          cell.put_object(make_item(item_distribution))
+        end
       end
-      cell.objects << make_item(item_distribution)
     end
   end
 
@@ -61,7 +55,7 @@ class Dungeon
     5.times do
       cell = level.cell(*level.get_random_place(:FLOOR))
       if cell.objects.none? { |obj| obj.is_a? Monster }
-        cell.objects << make_monster(monster_distribution)
+        cell.put_object(make_monster(monster_distribution))
       end
     end
   end
@@ -72,7 +66,6 @@ class Dungeon
     level = Level.new
 
     place_stair_case(level)
-    place_gold(level)
     place_items(level, level_number)
     place_monsters(level, level_number)
 

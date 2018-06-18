@@ -131,4 +131,31 @@ class Item
   def to_s
     name
   end
+
+  def actions
+    basics = ["投げる", "置く", "説明"]
+    case type
+    when :box
+      [] + basics
+    when :food
+      ["食べる"] + basics
+    when :herb
+      ["飲む"] + basics
+    when :projectile
+      [] + basics
+    when :ring
+      ["装備"] + basics
+    when :scroll
+      ["読む"] + basics
+    when :shield
+      ["装備"] + basics
+    when :staff
+      ["ふる"] + basics
+    when :weapon
+      ["装備"] + basics
+    else fail
+      "uncovered case"
+    end
+  end
+
 end

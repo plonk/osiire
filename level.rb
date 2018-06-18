@@ -1,5 +1,7 @@
 require_relative 'monster'
 require_relative 'item'
+class Trap
+end
 
 class Cell
   attr_accessor :lit, :explored, :type, :objects
@@ -8,7 +10,7 @@ class Cell
     @type = type
     @lit = false
     @explored = false
-    @objects = []
+    @objects = [].freeze
   end
 
   def char
@@ -42,6 +44,36 @@ class Cell
     else '？'
     end
   end
+
+  def score(object)
+    case object
+    when Monster
+      10
+    when Gold, Item, StairCase
+      20
+    else
+      fail object.class.to_s
+    end
+  end
+
+  def put_object(object)
+    @objects = (@objects + [object]).sort_by { |x| score(x) }.freeze
+  end
+
+  def remove_object(object)
+    @objects = (@objects - [object]).freeze
+  end
+
+  def can_place?
+    @objects.none? { |x|
+      case x
+      when StairCase, Trap, Item
+        true
+      else
+        false
+      end
+    }
+  end
 end
 
 class StairCase
@@ -60,6 +92,10 @@ class Hero < Struct.new(:x, :y, :curr_hp, :max_hp, :curr_strength, :max_strength
 
   def char
     '􄀦􄀧'
+  end
+
+  def remove_from_inventory(item)
+    @inventory -= [item]
   end
 
   def name; 'よてえもん' end
@@ -271,10 +307,10 @@ class Level
   end
 
   def put_object(x, y, object)
-    @dungeon[y][x].objects << object
+    @dungeon[y][x].put_object(object)
   end
 
   def remove_object(x, y, object)
-    @dungeon[y][x].objects.delete(object)
+    @dungeon[y][x].remove_object(object)
   end
 end

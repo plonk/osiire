@@ -80,7 +80,7 @@ class Program
     cell = @level.cell(x1, y1)
     monster = cell.objects.find { |obj| obj.is_a? Monster }
     if monster
-      cell.objects.delete(monster)
+      cell.remove_object(monster)
       @hero.exp += monster.exp
       @log.add("#{@hero.name}は #{monster.name}を たおした。")
     else
@@ -89,14 +89,14 @@ class Program
 
       gold = cell.objects.find { |obj| obj.is_a? Gold }
       if gold
-        cell.objects.delete(gold)
+        cell.remove_object(gold)
         @hero.gold += gold.amount
         @log.add("#{@hero.name}は #{gold.amount}G を拾った。")
       end
 
       item = cell.objects.find(&Item.method(:===))
       if item
-        pick(cell.objects, item)
+        pick(cell, item)
       end
     end
 
@@ -104,9 +104,9 @@ class Program
   end
 
   # ヒーロー @hero が配列 objects の要素 item を拾おうとする。
-  def pick(objects, item)
+  def pick(cell, item)
     if @hero.inventory.size < 20
-      objects.delete(item)
+      cell.remove_object(item)
       @hero.inventory << item
       @log.add("#{@hero.name}は #{item.name}を 拾った。")
     else
@@ -177,6 +177,21 @@ EOD
     return :nothing
   end
 
+  # アイテムに適用可能な行動
+  def actions_for_item(item)
+    item.actions
+  end
+
+  def try_place_item(item)
+    if @level.cell(@hero.x, @hero.y).can_place?
+      @hero.remove_from_inventory(item)
+      @level.put_object(@hero.x, @hero.y, item)
+      @log.add("#{item}を 置いた。")
+    else
+      @log.add("ここには 置けない。")
+    end
+  end
+
   # () → :action | :nothing
   def open_inventory
     menu = Menu.new(@hero.inventory, y: 1, x: 0, cols: 25)
@@ -193,7 +208,7 @@ EOD
       when :chosen
         item, = args
 
-        action_menu = Menu.new(["食べる", "投げる", "置く"], y: 2, x: 3+25, cols: 9)
+        action_menu = Menu.new(actions_for_item(item), y: 1, x: 25, cols: 9)
         c, *args = action_menu.choose
         case c
         when :cancel
@@ -209,7 +224,13 @@ EOD
 
       break if item and c
     end
-    @log.add("#{item}を#{c}。")
+
+    case c
+    when "置く"
+      try_place_item(item)
+    else
+      @log.add("case not covered: #{item}を#{c}。")
+    end
     return :action
   ensure
     menu.close
@@ -300,10 +321,12 @@ EOD
   def render_status
     # キャラクターステータスの表示
     Curses.setpos(0, 0)
-    Curses.addstr("#{@level_number}F" \
-                  "  HP #{@hero.curr_hp}/#{@hero.max_hp}" \
-                  "  Str #{@hero.curr_strength}/#{@hero.max_strength}" \
-                  "  Exp #{@hero.exp}  #{@hero.gold} G")
+    Curses.clrtoeol
+    line = "#{@level_number}F" \
+           "  HP #{@hero.curr_hp}/#{@hero.max_hp}" \
+           "  Str #{@hero.curr_strength}/#{@hero.max_strength}" \
+           "  Exp #{@hero.exp}  #{@hero.gold} G"
+    Curses.addstr(line)
   end
 
   # メッセージの表示。
