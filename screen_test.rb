@@ -10,6 +10,7 @@ class Program
     Curses.init_screen
     Curses.noecho
     Curses.crmode
+    Curses.stdscr.keypad(true)
     at_exit {
       Curses.close_screen
     }
@@ -29,7 +30,12 @@ class Program
             'y' => [-1, -1],
             'u' => [+1, -1],
             'b' => [-1, +1],
-            'n' => [+1, +1] }[c]
+            'n' => [+1, +1],
+            Curses::KEY_LEFT => [-1, 0],
+            Curses::KEY_RIGHT => [+1, 0],
+            Curses::KEY_UP => [0, -1],
+            Curses::KEY_DOWN => [0, +1],
+          }[c]
     fail ArgumentError unless vec
     dx, dy = vec
     if dx * dy != 0
@@ -98,9 +104,14 @@ class Program
   # String → :action | :move | :nothing
   def dispatch_command(c)
     case c
+    when ']'
+      cheat_go_downstairs
+    when '['
+      cheat_go_upstairs
     when '?'
       help
-    when 'h','j','k','l','y','u','b','n'
+    when 'h','j','k','l','y','u','b','n',
+         Curses::KEY_LEFT, Curses::KEY_RIGHT, Curses::KEY_UP, Curses::KEY_DOWN
       hero_move(c)
     when 'i'
       open_inventory
@@ -190,6 +201,20 @@ EOD
     menu.close
   end
 
+  def cheat_go_downstairs
+    if @level_number < 99
+      new_level(+1)
+    end
+    return :nothing
+  end
+
+  def cheat_go_upstairs
+    if @level_number > 1
+      new_level(-1)
+    end
+    return :nothing
+  end
+
   # () -> :nothing
   def go_downstairs
     if @level.cell(@hero.x, @hero.y).objects.any? { |elt| elt.is_a?(StairCase) }
@@ -200,8 +225,8 @@ EOD
     return :nothing
   end
 
-  def new_level
-    @level_number += 1
+  def new_level(dir = +1)
+    @level_number += dir
     @level = @dungeon.make_level(@level_number, @hero)
     # 主人公を配置する。
     x, y = @level.get_random_place(:FLOOR)
@@ -230,7 +255,7 @@ EOD
         if y1 >= 0 && y1 < @level.height &&
            x1 >= 0 && x1 < @level.width
           if @hero.x == x1 && @hero.y == y1
-            Curses.addstr('＠')
+            Curses.addstr(@hero.char)
           else
             Curses.addstr(@level.dungeon_char(x1, y1))
           end

@@ -17,7 +17,7 @@ class Menu
 
   def choose
     @win.clear
-    @win.box("|", "-", "-")
+    @win.box("\0", "\0")
 
     case @items.size
     when 0

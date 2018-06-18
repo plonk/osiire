@@ -25,8 +25,8 @@ class Dungeon
     return Item.make_item(name)
   end
 
-  def place_items(level)
-    item_distribution = ITEM_TABLE.assoc(1)[1..-1] # 1Fに落ちるアイテムの分布
+  def place_items(level, level_number)
+    item_distribution = ITEM_TABLE.assoc(level_number)[1..-1] # 1Fに落ちるアイテムの分布
     nitems = rand(3..5)
     nitems.times do
       cell = level.cell(*level.get_random_place(:FLOOR))
@@ -55,8 +55,8 @@ class Dungeon
   end
 
   # モンスターを配置する。
-  def place_monsters(level)
-    monster_distribution = MONSTER_TABLE.assoc(1)[1..-1]
+  def place_monsters(level, level_number)
+    monster_distribution = MONSTER_TABLE.assoc(level_number)[1..-1]
 
     5.times do
       cell = level.cell(*level.get_random_place(:FLOOR))
@@ -73,8 +73,8 @@ class Dungeon
 
     place_stair_case(level)
     place_gold(level)
-    place_items(level)
-    place_monsters(level)
+    place_items(level, level_number)
+    place_monsters(level, level_number)
 
     return level
   end

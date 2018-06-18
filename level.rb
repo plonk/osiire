@@ -17,7 +17,7 @@ class Cell
         true
       else
         if @explored
-          obj.is_a? Gold
+          obj.is_a?(Gold) || obj.is_a?(Item)
         else
           false
         end
@@ -33,12 +33,12 @@ class Cell
     end
 
     case @type
-    when :WALL            then '　'
-    when :HORIZONTAL_WALL then '一'
-    when :VERTICAL_WALL   then '｜'
+    when :WALL            then '􄁀􄁁'
+    when :HORIZONTAL_WALL then '􄀢􄀣'
+    when :VERTICAL_WALL   then '􄀼􄀽'
     when :FLOOR
-      if @lit then '・' else '　' end
-    when :PASSAGE         then '＃'
+      if @lit then '􄀪􄀫' else '􄀾􄀿' end
+    when :PASSAGE         then '􄀤􄀥'
     else '？'
     end
   end
@@ -46,7 +46,7 @@ end
 
 class StairCase
   def char
-    '％'
+    '􄀨􄀩'
   end
 end
 
@@ -59,7 +59,7 @@ class Hero < Struct.new(:x, :y, :curr_hp, :max_hp, :curr_strength, :max_strength
   end
 
   def char
-    '＠'
+    '􄀦􄀧'
   end
 
   def name; 'よてえもん' end

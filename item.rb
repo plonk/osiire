@@ -1,5 +1,5 @@
 class Gold < Struct.new(:amount)
-  def char; '＊' end
+  def char; '􄀲􄀳' end
 end
 
 class Item
@@ -91,15 +91,15 @@ class Item
   ]
 
   CHARS = {
-    :box => "箱",
-    :food => "凸",
-    :herb => "草",
-    :projectile => "矢",
-    :ring => "輪",
-    :scroll => "巻",
-    :shield => "盾",
-    :staff => "杖",
-    :weapon => "剣",
+    :box => "􄀠􄀡",
+    :food => "􄀶􄀷",
+    :herb => "􄀰􄀱",
+    :projectile => "􄁌􄁍",
+    :ring => "􄀸􄀹",
+    :scroll => "􄀴􄀵",
+    :shield => "􄀮􄀯",
+    :staff => "􄀺􄀻",
+    :weapon => "􄀬􄀭",
   }
 
   class << self
