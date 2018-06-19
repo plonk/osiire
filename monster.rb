@@ -42,19 +42,23 @@ class Monster
       row = SPECIES.find { |r| r[1] == name }
       fail "no such monster: #{name}" if row.nil?
 
-      char, name, max_hp, strength, defense, exp = row
-      return Monster.new(char, name, max_hp, strength, defense, exp)
+      char, name, max_hp, exp, strength, defense, drop_rate = row
+      return Monster.new(char, name, max_hp, strength, defense, exp, drop_rate)
     end
   end
 
-  attr :char, :name, :max_hp, :strength, :defense, :exp
+  attr :char, :name, :max_hp, :strength, :defense, :exp, :drop_rate
+  attr_accessor :hp
 
-  def initialize(char, name, max_hp, strength, defense, exp)
+  def initialize(char, name, max_hp, strength, defense, exp, drop_rate)
     @char     = char
     @name     = name
     @max_hp   = max_hp
     @strength = strength
     @defense  = defense
     @exp      = exp
+    @drop_rate = drop_rate
+
+    @hp = @max_hp
   end
 end

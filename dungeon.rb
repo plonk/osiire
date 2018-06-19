@@ -60,15 +60,37 @@ class Dungeon
     end
   end
 
+  def place_objective(level)
+    loop do
+      cell = level.cell(*level.get_random_place(:FLOOR))
+      if cell.can_place?
+        cell.put_object(Item.make_item("しあわせの箱"))
+        return
+      end
+    end
+  end
+
   def make_level(level_number, hero)
     fail unless level_number.is_a? Integer and level_number >= 1
 
     level = Level.new
 
     place_stair_case(level)
-    place_items(level, level_number)
+    unless on_return_trip?(hero)
+      place_items(level, level_number)
+    end
     place_monsters(level, level_number)
+    if level_number >= 27 && !on_return_trip?(hero)
+      place_objective(level)
+    end
 
     return level
   end
+
+  def on_return_trip?(hero)
+    hero.inventory.any? { |item|
+      item.type == :box && item.name != "鉄の金庫"
+    }
+  end
+
 end

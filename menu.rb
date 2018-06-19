@@ -7,6 +7,7 @@ class Menu
     @index = 0
     winheight = [3, @items.size + 2].max
     @win = Curses::Window.new(winheight, @cols, @y, @x) # lines, cols, y, x
+    @dispfunc = opts[:dispfunc] || :to_s.to_proc
   end
 
   def close
@@ -36,7 +37,7 @@ class Menu
           if i == @index
             @win.attron(Curses::A_BOLD)
           end
-          @win.addstr(" " + @items[i].to_s)
+          @win.addstr(" " + @dispfunc.call(@items[i]))
           if i == @index
             @win.attroff(Curses::A_BOLD)
           end

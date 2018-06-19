@@ -77,13 +77,24 @@ class Cell
 end
 
 class StairCase
+  attr_accessor :upwards
+
+  def initialize(upwards = false)
+    @upwards = upwards
+  end
+
   def char
-    '􄀨􄀩'
+    if upwards
+      '􄄸􄄹'
+    else
+      '􄀨􄀩'
+    end
   end
 end
 
-class Hero < Struct.new(:x, :y, :curr_hp, :max_hp, :curr_strength, :max_strength, :gold, :exp)
+class Hero < Struct.new(:x, :y, :hp, :max_hp, :strength, :max_strength, :gold, :exp, :fullness, :max_fullness, :lv)
   attr_reader :inventory
+  attr_accessor :weapon, :shield
 
   def initialize(*args)
     super
@@ -95,10 +106,39 @@ class Hero < Struct.new(:x, :y, :curr_hp, :max_hp, :curr_strength, :max_strength
   end
 
   def remove_from_inventory(item)
+    if item.equal?(weapon)
+      self.weapon = nil
+    end
+    if item.equal?(shield)
+      self.shield = nil
+    end
     @inventory -= [item]
   end
 
   def name; 'よてえもん' end
+
+  def full?
+    fullness > max_fullness - 1.0
+  end
+
+  def increase_fullness(amount)
+    fail TypeError unless amount.is_a?(Numeric)
+    self.fullness = [fullness + amount, max_fullness].min
+  end
+
+  def increase_max_fullness(amount)
+    fail TypeError unless amount.is_a?(Numeric)
+    self.max_fullness = [max_fullness + amount, 200.0].min
+  end
+
+  def strength_maxed?
+    strength >= max_strength
+  end
+
+  def hp_maxed?
+    hp > max_hp - 1.0
+  end
+
 end
 
 class Rect < Struct.new(:top, :bottom, :left, :right)
@@ -112,6 +152,8 @@ class Rect < Struct.new(:top, :bottom, :left, :right)
 end
 
 class Level
+  attr_reader :stairs_going_up
+
   def initialize
     @dungeon = Array.new(24) { Array.new(80) { Cell.new(:WALL) } }
 
@@ -162,6 +204,8 @@ class Level
         conn.draw(@dungeon)
       end
     end
+
+    @stairs_going_up = false
   end
 
   def dungeon_char(x, y)
@@ -313,4 +357,22 @@ class Level
   def remove_object(x, y, object)
     @dungeon[y][x].remove_object(object)
   end
+
+  def stairs_going_up=(bool)
+    (0 ... height).each do |y|
+      (0 ... width).each do |x|
+        st = @dungeon[y][x].objects.find { |obj| obj.is_a?(StairCase) }
+        if st
+          st.upwards = bool
+          return
+        end
+      end
+    end
+    fail "no stairs!"
+  end
+
+  def has_type_at?(type, x, y)
+    @dungeon[y][x].objects.any? { |x| x.is_a?(type) }
+  end
+
 end
