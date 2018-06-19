@@ -1,7 +1,6 @@
 require_relative 'monster'
 require_relative 'item'
-class Trap
-end
+require_relative 'trap'
 
 class Cell
   attr_accessor :lit, :explored, :type, :objects
@@ -15,13 +14,18 @@ class Cell
 
   def char
     visible_objects = @objects.select { |obj|
-      if @lit
-        true
+      case obj
+      when Trap
+        obj.visible
       else
-        if @explored
-          obj.is_a?(Gold) || obj.is_a?(Item)
+        if @lit
+          true
         else
-          false
+          if @explored
+            obj.is_a?(Gold) || obj.is_a?(Item)
+          else
+            false
+          end
         end
       end
     }
@@ -49,7 +53,7 @@ class Cell
     case object
     when Monster
       10
-    when Gold, Item, StairCase
+    when Gold, Item, StairCase, Trap
       20
     else
       fail object.class.to_s
@@ -74,6 +78,23 @@ class Cell
       end
     }
   end
+
+  def trap
+    @objects.find { |x| x.is_a? Trap }
+  end
+
+  def monster
+    @objects.find { |x| x.is_a? Monster }
+  end
+
+  def item
+    @objects.find { |x| x.is_a? Item }
+  end
+
+  def gold
+    @objects.find { |x| x.is_a? Gold }
+  end
+
 end
 
 class StairCase
@@ -300,7 +321,7 @@ class Level
   end
 
   def in_dungeon?(x, y)
-    return x.between?(0, width-1) && y.between(0, height-1)
+    return x.between?(0, width-1) && y.between?(0, height-1)
   end
 
   # (x, y) と周辺の8マスを探索済みとしてマークする

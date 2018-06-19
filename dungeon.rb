@@ -70,6 +70,15 @@ class Dungeon
     end
   end
 
+  def place_traps(level, level_number)
+    30.times do
+      cell = level.cell(*level.get_random_place(:FLOOR))
+      if cell.can_place?
+        cell.put_object(Trap.new(Trap::TRAPS.sample, false))
+      end
+    end
+  end
+
   def make_level(level_number, hero)
     fail unless level_number.is_a? Integer and level_number >= 1
 
@@ -79,6 +88,7 @@ class Dungeon
     unless on_return_trip?(hero)
       place_items(level, level_number)
     end
+    place_traps(level, level_number)
     place_monsters(level, level_number)
     if level_number >= 27 && !on_return_trip?(hero)
       place_objective(level)

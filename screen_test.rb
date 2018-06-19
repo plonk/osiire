@@ -135,9 +135,58 @@ class Program
       if item
         pick(cell, item)
       end
+
+      trap = cell.trap
+      if trap
+        activation_rate = trap.visible ? (1/4.0) : (3/4.0)
+        trap.visible = true
+        if rand() < activation_rate
+          trap_activate(trap)
+        else
+          trap_not_activate(trap)
+        end
+      end
     end
 
     return :move
+  end
+
+  def trap_not_activate(trap)
+    @log.add("#{trap.name}は 発動しなかった。")
+  end
+
+  def trap_activate(trap)
+    case trap.name
+    when "ワープゾーン"
+      x, y = @level.get_random_place(:FLOOR)
+      until !@level.cell(x, y).monster
+        x, y = @level.get_random_place(:FLOOR)
+      end
+      @hero.x, @hero.y = x, y
+      @log.add("ワープゾーンだ！")
+    when "硫酸"
+      @log.add("足元から酸がわき出ている！")
+    when "トラばさみ"
+      @log.add("トラばさみに かかってしまった！")
+    when "眠りガス"
+      @log.add("突然眠気が襲ってきた。")
+    when "石ころ"
+      @log.add("石にけつまずいて 転んだ！")
+    when "矢"
+      @log.add("矢が飛んできた！")
+      take_damage(5)
+    when "毒矢"
+      @log.add("矢が飛んできた！")
+      take_damage(5)
+      take_damage_strength(1)
+    when "地雷"
+      @log.add("足元で爆発が起こった！")
+      take_damage((@hero.hp / 2.0).ceil)
+    when "落とし穴"
+      @log.add("落とし穴だ！")
+      new_level(+1)
+    else fail
+    end
   end
 
   # ヒーロー @hero が配列 objects の要素 item を拾おうとする。
@@ -152,6 +201,25 @@ class Program
     end
   end
 
+  def reveal_trap(x, y)
+    cell = @level.cell(x, y)
+    trap = cell.objects.find { |x| x.is_a? Trap }
+    if trap && !trap.visible
+      trap.visible = true
+      @log.add("#{trap.name}を 見つけた。")
+    end
+  end
+
+  # 周り8マスをワナチェックする
+  def search
+    x, y = @hero.x, @hero.y
+    [[0,-1], [1,-1], [1,0], [1,1], [0,1], [-1,1], [-1,0], [-1,-1]].each do |xoff, yoff|
+      if @level.in_dungeon?(x, y)
+        reveal_trap(x + xoff, y + yoff)
+      end
+    end
+    return :action
+  end
 
   # String → :action | :move | :nothing
   def dispatch_command(c)
@@ -174,6 +242,8 @@ class Program
     when 's'
       status_window
       :nothing
+    when '.'
+      search
     else
       @log.add("#{c.inspect} なんて 知らない。")
       :nothing
@@ -201,6 +271,7 @@ class Program
      [Esc]   キャンセル。
      i       道具一覧を開く。
      >       階段を降りる。
+     .       周りを調べる。
      ?       このヘルプを表示。
      q       ゲームを終了する。
 EOD
