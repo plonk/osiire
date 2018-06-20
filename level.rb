@@ -171,7 +171,11 @@ class Hero < Struct.new(:x, :y, :hp, :max_hp, :strength, :max_strength, :gold, :
     if item.equal?(shield)
       self.shield = nil
     end
-    @inventory -= [item]
+    old_size = @inventory.size
+    @inventory = @inventory.reject { |x|
+      x.equal?(item)
+    }
+    fail unless @inventory.size == old_size - 1
   end
 
   def name; 'よてえもん' end

@@ -185,6 +185,28 @@ class Program
     @log.add("#{trap.name}は 発動しなかった。")
   end
 
+  # アイテムをばらまく。
+  def strew_items
+    count = 0
+    candidates = @hero.inventory.reject { |x| x.equal?(@hero.weapon) || x.equal?(@hero.shield) }
+    candidates.shuffle!
+    [[0,-1], [1,-1], [1,0], [1,1], [0,1], [-1,1], [-1,0], [-1,-1]].each do |dx, dy|
+      break if candidates.empty?
+      x, y = @hero.x + dx, @hero.y + dy
+      if @level.in_dungeon?(x, y) &&
+         @level.cell(x, y).can_place?
+        item = candidates.shift
+        @level.put_object(x, y, item)
+        @hero.remove_from_inventory(item)
+        count += 1
+      end
+    end
+
+    if count > 0
+      @log.add("アイテムを #{count}個 ばらまいてしまった！")
+    end
+  end
+
   def trap_activate(trap)
     case trap.name
     when "ワープゾーン"
@@ -202,6 +224,7 @@ class Program
       @log.add("突然眠気が襲ってきた。")
     when "石ころ"
       @log.add("石にけつまずいて 転んだ！")
+      strew_items
     when "矢"
       @log.add("矢が飛んできた！")
       take_damage(5)
