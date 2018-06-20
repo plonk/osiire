@@ -48,6 +48,20 @@ class Dungeon
     return Monster.make_monster(selected_monster)
   end
 
+  # rect: 避けるべきヒーローの視界。
+  def place_monster(level, level_number, rect)
+    monster_distribution = MONSTER_TABLE.assoc(level_number)[1..-1]
+
+    while true
+      x, y = level.get_random_place(:FLOOR)
+      cell = level.cell(x, y)
+      if !rect.include?(x, y) && !cell.monster
+        cell.put_object(make_monster(monster_distribution))
+        break
+      end
+    end
+  end
+
   # モンスターを配置する。
   def place_monsters(level, level_number)
     monster_distribution = MONSTER_TABLE.assoc(level_number)[1..-1]

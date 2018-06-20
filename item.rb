@@ -108,16 +108,34 @@ class Item
       fail "no such item: #{name}" if row.nil?
 
       type, name, number = row
-      return Item.new(type, name, number)
+      item = Item.new(type, name, number)
+
+      case item.type
+      when :staff
+        # 杖の場合 5~8 で回数を設定する。
+        item.number = 5 + rand(5)
+      end
+
+      return item
     end
   end
 
-  attr :type, :name, :number
+  attr :type, :name
+  attr_accessor :number
 
   def initialize(type, name, number)
     @type   = type
     @name   = name
     @number = number
+  end
+
+  def relative_number
+    row = ITEMS.find { |r| r[1] == @name }
+    if row
+      return @number - row[2]
+    else
+      return nil
+    end
   end
 
   def char
@@ -129,7 +147,26 @@ class Item
   end
 
   def to_s
-    name
+    ws_num_fmt = proc do |r|
+      if r.nil?
+        "?"
+      elsif r == 0
+        ""
+      elsif r < 0
+        r.to_s
+      else
+        "+#{r}"
+      end
+    end
+
+    case type
+    when :weapon, :shield
+      "#{name}#{ws_num_fmt.(relative_number)}"
+    when :staff
+      "#{name}[#{number}]"
+    else
+      name
+    end
   end
 
   def actions

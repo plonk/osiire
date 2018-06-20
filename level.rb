@@ -1,6 +1,7 @@
 require_relative 'monster'
 require_relative 'item'
 require_relative 'trap'
+require_relative 'vec'
 
 class Cell
   attr_accessor :lit, :explored, :type, :objects
@@ -12,38 +13,63 @@ class Cell
     @objects = [].freeze
   end
 
-  def char
-    visible_objects = @objects.select { |obj|
-      case obj
-      when Trap
-        obj.visible
-      else
-        if @lit
-          true
+  def char(hero_sees_everything)
+    if hero_sees_everything
+      visible_objects = @objects.select { |obj|
+        case obj
+        when Trap
+          obj.visible
         else
-          if @explored
-            obj.is_a?(Gold) || obj.is_a?(Item)
+          true
+        end
+      }
+
+      if !visible_objects.empty?
+        return visible_objects.first.char
+      else
+        return background_char(hero_sees_everything)
+      end
+    else
+      visible_objects = @objects.select { |obj|
+        case obj
+        when Trap
+          obj.visible
+        else
+          if @lit
+            true
           else
-            false
+            if @explored
+              obj.is_a?(Gold) || obj.is_a?(Item) || obj.is_a?(StairCase)
+            else
+              false
+            end
           end
         end
+      }
+
+      if !@explored
+        return '　'
       end
-    }
 
-    if !@explored
-      return '　'
+      if !visible_objects.empty?
+        return visible_objects.first.char
+      end
+
+      background_char(hero_sees_everything)
     end
+  end
 
-    if !visible_objects.empty?
-      return visible_objects.first.char
-    end
-
+  def background_char(hero_sees_everything)
     case @type
     when :WALL            then '􄁀􄁁'
     when :HORIZONTAL_WALL then '􄀢􄀣'
     when :VERTICAL_WALL   then '􄀼􄀽'
     when :FLOOR
-      if @lit then '􄀪􄀫' else '􄀾􄀿' end
+      if @lit || hero_sees_everything
+        '􄀪􄀫'
+      else
+        '􄀾􄀿'
+      end
     when :PASSAGE         then '􄀤􄀥'
     else '？'
     end
@@ -95,6 +121,10 @@ class Cell
     @objects.find { |x| x.is_a? Gold }
   end
 
+  def stair_case
+    @objects.find { |x| x.is_a? StairCase }
+  end
+
 end
 
 class StairCase
@@ -115,7 +145,7 @@ end
 
 class Hero < Struct.new(:x, :y, :hp, :max_hp, :strength, :max_strength, :gold, :exp, :fullness, :max_fullness, :lv)
   attr_reader :inventory
-  attr_accessor :weapon, :shield
+  attr_accessor :weapon, :shield, :ring
 
   def initialize(*args)
     super
@@ -123,7 +153,15 @@ class Hero < Struct.new(:x, :y, :hp, :max_hp, :strength, :max_strength, :gold, :
   end
 
   def char
-    '􄀦􄀧'
+    if weapon && shield
+      '􄀦􄀧'
+    elsif weapon
+      '􄄾􄄿'
+    elsif shield
+      '􄄼􄄽'
+    else
+      '􄅀􄅁'
+    end
   end
 
   def remove_from_inventory(item)
@@ -170,10 +208,16 @@ class Rect < Struct.new(:top, :bottom, :left, :right)
       end
     end
   end
+
+  def include?(x, y)
+    (left .. right).include?(x) && (top .. bottom).include?(y)
+  end
 end
 
 class Level
   attr_reader :stairs_going_up
+  attr_accessor :whole_level_lit
+  attr_accessor :turn
 
   def initialize
     @dungeon = Array.new(24) { Array.new(80) { Cell.new(:WALL) } }
@@ -227,10 +271,12 @@ class Level
     end
 
     @stairs_going_up = false
+    @whole_level_lit = false
+    @turn = 0
   end
 
   def dungeon_char(x, y)
-    @dungeon[y][x].char
+    @dungeon[y][x].char(@whole_level_lit)
   end
 
   def width
@@ -305,10 +351,10 @@ class Level
   def passable?(subject, x, y)
     unless x.between?(0, width - 1) && y.between?(0, height - 1)
       # 画面外
-      puts "画面外"
       return false
     end
-    return @dungeon[y][x].type == :FLOOR || @dungeon[y][x].type == :PASSAGE
+
+    return (@dungeon[y][x].type == :FLOOR || @dungeon[y][x].type == :PASSAGE)
   end
 
   def room_at(x, y)
@@ -318,6 +364,17 @@ class Level
       end
     end
     return nil
+  end
+
+  def room_exits(room)
+    res = []
+    rect = Rect.new(room.top, room.bottom, room.left, room.right)
+    rect.each_coords do |x, y|
+      if @dungeon[y][x].type == :PASSAGE
+        res << [x, y]
+      end
+    end
+    return res
   end
 
   def in_dungeon?(x, y)
@@ -335,16 +392,16 @@ class Level
     end
   end
 
-  # 主体 subject の視野 Rect を返す。
-  def fov(subject)
-    r = room_at(subject.x, subject.y)
+  # (x, y)地点での視野 Rect を返す。
+  def fov(x, y)
+    r = room_at(x, y)
     if r
       return Rect.new(r.top, r.bottom, r.left, r.right)
     else
-      top = [0, subject.y-1].max
-      bottom = [height-1, subject.y+1].min
-      left = [0, subject.x-1].max
-      right = [width-1, subject.x+1].min
+      top = [0, y-1].max
+      bottom = [height-1, y+1].min
+      left = [0, x-1].max
+      right = [width-1, x+1].min
       return Rect.new(top, bottom, left, right)
     end
   end
@@ -396,4 +453,28 @@ class Level
     @dungeon[y][x].objects.any? { |x| x.is_a?(type) }
   end
 
+  def all_monsters_with_position
+    (0 ... height).flat_map do |y|
+      (0 ... width).flat_map do |x|
+        @dungeon[y][x].objects.select { |obj| obj.is_a?(Monster) }.map { |m| [m, x, y] }
+      end
+    end
+  end
+
+  def can_move_to?(m, mx, my, tx, ty)
+    return !@dungeon[ty][tx].monster &&
+      Vec.chess_distance([mx, my], [tx, ty]) == 1 &&
+      passable?(m, tx, ty) &&
+      passable?(m, tx, my) &&
+      passable?(m, mx, ty)
+  end
+
+  def can_attack?(m, mx, my, tx, ty)
+    # m の特性によって場合分けすることもできる。
+
+    return Vec.chess_distance([mx, my], [tx, ty]) == 1 &&
+           passable?(m, tx, ty) &&
+           passable?(m, tx, my) &&
+           passable?(m, mx, ty)
+  end
 end

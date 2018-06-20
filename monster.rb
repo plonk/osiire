@@ -43,14 +43,17 @@ class Monster
       fail "no such monster: #{name}" if row.nil?
 
       char, name, max_hp, exp, strength, defense, drop_rate = row
-      return Monster.new(char, name, max_hp, strength, defense, exp, drop_rate)
+      return Monster.new(char, name, max_hp, strength, defense, exp, drop_rate,
+                        :awake, [1,1], nil)
     end
   end
 
   attr :char, :name, :max_hp, :strength, :defense, :exp, :drop_rate
   attr_accessor :hp
+  attr_accessor :state, :facing, :goal
 
-  def initialize(char, name, max_hp, strength, defense, exp, drop_rate)
+  def initialize(char, name, max_hp, strength, defense, exp, drop_rate,
+                 state, facing, goal)
     @char     = char
     @name     = name
     @max_hp   = max_hp
@@ -58,6 +61,10 @@ class Monster
     @defense  = defense
     @exp      = exp
     @drop_rate = drop_rate
+
+    @state = state
+    @facing = facing
+    @goal = goal
 
     @hp = @max_hp
   end
