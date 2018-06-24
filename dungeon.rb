@@ -10,13 +10,13 @@ class Dungeon
     level.put_object(*level.get_random_place(:FLOOR), StairCase.new)
   end
 
-  def make_item(distribution)
+  def make_item(level_number)
+    distribution = ITEM_TABLE.assoc(level_number)[1..-1] # 1Fに落ちるアイテムの分布
     name = select(distribution)
     return Item.make_item(name)
   end
 
   def place_items(level, level_number)
-    item_distribution = ITEM_TABLE.assoc(level_number)[1..-1] # 1Fに落ちるアイテムの分布
     nitems = rand(3..5)
     nitems.times do
       cell = level.cell(*level.get_random_place(:FLOOR))
@@ -25,7 +25,7 @@ class Dungeon
           # アイテムではなく金を置く。
           cell.put_object(Gold.new(rand(100..1000)))
         else
-          cell.put_object(make_item(item_distribution))
+          cell.put_object(make_item(level_number))
         end
       end
     end
@@ -43,20 +43,21 @@ class Dungeon
     fail 'バグバグりん'
   end
 
-  def make_monster(distribution)
+  def make_monster(level_number)
+    distribution = MONSTER_TABLE.assoc(level_number)[1..-1]
     selected_monster = select(distribution)
     return Monster.make_monster(selected_monster)
   end
 
   # rect: 避けるべきヒーローの視界。
   def place_monster(level, level_number, rect)
-    monster_distribution = MONSTER_TABLE.assoc(level_number)[1..-1]
-
     while true
       x, y = level.get_random_place(:FLOOR)
       cell = level.cell(x, y)
       if !rect.include?(x, y) && !cell.monster
-        cell.put_object(make_monster(monster_distribution))
+        m = make_monster(level_number)
+        m.state = [:asleep, :awake].sample
+        cell.put_object(m)
         break
       end
     end
@@ -64,12 +65,12 @@ class Dungeon
 
   # モンスターを配置する。
   def place_monsters(level, level_number)
-    monster_distribution = MONSTER_TABLE.assoc(level_number)[1..-1]
-
     5.times do
       cell = level.cell(*level.get_random_place(:FLOOR))
       if cell.objects.none? { |obj| obj.is_a? Monster }
-        cell.put_object(make_monster(monster_distribution))
+        m = make_monster(level_number)
+        m.state = [:asleep, :awake].sample
+        cell.put_object(m)
       end
     end
   end
@@ -85,10 +86,51 @@ class Dungeon
   end
 
   def place_traps(level, level_number)
-    30.times do
+    # 30 では多い。
+    15.times do
       cell = level.cell(*level.get_random_place(:FLOOR))
       if cell.can_place?
         cell.put_object(Trap.new(Trap::TRAPS.sample, false))
+      end
+    end
+  end
+
+  def place_traps_in_room(level, level_number, room)
+    ((room.top+1)..(room.bottom-1)).each do |y|
+      ((room.left+1)..(room.right-1)).each do |x|
+        if rand() < 0.5
+          if level.cell(x, y).can_place?
+            level.cell(x, y).put_object(Trap.new(Trap::TRAPS.sample, false))
+          end
+        end
+      end
+    end
+  end
+
+  def place_items_in_room(level, level_number, room, nitems)
+    points = ((room.top+1)..(room.bottom-1)).flat_map { |y|
+      ((room.left+1)..(room.right-1)).map { |x|
+        [x, y]
+      }
+    }
+    points.sample(nitems).each do |x, y|
+      if level.cell(x, y).can_place?
+        level.cell(x, y).put_object(make_item(level_number))
+      end
+    end
+  end
+
+  def place_monsters_in_room(level, level_number, room, nmonsters)
+    points = ((room.top+1)..(room.bottom-1)).flat_map { |y|
+      ((room.left+1)..(room.right-1)).map { |x|
+        [x, y]
+      }
+    }
+    points.sample(nmonsters).each do |x, y|
+      unless level.cell(x, y).monster
+        m = make_monster(level_number)
+        m.state = :asleep
+        level.cell(x, y).put_object(m)
       end
     end
   end
@@ -106,6 +148,15 @@ class Dungeon
     place_monsters(level, level_number)
     if level_number >= 27 && !on_return_trip?(hero)
       place_objective(level)
+    end
+
+    if rand() < 1.0
+      r = level.rooms.sample
+      level.party_room = r
+
+      place_traps_in_room(level, level_number, r)
+      place_items_in_room(level, level_number, r, 10)
+      place_monsters_in_room(level, level_number, r, 10)
     end
 
     return level

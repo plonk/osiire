@@ -1,5 +1,25 @@
 # どうして MonsterGenerator のようなものが必要なのだろう？
 
+class StatusEffect < Struct.new(:type, :remaining_duration)
+  # def on_start
+  # end
+
+  # def on_end
+  # end
+end
+
+module StatusEffectPredicates
+  attr :status_effects
+
+  def paralyzed?
+    @status_effects.any? { |e| e.type == :paralysis }
+  end
+
+  def asleep?
+    @status_effects.any? { |e| e.type == :sleep }
+  end
+end
+
 class Monster
   SPECIES = [
     # char, name, max_hp, exp, strength, defense, drop
@@ -44,13 +64,15 @@ class Monster
 
       char, name, max_hp, exp, strength, defense, drop_rate = row
       return Monster.new(char, name, max_hp, strength, defense, exp, drop_rate,
-                        :awake, [1,1], nil)
+                        :asleep, [1,1], nil)
     end
   end
 
   attr :char, :name, :max_hp, :strength, :defense, :exp, :drop_rate
   attr_accessor :hp
   attr_accessor :state, :facing, :goal
+
+  include StatusEffectPredicates
 
   def initialize(char, name, max_hp, strength, defense, exp, drop_rate,
                  state, facing, goal)
@@ -67,5 +89,7 @@ class Monster
     @goal = goal
 
     @hp = @max_hp
+
+    @status_effects = []
   end
 end

@@ -113,7 +113,7 @@ class Item
       case item.type
       when :staff
         # 杖の場合 5~8 で回数を設定する。
-        item.number = 5 + rand(5)
+        item.number = 3 + rand(5)
       end
 
       return item
@@ -122,11 +122,21 @@ class Item
 
   attr :type, :name
   attr_accessor :number
+  attr_accessor :gold_plated
 
   def initialize(type, name, number)
     @type   = type
     @name   = name
     @number = number
+    if type == :shield
+      if name == "みかがみの盾" || name == "皮の盾"
+        @rustproof = true
+      else
+        @rustproof = false
+      end
+    else
+      @rustproof = nil
+    end
   end
 
   def relative_number
@@ -161,7 +171,8 @@ class Item
 
     case type
     when :weapon, :shield
-      "#{name}#{ws_num_fmt.(relative_number)}"
+      star = @gold_plated ? "★" : ""
+      "#{star}#{name}#{ws_num_fmt.(relative_number)}"
     when :staff
       "#{name}[#{number}]"
     else
@@ -193,6 +204,10 @@ class Item
     else fail
       "uncovered case"
     end
+  end
+
+  def rustproof?
+    @rustproof || @gold_plated
   end
 
 end

@@ -4,6 +4,7 @@ require_relative 'level'
 require_relative 'dungeon'
 require_relative 'menu'
 require_relative 'vec'
+require_relative 'charlevel'
 
 class MessageLog
   attr_reader :message, :updated_at
@@ -36,6 +37,7 @@ class Action < Struct.new(:type, :direction)
 end
 
 class Program
+  include CharacterLevel
 
   def initialize
     Curses.init_screen
@@ -49,6 +51,14 @@ class Program
     # @hero.inventory << Item.make_item("しあわせの箱")
     @hero.inventory << Item.make_item("ドラゴンキラー")
     @hero.inventory << Item.make_item("みかがみの盾")
+    @hero.inventory << Item.make_item("皮の盾")
+    @hero.inventory << Item.make_item("盗賊の指輪")
+    @hero.inventory << Item.make_item("ワナ抜けの指輪")
+    @hero.inventory << Item.make_item("火炎草")
+    @hero.inventory << Item.make_item("ルーラ草")
+    @hero.inventory << Item.make_item("ラリホー草")
+    @hero.inventory << Item.make_item("目薬草")
+    @hero.inventory << Item.make_item("幸せの種")
     @hero.inventory << Item.make_item("パン")
     @hero.inventory << Item.make_item("大きなパン")
     @hero.inventory << Item.make_item("くさったパン")
@@ -56,20 +66,16 @@ class Program
     @hero.inventory << Item.make_item("弟切草")
     @hero.inventory << Item.make_item("毒けし草")
     @hero.inventory << Item.make_item("ちからの種")
+    @hero.inventory << Item.make_item("かなしばりの巻物")
+    @hero.inventory << Item.make_item("聖域の巻物")
+    @hero.inventory << Item.make_item("リレミトの巻物")
+    @hero.inventory << Item.make_item("イオの巻物")
     @hero.inventory << Item.make_item("レミーラの巻物")
-    @hero.inventory << Item.make_item("バイキルトの巻物")
-    @hero.inventory << Item.make_item("バイキルトの巻物")
-    @hero.inventory << Item.make_item("バイキルトの巻物")
-    @hero.inventory << Item.make_item("バイキルトの巻物")
-    @hero.inventory << Item.make_item("バイキルトの巻物")
-    @hero.inventory << Item.make_item("バイキルトの巻物")
-    @hero.inventory << Item.make_item("バイキルトの巻物")
-    @hero.inventory << Item.make_item("バイキルトの巻物")
-    @hero.inventory << Item.make_item("バイキルトの巻物")
-    @hero.inventory << Item.make_item("スカラの巻物")
     @level_number = 0
     @dungeon = Dungeon.new
     @log = MessageLog.new
+
+    @last_room = nil
   end
 
   def check_level_up
@@ -97,6 +103,7 @@ class Program
   end
 
   def hero_attack(cell, monster)
+    on_monster_attacked(monster)
     if rand() < 0.125
       @log.add("#{@hero.name}の 攻撃は外れた。")
     else
@@ -104,12 +111,16 @@ class Program
       damage = ( ( attack * (15.0/16.0)**monster.defense ) * (112 + rand(32))/128.0 ).to_i
       monster.hp -= damage
       @log.add("#{monster.name}に #{damage} のダメージを与えた。")
-      if monster.hp < 1.0
-        cell.remove_object(monster)
-        @hero.exp += monster.exp
-        @log.add("#{monster.name}を たおして #{monster.exp} ポイントの経験値を得た。")
-        check_level_up
-      end
+      check_monster_dead(cell, monster)
+    end
+  end
+
+  def check_monster_dead(cell, monster)
+    if monster.hp < 1.0
+      cell.remove_object(monster)
+      @hero.exp += monster.exp
+      @log.add("#{monster.name}を たおして #{monster.exp} ポイントの経験値を得た。")
+      check_level_up
     end
   end
 
@@ -170,7 +181,7 @@ class Program
       if trap
         activation_rate = trap.visible ? (1/4.0) : (3/4.0)
         trap.visible = true
-        if rand() < activation_rate
+        if @hero.ring&.name != "ワナ抜けの指輪" && rand() < activation_rate
           trap_activate(trap)
         else
           trap_not_activate(trap)
@@ -183,6 +194,23 @@ class Program
 
   def trap_not_activate(trap)
     @log.add("#{trap.name}は 発動しなかった。")
+  end
+
+  def take_damage_shield
+    if @hero.shield
+      if @hero.shield.rustproof?
+        @log.add("しかし #{@hero.shield}は錆びなかった。")
+      else
+        if @hero.shield.number > 0
+          @hero.shield.number -= 1
+          @log.add("盾が錆びてしまった！")
+        else
+          @log.add("しかし 何も起こらなかった。")
+        end
+      end
+    else
+      @log.add("しかし なんともなかった。")
+    end
   end
 
   # アイテムをばらまく。
@@ -207,17 +235,23 @@ class Program
     end
   end
 
+  def hero_teleport
+    x, y = @level.get_random_place(:FLOOR)
+    until !@level.cell(x, y).monster
+      x, y = @level.get_random_place(:FLOOR)
+    end
+    @hero.x, @hero.y = x, y
+  end
+
+
   def trap_activate(trap)
     case trap.name
     when "ワープゾーン"
-      x, y = @level.get_random_place(:FLOOR)
-      until !@level.cell(x, y).monster
-        x, y = @level.get_random_place(:FLOOR)
-      end
-      @hero.x, @hero.y = x, y
+      hero_teleport
       @log.add("ワープゾーンだ！")
     when "硫酸"
       @log.add("足元から酸がわき出ている！")
+      take_damage_shield
     when "トラばさみ"
       @log.add("トラばさみに かかってしまった！")
     when "眠りガス"
@@ -420,7 +454,8 @@ EOD
   def open_inventory
     dispfunc = proc { |item|
       if @hero.weapon.equal?(item) ||
-         @hero.shield.equal?(item)
+         @hero.shield.equal?(item) ||
+         @hero.ring.equal?(item)
         "E" + item.to_s
       else
         item.to_s
@@ -523,13 +558,95 @@ EOD
       else
         @log.add("しかし 何も起こらなかった。")
       end
+    when "メッキの巻物"
+      if @hero.shield && !@hero.shield.rustproof?
+        @log.add("#{@hero.shield}に メッキがほどこされた！")
+        @hero.shield.gold_plated = true
+      else
+        @log.add("しかし 何も起こらなかった。")
+      end
+    when "シャナクの巻物"
+      @log.add("呪いなんて信じてるの？")
+    when "かなしばりの巻物"
+      monsters = []
+      rect = @level.surroundings(@hero.x, @hero.y)
+      rect.each_coords do |x, y|
+        if @level.in_dungeon?(x, y)
+          m = @level.cell(x, y).monster
+          monsters << m if m
+        end
+      end
+      if monsters.any?
+        monsters.each do |m|
+          unless m.paralyzed?
+            m.status_effects.push(StatusEffect.new(:paralysis, 50))
+          end
+        end
+        @log.add("まわりの モンスターの動きが 止まった。")
+      else
+        @log.add("しかし 何も起こらなかった。")
+      end
+    when "聖域の巻物"
+      @log.add("何も起こらなかった。足元に置いて使うようだ。")
+    when "リレミトの巻物"
+      if @dungeon.on_return_trip?(@hero)
+        @log.add("帰り道では 使えない。")
+      elsif @level_number <= 1
+        @log.add("しかし何も起こらなかった。")
+      else
+        @log.add("不思議なちからで 1階 に引き戻された！")
+        new_level(1 - @level_number)
+      end
+    when "イオの巻物"
+      @log.add("空中で 爆発が 起こった！")
+      attack_monsters_in_room(5..35)
     else
       @log.add("実装してないよ。")
+    end
+  end
+
+  def on_monster_attacked(monster)
+    wake_monster(monster)
+    # かなしばり状態も解ける。
+    monster.status_effects.reject! { |e|
+      e.type == :paralysis
+    }
+  end
+
+  def wake_monster(monster)
+    if monster.state == :asleep
+      monster.state = :awake
+    end
+  end
+
+  def attack_monsters_in_room(range)
+    total_damage = 0
+    monster_count = 0
+    rect = @level.fov(@hero.x, @hero.y)
+    rect.each_coords do |x, y|
+      if @level.in_dungeon?(x, y)
+        cell = @level.cell(x, y)
+        monster = cell.monster
+        if monster
+          wake_monster(monster)
+          monster_count += 1
+          r = rand(range)
+          total_damage += r
+          monster.hp -= r
+          check_monster_dead(cell, monster)
+        end
+      end
+    end
+    if monster_count > 0
+      @log.add("#{monster_count}匹の モンスターに 合計 #{total_damage}ポイントのダメージ！")
     end
   end
  
   def take_herb(item)
     fail "not a herb" unless item.type == :herb
+
+    # 副作用として満腹度5%回復。
+    @hero.increase_fullness(5.0)
 
     @hero.remove_from_inventory(item)
     @log.add("#{item}を 薬にして 飲んだ。")
@@ -560,11 +677,23 @@ EOD
         @log.add("ちからが 1 ポイント 回復した。")
       end
     when "幸せの種"
-      @log.add("実装してないよ。")
+      required_exp = lv_to_exp(@hero.lv + 1)
+      if required_exp
+        @hero.exp = required_exp
+        check_level_up
+      else
+        @log.add("しかし 何も起こらなかった。")
+      end
     when "すばやさの種"
       @log.add("実装してないよ。")
     when "目薬草"
-      @log.add("実装してないよ。")
+      @level.each_coords do |x, y|
+        trap = @level.cell(x, y).trap
+        if trap
+          trap.visible = true
+        end
+      end
+      @log.add("ワナが見えるようになった。")
     when "毒草"
       @log.add("実装してないよ。")
     when "目つぶし草"
@@ -574,11 +703,15 @@ EOD
     when "メダパニ草"
       @log.add("実装してないよ。")
     when "ラリホー草"
-      @log.add("実装してないよ。")
+      unless @hero.asleep?
+        @hero.status_effects.push(StatusEffect.new(:sleep, 5))
+        @log.add("#{@hero.name}は 眠りに落ちた。")
+      end
     when "ルーラ草"
-      @log.add("実装してないよ。")
+      hero_teleport
+      @log.add("#{@hero.name}は ワープした。")
     when "火炎草"
-      @log.add("実装してないよ。")
+      @log.add("こいつは HOT だ！")
     else
       fail "uncoverd case: #{item}"
     end
@@ -756,7 +889,7 @@ EOD
   def read_command
     Curses.timeout = 100 # milliseconds
     until c = Curses.getch
-      if Time.now - @log.updated_at >= 1.5
+      if Time.now - @log.updated_at >= 2.0
         @log.clear
         render
       end
@@ -852,12 +985,13 @@ EOD
            "防御力 %d\n" % [get_hero_defense] +
            "武器 %s\n" % [@hero.weapon || "なし"] +
            "盾 %s\n" % [@hero.shield || "なし"] +
+           "指輪 %s\n" % [@hero.ring || "なし"] +
            "ちから %d/%d\n" % [@hero.strength, @hero.max_strength] +
            "経験値 %d\n" % [@hero.exp] +
            "つぎのLvまで %d\n" % [exp_until_next_lv || "∞"] +
            "満腹度 %d/%d\n" % [@hero.fullness.ceil, @hero.max_fullness]
 
-    win = Curses::Window.new(8+2, 23, 1, 0) # lines, cols, y, x
+    win = Curses::Window.new(9+2, 23, 1, 0) # lines, cols, y, x
     win.clear
     win.box("\0", "\0")
     text.each_line.with_index(1) do |line, y|
@@ -868,193 +1002,102 @@ EOD
     win.close
   end
 
-  EXP_LV_TABLE = [[0, 1],
-                  [10, 2],
-                  [30, 3],
-                  [60, 4],
-                  [100, 5],
-                  [150, 6],
-                  [230, 7],
-                  [350, 8],
-                  [500, 9],
-                  [700, 10],
-                  [950, 11],
-                  [1200, 12],
-                  [1500, 13],
-                  [1800, 14],
-                  [2300, 15],
-                  [3000, 16],
-                  [4000, 17],
-                  [6000, 18],
-                  [9000, 19],
-                  [15000, 20],
-                  [23000, 21],
-                  [33000, 22],
-                  [45000, 23],
-                  [60000, 24],
-                  [80000, 25],
-                  [100000, 26],
-                  [130000, 27],
-                  [180000, 28],
-                  [240000, 29],
-                  [300000, 30],
-                  [400000, 31],
-                  [500000, 32],
-                  [600000, 33],
-                  [700000, 34],
-                  [800000, 35],
-                  [900000, 36],
-                  [999999, 37]]
-
-  def lv_to_exp(level)
-    EXP_LV_TABLE.each do |e, lv|
-      if level == lv
-        return e
-      end
-    end
-    return nil
-  end
-
-  def exp_to_lv(exp)
-    last_lv = nil
-    EXP_LV_TABLE.each do |e, lv|
-      if exp < e
-        return last_lv
-      end
-      last_lv = lv
-    end
-    return last_lv # 37
-  end
-
-  def lv_to_attack(lv)
-    fail TypeError unless lv.is_a? Numeric
-    if lv >= 37
-      lv = 37
-    end
-    pair = [[1, 5],
-            [2, 7],
-            [3, 9],
-            [4, 11],
-            [5, 13],
-            [6, 16],
-            [7, 19],
-            [8, 22],
-            [9, 25],
-            [10, 29],
-            [11, 33],
-            [12, 37],
-            [13, 41],
-            [14, 46],
-            [15, 51],
-            [16, 56],
-            [17, 61],
-            [18, 65],
-            [19, 71],
-            [20, 74],
-            [21, 77],
-            [22, 80],
-            [23, 83],
-            [24, 86],
-            [25, 89],
-            [26, 90],
-            [27, 91],
-            [28, 92],
-            [29, 93],
-            [30, 94],
-            [31, 95],
-            [32, 96],
-            [33, 97],
-            [34, 98],
-            [35, 99],
-            [36, 100],
-            [37, 100]].assoc(lv)
-    fail unless pair
-    return pair[1]
-  end
-
-
   # Monster → Action
   def monster_action(m, mx, my)
     case m.name
     # 特殊な行動パターンを持つモンスターはここに when 節を追加。
     when nil
     else
-      # ジェネリックな行動パターン。
-
-      # * ヒーローに隣接していればヒーローに攻撃。
-      if @level.can_attack?(m, mx, my, @hero.x, @hero.y) # カド越しには攻撃できない。
-        return Action.new(:attack, Vec.minus([mx, my], [@hero.x, @hero.y]))
-      else
-        # * モンスターの視界内にヒーローが居れば目的地を再設定。
-        if @level.fov(mx, my).include?(@hero.x, @hero.y)
-          m.goal = [@hero.x, @hero.y]
-        end
-
-        # * 目的地がある場合...
-        if m.goal
-          # * 目的地に到着していれば目的地をリセット。
-          if m.goal == [mx, my]
-            m.goal = nil
+      case m.state
+      when :asleep
+        # ヒーローがに周囲8マスに居れば1/2の確率で起きる。
+        if @hero.ring&.name != "盗賊の指輪" &&
+           @level.surroundings(mx, my).include?(@hero.x, @hero.y)
+          if rand() < 0.5
+            m.state = :awake
           end
         end
+        return Action.new(:rest, nil)
+      when :awake
+        # ジェネリックな行動パターン。
 
-        if m.goal
-          # * 目的地があれば目的地へ向かう。(方向のpreferenceが複雑)
-          dir = Vec.normalize(Vec.minus(m.goal, [mx, my]))
-          [dir,
-           *[[dir[0], 0],
-             [0, dir[1]]].shuffle].each do |dx, dy|
-            if @level.can_move_to?(m, mx, my, mx+dx, my+dy)
-              return Action.new(:move, [dx, dy])
-            end
-          end
-
-          # 目的地に行けそうもないのであきらめる。(はやっ!)
-          m.goal = nil
-          return Action.new(:rest, nil)
+        # * ヒーローに隣接していればヒーローに攻撃。
+        if @level.can_attack?(m, mx, my, @hero.x, @hero.y) # カド越しには攻撃できない。
+          return Action.new(:attack, Vec.minus([mx, my], [@hero.x, @hero.y]))
         else
-          # * 目的地が無ければ...
+          # * モンスターの視界内にヒーローが居れば目的地を再設定。
+          if @level.fov(mx, my).include?(@hero.x, @hero.y)
+            m.goal = [@hero.x, @hero.y]
+          end
 
-          # * 部屋の中に居れば、出口の1つを目的地に設定する。
-          room = @level.room_at(mx, my)
-          if room
-            exit_points = @level.room_exits(room)
-            preferred = exit_points.reject { |x,y|
-              [x,y] == [mx - m.facing[0], my - m.facing[1]] # 今入ってきた出入口は除外する。
-            }
-            if preferred.any?
-              m.goal = preferred.sample
-              return monster_action(m, mx, my)
-            elsif exit_points.any?
-              # 今入ってきた出入口でも選択する。
-              m.goal = exit_points.sample
-              return monster_action(m, mx, my)
-            else
-              return Action.new(:rest, nil) # どうすりゃいいんだい
+          # * 目的地がある場合...
+          if m.goal
+            # * 目的地に到着していれば目的地をリセット。
+            if m.goal == [mx, my]
+              m.goal = nil
             end
-          else
-            # * 部屋の外に居れば、向いている方向へ進もうとする。
+          end
 
-            tx, ty = [mx + m.facing[0], my + m.facing[1]]
-            if @level.can_move_to?(m, mx, my, tx, ty)
-              return Action.new(:move, m.facing)
-            else
-              # * 進めなければ反対以外の方向に進もうとする。
-              #   通路を曲がるには ±90度で十分か。
-              dirs = [Vec.rotate_clockwise_45(m.facing, +2),
-                      Vec.rotate_clockwise_45(m.facing, -2)].shuffle
-              dirs.each do |dx, dy|
-                if @level.can_move_to?(m, mx, my, mx+dx, my+dy)
-                  return Action.new(:move, [dx,dy])
-                end
+          if m.goal
+            # * 目的地があれば目的地へ向かう。(方向のpreferenceが複雑)
+            dir = Vec.normalize(Vec.minus(m.goal, [mx, my]))
+            [dir,
+             *[[dir[0], 0],
+               [0, dir[1]]].shuffle].each do |dx, dy|
+              if @level.can_move_to?(m, mx, my, mx+dx, my+dy)
+                return Action.new(:move, [dx, dy])
               end
+            end
 
-              # * 進めなければその場で足踏み。反対を向く。
-              m.facing = Vec.negate(m.facing)
-              return Action.new(:rest, nil)
+            # 目的地に行けそうもないのであきらめる。(はやっ!)
+            m.goal = nil
+            return Action.new(:rest, nil)
+          else
+            # * 目的地が無ければ...
+
+            # * 部屋の中に居れば、出口の1つを目的地に設定する。
+            room = @level.room_at(mx, my)
+            if room
+              exit_points = @level.room_exits(room)
+              preferred = exit_points.reject { |x,y|
+                [x,y] == [mx - m.facing[0], my - m.facing[1]] # 今入ってきた出入口は除外する。
+              }
+              if preferred.any?
+                m.goal = preferred.sample
+                return monster_action(m, mx, my)
+              elsif exit_points.any?
+                # 今入ってきた出入口でも選択する。
+                m.goal = exit_points.sample
+                return monster_action(m, mx, my)
+              else
+                return Action.new(:rest, nil) # どうすりゃいいんだい
+              end
+            else
+              # * 部屋の外に居れば、向いている方向へ進もうとする。
+
+              tx, ty = [mx + m.facing[0], my + m.facing[1]]
+              if @level.can_move_to?(m, mx, my, tx, ty)
+                return Action.new(:move, m.facing)
+              else
+                # * 進めなければ反対以外の方向に進もうとする。
+                #   通路を曲がるには ±90度で十分か。
+                dirs = [Vec.rotate_clockwise_45(m.facing, +2),
+                        Vec.rotate_clockwise_45(m.facing, -2)].shuffle
+                dirs.each do |dx, dy|
+                  if @level.can_move_to?(m, mx, my, mx+dx, my+dy)
+                    return Action.new(:move, [dx,dy])
+                  end
+                end
+
+                # * 進めなければその場で足踏み。反対を向く。
+                m.facing = Vec.negate(m.facing)
+                return Action.new(:rest, nil)
+              end
             end
           end
         end
+      else
+        fail
       end
     end
   end
@@ -1080,7 +1123,8 @@ EOD
   def monster_phase
     doers = []
     @level.all_monsters_with_position.each do |m, mx, my|
-      #@log.add([m.name, m.object_id, mx, my])
+      next if m.paralyzed?
+
       action = monster_action(m, mx, my)
       if action.type == :move
         # その場で動かす。
@@ -1104,7 +1148,7 @@ EOD
   def hero_fullness_decrease
     old = @hero.fullness
     if @hero.fullness > 0.0
-      @hero.fullness -= 0.1
+      @hero.fullness -= @hero.hunger_per_turn
       if old >= 20.0 && @hero.fullness <= 20.0
         @log.add("おなかが 減ってきた。")
       elsif old >= 10.0 && @hero.fullness <= 10.0
@@ -1125,6 +1169,58 @@ EOD
     @dungeon.place_monster(@level, @level_number, @level.fov(@hero.x, @hero.y))
   end
 
+  def current_room
+    @level.room_at(@hero.x, @hero.y)
+  end
+
+  def wake_monsters_in_room(room, probability)
+    if @hero.ring&.name == "盗賊の指輪"
+      probability = 0.0
+    end
+
+    ((room.top+1)..(room.bottom-1)).each do |y|
+      ((room.left+1)..(room.right-1)).each do |x|
+        monster = @level.cell(x, y).monster
+        if monster
+          if monster.state == :asleep
+            if rand() < probability
+              monster.state = :awake
+            end
+          end
+        end
+      end
+    end
+  end
+
+  def on_status_effect_expire(character, effect)
+    case effect.type
+    when :paralysis
+      @log.add("#{character.name}の かなしばりがとけた。")
+    when :sleep
+      @log.add("#{character.name}は 目をさました。")
+    else
+      @log.add("#{character.name}の #{effect.type}状態がとけた。")
+    end
+  end
+
+  def status_effects_wear_out
+    monsters = @level.all_monsters_with_position.map { |m, x, y| m }
+
+    (monsters + [@hero]).each  do |m|
+      m.status_effects.each do |e|
+        e.remaining_duration -= 1
+      end
+      m.status_effects.reject! do |e|
+        (e.remaining_duration <= 0).tap do |expired|
+          if expired
+            on_status_effect_expire(m, e)
+          end
+        end
+      end
+    end
+
+  end
+
   def main
     new_level
 
@@ -1140,23 +1236,50 @@ EOD
       if @hero.hp < 1.0
         @log.add("#{@hero.name}は ちからつきた。")
         render
-        sleep 3
+        sleep 1.5
         gameover_message
         break
       end
 
+      #@log.add("#{@last_room.object_id} -> #{current_room.object_id}")
+      if @last_room != current_room
+        if @last_room
+          wake_monsters_in_room(@last_room, 0.5)
+        end
+        if current_room
+          if current_room == @level.party_room
+            @log.add("魔物の巣窟だ！")
+            wake_monsters_in_room(current_room, 1.0)
+            @level.party_room = nil
+          else
+            wake_monsters_in_room(current_room, 0.5)
+          end
+        end
+      end
+      @last_room = current_room
+
       # 画面更新
       render
 
-      c = read_command
-      @level.darken(@level.fov(@hero.x, @hero.y))
-      sym = dispatch_command(c)
+      if @hero.asleep?
+        sleep 1
+        @log.add("眠くて何もできない。")
+        sym = :action
+      else
+        c = read_command
+        @level.darken(@level.fov(@hero.x, @hero.y))
+        sym = dispatch_command(c)
+      end
+
       case sym
       when :action, :move
         monster_phase
         if @hero.hp >= 1.0 # 死んでなかった場合だけ？
           hero_fullness_decrease
         end
+
+        status_effects_wear_out()
+
         @level.turn += 1
 
         if @level.turn % 64 == 0

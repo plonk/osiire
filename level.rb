@@ -2,6 +2,7 @@ require_relative 'monster'
 require_relative 'item'
 require_relative 'trap'
 require_relative 'vec'
+require_relative 'charlevel'
 
 class Cell
   attr_accessor :lit, :explored, :type, :objects
@@ -95,7 +96,7 @@ class Cell
   end
 
   def can_place?
-    @objects.none? { |x|
+    return (@type == :FLOOR || @type == :PASSAGE) && @objects.none? { |x|
       case x
       when StairCase, Trap, Item
         true
@@ -147,9 +148,12 @@ class Hero < Struct.new(:x, :y, :hp, :max_hp, :strength, :max_strength, :gold, :
   attr_reader :inventory
   attr_accessor :weapon, :shield, :ring
 
+  include StatusEffectPredicates
+
   def initialize(*args)
     super
     @inventory = []
+    @status_effects = []
   end
 
   def char
@@ -202,6 +206,16 @@ class Hero < Struct.new(:x, :y, :hp, :max_hp, :strength, :max_strength, :gold, :
     hp > max_hp - 1.0
   end
 
+  def hunger_per_turn
+    if ring&.name == "ハラヘラズの指輪"
+      0.0
+    elsif shield&.name == "皮の盾"
+      0.05
+    else
+      0.1
+    end
+  end
+
 end
 
 class Rect < Struct.new(:top, :bottom, :left, :right)
@@ -222,6 +236,8 @@ class Level
   attr_reader :stairs_going_up
   attr_accessor :whole_level_lit
   attr_accessor :turn
+  attr_accessor :party_room
+  attr_reader :rooms
 
   def initialize
     @dungeon = Array.new(24) { Array.new(80) { Cell.new(:WALL) } }
@@ -298,6 +314,14 @@ class Level
       end
     end
     candidates.sample
+  end
+
+  def each_coords
+    (0 ... height).each do |y|
+      (0 ... width).each do |x|
+        yield(x, y)
+      end
+    end
   end
 
   def r(n)
@@ -402,12 +426,16 @@ class Level
     if r
       return Rect.new(r.top, r.bottom, r.left, r.right)
     else
-      top = [0, y-1].max
-      bottom = [height-1, y+1].min
-      left = [0, x-1].max
-      right = [width-1, x+1].min
-      return Rect.new(top, bottom, left, right)
+      return surroundings(x, y)
     end
+  end
+
+  def surroundings(x, y)
+    top = [0, y-1].max
+    bottom = [height-1, y+1].min
+    left = [0, x-1].max
+    right = [width-1, x+1].min
+    return Rect.new(top, bottom, left, right)
   end
 
   def light_up(fov)
