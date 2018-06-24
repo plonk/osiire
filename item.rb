@@ -216,4 +216,29 @@ class Item
     @rustproof || @gold_plated
   end
 
+  def sort_priority
+    case @type
+    when :weapon
+      1
+    when :shield
+      2
+    when :ring
+      3
+    when :food
+      4
+    when :herb
+      5
+    when :projectile
+      6
+    when :scroll
+      7
+    when :staff
+      8
+    when :box
+      9
+    else
+      fail "unknown item type #{type}"
+    end
+  end
+
 end

@@ -145,7 +145,7 @@ class StairCase
 end
 
 class Hero < Struct.new(:x, :y, :hp, :max_hp, :strength, :max_strength, :gold, :exp, :fullness, :max_fullness, :lv)
-  attr_reader :inventory
+  attr_accessor :inventory
   attr_accessor :weapon, :shield, :ring
 
   include StatusEffectPredicates

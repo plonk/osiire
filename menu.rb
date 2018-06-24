@@ -9,6 +9,7 @@ class Menu
     @win = Curses::Window.new(winheight, @cols, @y, @x) # lines, cols, y, x
     @dispfunc = opts[:dispfunc] || :to_s.to_proc
     @title = opts[:title] || ""
+    @sortable = opts[:sortable] || false
   end
 
   def close
@@ -17,10 +18,10 @@ class Menu
     @win.close
   end
 
+
   def choose
     @win.clear
     @win.box("\0", "\0")
-
     @win.setpos(0, 1)
     @win.addstr(@title)
 
@@ -53,6 +54,10 @@ class Menu
           @index = [@index + 1, @items.size - 1].min
         when 'k'
           @index = [@index - 1, 0].max
+        when 's'
+          if @sortable
+            return [:sort]
+          end
         when 'q'
           return [:cancel]
         when 10

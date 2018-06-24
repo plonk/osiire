@@ -426,26 +426,28 @@ class Program
     text = <<EOD
 ★ キャラクターの移動
 
-  y k u
-  h @ l
-  b j n
+     y k u
+     h @ l
+     b j n
 
 ★ コマンドキー
 
      [Enter] 決定。
-     [Esc]   キャンセル。
-     [Shift] 移動するときにアイテムを拾わない。
+     [Shift] 移動時にアイテムを拾わない。
      i       道具一覧を開く。
-     >       階段を降りる、足元のアイテムを拾う等。
+     >       階段を降りる。
+             足元のワナを踏む。
+             足元のアイテムを拾う。
      ,       足元を調べる。
      .       周りを調べる。
      ?       このヘルプを表示。
-     q       ゲームを終了する。
+     q       キャンセル。
+             ゲームを終了する。
 EOD
 
-    win = Curses::Window.new(20, 50, 2, 4) # lines, cols, y, x
+    win = Curses::Window.new(21, 50, 2, 4) # lines, cols, y, x
     win.clear
-    win.box("|", "-", "-")
+    win.box("\0", "\0")
     text.each_line.with_index(1) do |line, y|
       win.setpos(y, 1)
       win.addstr(line.chomp)
@@ -503,11 +505,16 @@ EOD
       end
     }
 
-    menu = Menu.new(@hero.inventory, y: 1, x: 0, cols: 25, dispfunc: dispfunc, title: "持ち物")
+    menu = nil
     item = c = nil
 
     loop do
       item = c = nil
+      menu = Menu.new(@hero.inventory,
+                      y: 1, x: 0, cols: 25,
+                      dispfunc: dispfunc,
+                      title: "持ち物 [s]ソート",
+                      sortable: true)
       command, *args = menu.choose
 
       case command
@@ -529,6 +536,10 @@ EOD
         else fail
         end
         action_menu.close
+      when :sort
+        @hero.inventory = @hero.inventory.map.with_index.sort { |(a, i),(b, j)|
+          [a.sort_priority, i] <=> [b.sort_priority, j]
+        }.map(&:first)
       end
 
       break if item and c
