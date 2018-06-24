@@ -8,6 +8,7 @@ class Menu
     winheight = [3, @items.size + 2].max
     @win = Curses::Window.new(winheight, @cols, @y, @x) # lines, cols, y, x
     @dispfunc = opts[:dispfunc] || :to_s.to_proc
+    @title = opts[:title] || ""
   end
 
   def close
@@ -19,6 +20,9 @@ class Menu
   def choose
     @win.clear
     @win.box("\0", "\0")
+
+    @win.setpos(0, 1)
+    @win.addstr(@title)
 
     case @items.size
     when 0

@@ -163,6 +163,8 @@ class Hero < Struct.new(:x, :y, :hp, :max_hp, :strength, :max_strength, :gold, :
       '􄄾􄄿'
     elsif shield
       '􄄼􄄽'
+    elsif hp < 1.0
+      '􄅂􄅃'
     else
       '􄅀􄅁'
     end
@@ -214,6 +216,14 @@ class Hero < Struct.new(:x, :y, :hp, :max_hp, :strength, :max_strength, :gold, :
     else
       0.1
     end
+  end
+
+  def poison_resistent?
+    ring&.name == "毒けしの指輪" || shield&.name == "うろこの盾"
+  end
+
+  def sleep_resistent?
+    ring&.name == "眠らずの指輪"
   end
 
 end

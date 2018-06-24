@@ -123,6 +123,7 @@ class Item
   attr :type, :name
   attr_accessor :number
   attr_accessor :gold_plated
+  attr_accessor :stuck
 
   def initialize(type, name, number)
     @type   = type
@@ -137,6 +138,7 @@ class Item
     else
       @rustproof = nil
     end
+    @stuck = false
   end
 
   def relative_number
@@ -149,11 +151,15 @@ class Item
   end
 
   def char
-    c = CHARS[@type]
-    unless c
-      fail "type: #{@type}"
+    if @type == :scroll && @stuck
+      return '􄅄􄅅'
+    else
+      c = CHARS[@type]
+      unless c
+        fail "type: #{@type}"
+      end
+      return c
     end
-    return c
   end
 
   def to_s

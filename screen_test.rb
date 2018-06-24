@@ -51,8 +51,9 @@ class Program
     # @hero.inventory << Item.make_item("しあわせの箱")
     @hero.inventory << Item.make_item("ドラゴンキラー")
     @hero.inventory << Item.make_item("みかがみの盾")
-    @hero.inventory << Item.make_item("皮の盾")
-    @hero.inventory << Item.make_item("盗賊の指輪")
+    @hero.inventory << Item.make_item("うろこの盾")
+    @hero.inventory << Item.make_item("レミーラの巻物")
+    @hero.inventory << Item.make_item("眠らずの指輪")
     @hero.inventory << Item.make_item("ワナ抜けの指輪")
     @hero.inventory << Item.make_item("火炎草")
     @hero.inventory << Item.make_item("ルーラ草")
@@ -61,16 +62,11 @@ class Program
     @hero.inventory << Item.make_item("幸せの種")
     @hero.inventory << Item.make_item("パン")
     @hero.inventory << Item.make_item("大きなパン")
-    @hero.inventory << Item.make_item("くさったパン")
     @hero.inventory << Item.make_item("薬草")
     @hero.inventory << Item.make_item("弟切草")
     @hero.inventory << Item.make_item("毒けし草")
     @hero.inventory << Item.make_item("ちからの種")
-    @hero.inventory << Item.make_item("かなしばりの巻物")
     @hero.inventory << Item.make_item("聖域の巻物")
-    @hero.inventory << Item.make_item("リレミトの巻物")
-    @hero.inventory << Item.make_item("イオの巻物")
-    @hero.inventory << Item.make_item("レミーラの巻物")
     @level_number = 0
     @dungeon = Dungeon.new
     @log = MessageLog.new
@@ -109,6 +105,11 @@ class Program
     else
       attack = get_hero_attack
       damage = ( ( attack * (15.0/16.0)**monster.defense ) * (112 + rand(32))/128.0 ).to_i
+      if monster.name == "メタルヨテイチ"
+        damage = [damage, 1].min
+      elsif monster.name == "竜" && @hero.weapon&.name == "ドラゴンキラー"
+        damage *= 2
+      end
       monster.hp -= damage
       @log.add("#{monster.name}に #{damage} のダメージを与えた。")
       check_monster_dead(cell, monster)
@@ -126,20 +127,39 @@ class Program
 
   # String → :move
   def hero_move(c)
-    vec = { 'h' => [-1,  0],
-            'j' => [ 0, +1],
-            'k' => [ 0, -1],
-            'l' => [+1,  0],
-            'y' => [-1, -1],
-            'u' => [+1, -1],
-            'b' => [-1, +1],
-            'n' => [+1, +1],
-            Curses::KEY_LEFT => [-1, 0],
-            Curses::KEY_RIGHT => [+1, 0],
-            Curses::KEY_UP => [0, -1],
-            Curses::KEY_DOWN => [0, +1],
-          }[c]
+    vec = {
+      'h' => [-1,  0],
+      'j' => [ 0, +1],
+      'k' => [ 0, -1],
+      'l' => [+1,  0],
+      'y' => [-1, -1],
+      'u' => [+1, -1],
+      'b' => [-1, +1],
+      'n' => [+1, +1],
+
+      'H' => [-1,  0],
+      'J' => [ 0, +1],
+      'K' => [ 0, -1],
+      'L' => [+1,  0],
+      'Y' => [-1, -1],
+      'U' => [+1, -1],
+      'B' => [-1, +1],
+      'N' => [+1, +1],
+
+      Curses::KEY_LEFT => [-1, 0],
+      Curses::KEY_RIGHT => [+1, 0],
+      Curses::KEY_UP => [0, -1],
+      Curses::KEY_DOWN => [0, +1],
+    }[c]
     fail ArgumentError unless vec
+
+    picking = !%w[H J K L Y U B N].include?(c)
+
+    if @hero.held?
+      @log.add("その場に とらえられて 動けない！")
+      return :action
+    end
+
     dx, dy = vec
     if dx * dy != 0
       allowed = @level.passable?(@hero, @hero.x + dx, @hero.y + dy) &&
@@ -167,14 +187,22 @@ class Program
 
       gold = cell.gold
       if gold
-        cell.remove_object(gold)
-        @hero.gold += gold.amount
-        @log.add("#{@hero.name}は #{gold.amount}G を拾った。")
+        if picking
+          cell.remove_object(gold)
+          @hero.gold += gold.amount
+          @log.add("#{gold.amount}G を拾った。")
+        else
+          @log.add("#{gold.amount}G の上に乗った。")
+        end
       end
 
       item = cell.item
       if item
-        pick(cell, item)
+        if picking
+          pick(cell, item)
+        else
+          @log.add("#{item.name}の上に乗った。")
+        end
       end
 
       trap = cell.trap
@@ -254,8 +282,12 @@ class Program
       take_damage_shield
     when "トラばさみ"
       @log.add("トラばさみに かかってしまった！")
+      unless @hero.held?
+        @hero.status_effects << StatusEffect.new(:held, 10)
+      end
     when "眠りガス"
-      @log.add("突然眠気が襲ってきた。")
+      @log.add("足元から 霧が出ている！")
+      hero_fall_asleep()
     when "石ころ"
       @log.add("石にけつまずいて 転んだ！")
       strew_items
@@ -279,10 +311,14 @@ class Program
   # ヒーロー @hero が配列 objects の要素 item を拾おうとする。
   def pick(cell, item)
     if @hero.inventory.size < 20
-      cell.remove_object(item)
-      @hero.inventory << item
-      update_stairs_direction
-      @log.add("#{@hero.name}は #{item.name}を 拾った。")
+      if item.stuck
+        @log.add("#{item.name}は 床にはりついて 拾えない。")
+      else
+        cell.remove_object(item)
+        @hero.inventory << item
+        update_stairs_direction
+        @log.add("#{@hero.name}は #{item.name}を 拾った。")
+      end
     else
       @log.add("持ち物が いっぱいで #{item.name}が 拾えない。")
     end
@@ -315,13 +351,13 @@ class Program
   def activate_underfoot
     cell = get_current_cell
     if cell.stair_case
-      go_downstairs
+      return go_downstairs()
     elsif cell.item
       pick(cell, cell.item)
       return :action
     elsif cell.trap
       trap_activate(cell.trap)
-      return :nothing # nothing でいいの？
+      return :action
     else
       @log.add("足元には何もない。")
       return :nothing
@@ -359,6 +395,7 @@ class Program
     when '?'
       help
     when 'h','j','k','l','y','u','b','n',
+         'H','J','K','L','Y','U','B','N',
          Curses::KEY_LEFT, Curses::KEY_RIGHT, Curses::KEY_UP, Curses::KEY_DOWN
       hero_move(c)
     when 'i'
@@ -397,6 +434,7 @@ class Program
 
      [Enter] 決定。
      [Esc]   キャンセル。
+     [Shift] 移動するときにアイテムを拾わない。
      i       道具一覧を開く。
      >       階段を降りる、足元のアイテムを拾う等。
      ,       足元を調べる。
@@ -442,6 +480,9 @@ EOD
   def try_place_item(item)
     if @level.cell(@hero.x, @hero.y).can_place?
       @hero.remove_from_inventory(item)
+      if item.name == "聖域の巻物"
+        item.stuck = true
+      end
       @level.put_object(@hero.x, @hero.y, item)
       update_stairs_direction
       @log.add("#{item}を 置いた。")
@@ -462,7 +503,7 @@ EOD
       end
     }
 
-    menu = Menu.new(@hero.inventory, y: 1, x: 0, cols: 25, dispfunc: dispfunc)
+    menu = Menu.new(@hero.inventory, y: 1, x: 0, cols: 25, dispfunc: dispfunc, title: "持ち物")
     item = c = nil
 
     loop do
@@ -704,8 +745,7 @@ EOD
       @log.add("実装してないよ。")
     when "ラリホー草"
       unless @hero.asleep?
-        @hero.status_effects.push(StatusEffect.new(:sleep, 5))
-        @log.add("#{@hero.name}は 眠りに落ちた。")
+        hero_fall_asleep
       end
     when "ルーラ草"
       hero_teleport
@@ -714,6 +754,15 @@ EOD
       @log.add("こいつは HOT だ！")
     else
       fail "uncoverd case: #{item}"
+    end
+  end
+
+  def hero_fall_asleep
+    if @hero.sleep_resistent?
+      @log.add("しかし なんともなかった。")
+    else
+      @hero.status_effects.push(StatusEffect.new(:sleep, 5))
+      @log.add("#{@hero.name}は 眠りに落ちた。")
     end
   end
 
@@ -789,6 +838,8 @@ EOD
 
   # ちからの現在値にダメージを受ける。
   def take_damage_strength(amount)
+    return if @hero.poison_resistent?
+
     decrement = [amount, @hero.strength].min
     if @hero.strength > 0
       @log.add("ちからが %d ポイント下がった。" %
@@ -983,13 +1034,13 @@ EOD
   def status_window
     text = "攻撃力 %d\n" % [get_hero_attack] +
            "防御力 %d\n" % [get_hero_defense] +
-           "武器 %s\n" % [@hero.weapon || "なし"] +
-           "盾 %s\n" % [@hero.shield || "なし"] +
-           "指輪 %s\n" % [@hero.ring || "なし"] +
+           "  武器 %s\n" % [@hero.weapon || "なし"] +
+           "    盾 %s\n" % [@hero.shield || "なし"] +
+           "  指輪 %s\n" % [@hero.ring || "なし"] +
            "ちから %d/%d\n" % [@hero.strength, @hero.max_strength] +
            "経験値 %d\n" % [@hero.exp] +
            "つぎのLvまで %d\n" % [exp_until_next_lv || "∞"] +
-           "満腹度 %d/%d\n" % [@hero.fullness.ceil, @hero.max_fullness]
+           "満腹度 %d%%/%d%%\n" % [@hero.fullness.ceil, @hero.max_fullness]
 
     win = Curses::Window.new(9+2, 23, 1, 0) # lines, cols, y, x
     win.clear
@@ -1023,7 +1074,11 @@ EOD
 
         # * ヒーローに隣接していればヒーローに攻撃。
         if @level.can_attack?(m, mx, my, @hero.x, @hero.y) # カド越しには攻撃できない。
-          return Action.new(:attack, Vec.minus([mx, my], [@hero.x, @hero.y]))
+          if @level.cell(@hero.x, @hero.y).item&.name == "聖域の巻物"
+            return Action.new(:rest, nil)
+          else
+            return Action.new(:attack, Vec.minus([mx, my], [@hero.x, @hero.y]))
+          end
         else
           # * モンスターの視界内にヒーローが居れば目的地を再設定。
           if @level.fov(mx, my).include?(@hero.x, @hero.y)
@@ -1198,6 +1253,8 @@ EOD
       @log.add("#{character.name}の かなしばりがとけた。")
     when :sleep
       @log.add("#{character.name}は 目をさました。")
+    when :held
+      @log.add("#{character.name}の 足が抜けた。")
     else
       @log.add("#{character.name}の #{effect.type}状態がとけた。")
     end

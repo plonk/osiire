@@ -18,6 +18,10 @@ module StatusEffectPredicates
   def asleep?
     @status_effects.any? { |e| e.type == :sleep }
   end
+
+  def held?
+    @status_effects.any? { |e| e.type == :held }
+  end
 end
 
 class Monster
