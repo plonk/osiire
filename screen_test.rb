@@ -49,10 +49,12 @@ class Program
     }
     @hero = Hero.new(0, 0, 15, 15, 8, 8, 0, 0, 100.0, 100.0, 1)
     @hero.inventory << Item.make_item("大きなパン")
-    @hero.inventory << Item.make_item("エクスカリバー")
-    @hero.inventory << Item.make_item("メタルヨテイチの盾")
-    @hero.inventory << Item.make_item("あかりの巻物")
-    @hero.inventory << Item.make_item("あかりの巻物")
+    if debug?
+      @hero.inventory << Item.make_item("エクスカリバー")
+      @hero.inventory << Item.make_item("メタルヨテイチの盾")
+      @hero.inventory << Item.make_item("あかりの巻物")
+      @hero.inventory << Item.make_item("あかりの巻物")
+    end
     @level_number = 0
     @dungeon = Dungeon.new
     @log = MessageLog.new
