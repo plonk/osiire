@@ -471,6 +471,8 @@ class Level
   end
 
   def put_object(x, y, object)
+    fail TypeError unless x.is_a?(Integer) && y.is_a?(Integer)
+    fail RangeError unless in_dungeon?(x, y)
     @dungeon[y][x].put_object(object)
   end
 

@@ -5,6 +5,8 @@ class Dungeon
   # [[Integer, [String,Integer], [String,Integer]...]...]
   ITEM_TABLE = eval(IO.read(File.join(File.dirname(__FILE__), 'item_table.rb')))
 
+  OBJECTIVE_NAME = "イェンダーの魔除け"
+
   # 階段を置く。
   def place_stair_case(level)
     level.put_object(*level.get_random_place(:FLOOR), StairCase.new)
@@ -16,17 +18,21 @@ class Dungeon
     return Item.make_item(name)
   end
 
+  def place_random_item(cell, level_number)
+    if rand < 0.1
+      # アイテムではなく金を置く。
+      cell.put_object(Gold.new(rand(100..1000)))
+    else
+      cell.put_object(make_item(level_number))
+    end
+  end
+
   def place_items(level, level_number)
     nitems = rand(3..5)
     nitems.times do
       cell = level.cell(*level.get_random_place(:FLOOR))
-      if cell.objects.empty?
-        if rand < 0.1
-          # アイテムではなく金を置く。
-          cell.put_object(Gold.new(rand(100..1000)))
-        else
-          cell.put_object(make_item(level_number))
-        end
+      if cell.can_place?
+        place_random_item(cell, level_number)
       end
     end
   end
@@ -56,11 +62,21 @@ class Dungeon
       cell = level.cell(x, y)
       if !rect.include?(x, y) && !cell.monster
         m = make_monster(level_number)
-        m.state = [:asleep, :awake].sample
-        cell.put_object(m)
+        spawn_monster(m, cell)
         break
       end
     end
+  end
+
+  def spawn_monster(m, cell)
+    case m.name
+    when "催眠術師"
+      m.state = :awake
+      m.status_effects.push(StatusEffect.new(:paralysis, Float::INFINITY))
+    else
+      m.state = [:asleep, :awake].sample
+    end
+    cell.put_object(m)
   end
 
   # モンスターを配置する。
@@ -69,8 +85,7 @@ class Dungeon
       cell = level.cell(*level.get_random_place(:FLOOR))
       if cell.objects.none? { |obj| obj.is_a? Monster }
         m = make_monster(level_number)
-        m.state = [:asleep, :awake].sample
-        cell.put_object(m)
+        spawn_monster(m, cell)
       end
     end
   end
@@ -79,7 +94,7 @@ class Dungeon
     loop do
       cell = level.cell(*level.get_random_place(:FLOOR))
       if cell.can_place?
-        cell.put_object(Item.make_item("しあわせの箱"))
+        cell.put_object(Item.make_item(OBJECTIVE_NAME))
         return
       end
     end
@@ -87,7 +102,7 @@ class Dungeon
 
   def place_traps(level, level_number)
     # 30 では多い。
-    15.times do
+    10.times do
       cell = level.cell(*level.get_random_place(:FLOOR))
       if cell.can_place?
         cell.put_object(Trap.new(Trap::TRAPS.sample, false))
@@ -150,12 +165,14 @@ class Dungeon
       place_objective(level)
     end
 
-    if rand() < 1.0
+    if rand() < 0.3
       r = level.rooms.sample
       level.party_room = r
 
       place_traps_in_room(level, level_number, r)
-      place_items_in_room(level, level_number, r, 10)
+      unless on_return_trip?(hero)
+        place_items_in_room(level, level_number, r, 10)
+      end
       place_monsters_in_room(level, level_number, r, 10)
     end
 

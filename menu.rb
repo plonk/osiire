@@ -7,6 +7,7 @@ class Menu
     @index = 0
     winheight = [3, @items.size + 2].max
     @win = Curses::Window.new(winheight, @cols, @y, @x) # lines, cols, y, x
+    @win.keypad(true)
     @dispfunc = opts[:dispfunc] || :to_s.to_proc
     @title = opts[:title] || ""
     @sortable = opts[:sortable] || false
@@ -50,10 +51,10 @@ class Menu
         @win.setpos(@index + 1,1)
         c = @win.getch
         case c
-        when 'j'
-          @index = [@index + 1, @items.size - 1].min
-        when 'k'
-          @index = [@index - 1, 0].max
+        when 'j', Curses::KEY_DOWN
+          @index = (@index + 1) % @items.size
+        when 'k', Curses::KEY_UP
+          @index = (@index - 1) % @items.size
         when 's'
           if @sortable
             return [:sort]

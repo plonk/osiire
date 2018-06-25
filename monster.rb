@@ -96,4 +96,8 @@ class Monster
 
     @status_effects = []
   end
+
+  def trick_rate
+    0.5
+  end
 end

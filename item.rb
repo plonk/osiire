@@ -9,20 +9,20 @@ class Item
     [:weapon, "銅の剣", 3],
     [:weapon, "鉄の斧", 4],
     [:weapon, "ドラゴンキラー", 5],
-    [:weapon, "はぐれメタルの剣", 7],
-    [:weapon, "正義のソロバン", 10],
+    [:weapon, "メタルヨテイチの剣", 7],
+    [:weapon, "エクスカリバー", 10],
     [:projectile, "木の矢", nil],
     [:projectile, "鉄の矢", nil],
     [:projectile, "銀の矢", nil],
     [:shield, "皮の盾", 3],
     [:shield, "青銅の盾", 3],
     [:shield, "うろこの盾", 4],
-    [:shield, "みかがみの盾", 5],
+    [:shield, "銀の盾", 5],
     [:shield, "鋼鉄の盾", 6],
     [:shield, "ドラゴンシールド", 7],
-    [:shield, "はぐれメタルの盾", 10],
+    [:shield, "メタルヨテイチの盾", 10],
     [:herb, "薬草", nil],
-    [:herb, "弟切草", nil],
+    [:herb, "高級薬草", nil],
     [:herb, "毒けし草", nil],
     [:herb, "ちからの種", nil],
     [:herb, "幸せの種", nil],
@@ -31,36 +31,36 @@ class Item
     [:herb, "毒草", nil],
     [:herb, "目つぶし草", nil],
     [:herb, "まどわし草", nil],
-    [:herb, "メダパニ草", nil],
-    [:herb, "ラリホー草", nil],
-    [:herb, "ルーラ草", nil],
+    [:herb, "混乱草", nil],
+    [:herb, "睡眠草", nil],
+    [:herb, "ワープ草", nil],
     [:herb, "火炎草", nil],
-    [:scroll, "リレミトの巻物", nil],
-    [:scroll, "バイキルトの巻物", nil],
-    [:scroll, "スカラの巻物", nil],
+    [:scroll, "やりなおしの巻物", nil],
+    [:scroll, "武器強化の巻物", nil],
+    [:scroll, "盾強化の巻物", nil],
     [:scroll, "メッキの巻物", nil],
     [:scroll, "シャナクの巻物", nil],
     [:scroll, "インパスの巻物", nil],
-    [:scroll, "レミーラの巻物", nil],
+    [:scroll, "あかりの巻物", nil],
     [:scroll, "かなしばりの巻物", nil],
-    [:scroll, "聖域の巻物", nil],
+    [:scroll, "結界の巻物", nil],
     [:scroll, "さいごの巻物", nil],
     [:scroll, "証明の巻物", nil],
     [:scroll, "千里眼の巻物", nil],
     [:scroll, "地獄耳の巻物", nil],
     [:scroll, "パンの巻物", nil],
     [:scroll, "祈りの巻物", nil],
-    [:scroll, "イオの巻物", nil],
+    [:scroll, "爆発の巻物", nil],
     [:scroll, "くちなしの巻物", nil],
     [:scroll, "時の砂の巻物", nil],
     [:scroll, "ワナの巻物", nil],
     [:scroll, "パルプンテの巻物", nil],
     [:staff, "いかずちの杖", nil],
     [:staff, "ボミオスの杖", nil],
-    [:staff, "ラリホーの杖", nil],
+    [:staff, "睡眠の杖", nil],
     [:staff, "メダパニの杖", nil],
     [:staff, "封印の杖", nil],
-    [:staff, "バシルーラの杖", nil],
+    [:staff, "ワープの杖", nil],
     [:staff, "変化の杖", nil],
     [:staff, "ピオリムの杖", nil],
     [:staff, "レオルムの杖", nil],
@@ -86,12 +86,12 @@ class Item
     [:food, "くさったパン", nil],
     [:box, "鉄の金庫", nil],
     [:box, "王様の宝石箱", nil],
-    [:box, "しあわせの箱", nil],
+    [:box, "イェンダーの魔除け", nil],
     [:box, "奇妙な箱", nil],
   ]
 
   CHARS = {
-    :box => "􄀠􄀡",
+    :box => "􄄺􄄻",
     :food => "􄀶􄀷",
     :herb => "􄀰􄀱",
     :projectile => "􄁌􄁍",
@@ -112,8 +112,12 @@ class Item
 
       case item.type
       when :staff
-        # 杖の場合 5~8 で回数を設定する。
-        item.number = 3 + rand(5)
+        if item.name == "転ばぬ先の杖"
+          item.number = 0
+        else
+          # 杖の場合 5~8 で回数を設定する。
+          item.number = 3 + rand(5)
+        end
       end
 
       return item
@@ -130,7 +134,7 @@ class Item
     @name   = name
     @number = number
     if type == :shield
-      if name == "みかがみの盾" || name == "皮の盾"
+      if name == "銀の盾" || name == "皮の盾"
         @rustproof = true
       else
         @rustproof = false
