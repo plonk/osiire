@@ -9,7 +9,7 @@ class Dungeon
 
   # 階段を置く。
   def place_stair_case(level)
-    level.put_object(*level.get_random_place(:FLOOR), StairCase.new)
+    level.put_object(StairCase.new, *level.get_random_place(:FLOOR))
   end
 
   def make_item(level_number)
@@ -18,12 +18,12 @@ class Dungeon
     return Item.make_item(name)
   end
 
-  def place_random_item(cell, level_number)
+  def make_random_item_or_gold(level_number)
     if rand < 0.1
       # アイテムではなく金を置く。
-      cell.put_object(Gold.new(rand(100..1000)))
+      Gold.new(rand(100..1000))
     else
-      cell.put_object(make_item(level_number))
+      make_item(level_number)
     end
   end
 
@@ -32,7 +32,8 @@ class Dungeon
     nitems.times do
       cell = level.cell(*level.get_random_place(:FLOOR))
       if cell.can_place?
-        place_random_item(cell, level_number)
+        thing = make_random_item_or_gold(level_number)
+        cell.put_object(thing)
       end
     end
   end

@@ -75,6 +75,7 @@ class Monster
   attr :char, :name, :max_hp, :strength, :defense, :exp, :drop_rate
   attr_accessor :hp
   attr_accessor :state, :facing, :goal
+  attr_accessor :item
 
   include StatusEffectPredicates
 
@@ -95,9 +96,22 @@ class Monster
     @hp = @max_hp
 
     @status_effects = []
+    @item = nil
+    if @name == "ノーム"
+      @item = Gold.new(rand(250..1500))
+    end
+  end
+
+  def tipsy?
+    @name == "コウモリ" || @name == "ゆうれい"
   end
 
   def trick_rate
-    0.5
+    case @name
+    when '催眠術師', 'ファンガス', 'ノーム'
+      0.5
+    else
+      0.0
+    end
   end
 end

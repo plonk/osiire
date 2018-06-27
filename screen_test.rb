@@ -40,6 +40,8 @@ class Program
   include CharacterLevel
 
   def initialize
+    @debug = ARGV.include?("-d")
+
     Curses.init_screen
     Curses.noecho
     Curses.crmode
@@ -60,8 +62,6 @@ class Program
     @log = MessageLog.new
 
     @last_room = nil
-
-    @debug = ARGV.include?("-d")
   end
 
   def debug?
@@ -117,8 +117,19 @@ class Program
   def check_monster_dead(cell, monster)
     if monster.hp < 1.0
       cell.remove_object(monster)
-      if rand() < monster.drop_rate && cell.can_place?
-        @dungeon.place_random_item(cell, @level_number)
+      if monster.item
+        thing = monster.item
+      elsif rand() < monster.drop_rate && cell.can_place?
+        thing = @dungeon.make_random_item_or_gold(@level_number)
+      else
+        thing = nil
+      end
+      if thing
+        if cell.can_place?
+          cell.put_object(thing)
+        else
+          @log.add("#{thing}は 消えてしまった…。")
+        end
       end
       @hero.exp += monster.exp
       @log.add("#{monster.name}を たおして #{monster.exp} ポイントの経験値を得た。")
@@ -260,7 +271,7 @@ class Program
       if @level.in_dungeon?(x, y) &&
          @level.cell(x, y).can_place?
         item = candidates.shift
-        @level.put_object(x, y, item)
+        @level.put_object(item, x, y)
         @hero.remove_from_inventory(item)
         count += 1
       end
@@ -396,6 +407,11 @@ class Program
     case c
     when ','
       underfoot_menu
+    when '\\'
+      if debug?
+        hero_levels_up
+      end
+      :nothing
     when ']'
       if debug?
         cheat_go_downstairs
@@ -501,7 +517,7 @@ EOD
       if item.name == "結界の巻物"
         item.stuck = true
       end
-      @level.put_object(@hero.x, @hero.y, item)
+      @level.put_object(item, @hero.x, @hero.y)
       update_stairs_direction
       @log.add("#{item}を 置いた。")
     else
@@ -747,14 +763,14 @@ EOD
       x, y = @level.get_random_place(:FLOOR)
     end
     cell.remove_object(monster)
-    @level.put_object(x, y, monster)
+    @level.put_object(monster, x, y)
   end
 
   def monster_metamorphose(monster, cell, x, y)
     m = Monster.make_monster(Monster::SPECIES.sample[1])
     m.state = :awake
     cell.remove_object(monster)
-    @level.put_object(x, y, m)
+    @level.put_object(m, x, y)
   end
 
   def monster_split(monster, cell, x, y)
@@ -767,7 +783,7 @@ EOD
       if (cell.type == :PASSAGE || cell.type == :FLOOR) &&
          !cell.monster &&
          !(x==@hero.x && y==@hero.y)
-        @level.put_object(x, y, m)
+        @level.put_object(m, x, y)
         placed = true
         break
       end
@@ -990,13 +1006,7 @@ EOD
         @log.add("ちからが 1 ポイント 回復した。")
       end
     when "幸せの種"
-      required_exp = lv_to_exp(@hero.lv + 1)
-      if required_exp
-        @hero.exp = required_exp
-        check_level_up
-      else
-        @log.add("しかし 何も起こらなかった。")
-      end
+      hero_levels_up
     when "すばやさの種"
       @log.add("実装してないよ。")
     when "目薬草"
@@ -1026,6 +1036,16 @@ EOD
       @log.add("こいつは HOT だ！")
     else
       fail "uncoverd case: #{item}"
+    end
+  end
+
+  def hero_levels_up
+    required_exp = lv_to_exp(@hero.lv + 1)
+    if required_exp
+      @hero.exp = required_exp
+      check_level_up
+    else
+      @log.add("しかし 何も起こらなかった。")
     end
   end
 
@@ -1338,12 +1358,35 @@ EOD
       when :awake
         # ジェネリックな行動パターン。
 
+        # ちどり足。
+        if m.tipsy? && rand() < 0.5
+          candidates = []
+          rect = @level.surroundings(mx, my)
+          rect.each_coords do |x, y|
+            next unless @level.in_dungeon?(x, y) &&
+                        (@level.cell(x, y).type == :FLOOR ||
+                         @level.cell(x, y).type == :PASSAGE)
+            cell = @level.cell(x, y)
+            if !cell.monster && [x,y] != [@hero.x,@hero.y]
+              candidates << [x, y]
+            end
+          end
+          if candidates.any?
+            x, y = candidates.sample
+            return Action.new(:move, [x - mx, y - my])
+          end
+        end
+
         # * ヒーローに隣接していればヒーローに攻撃。
         if @level.can_attack?(m, mx, my, @hero.x, @hero.y) # カド越しには攻撃できない。
           if @level.cell(@hero.x, @hero.y).item&.name == "結界の巻物"
             return Action.new(:rest, nil)
           else
-            return Action.new(:attack, Vec.minus([mx, my], [@hero.x, @hero.y]))
+            if rand() < m.trick_rate
+              return Action.new(:trick, Vec.minus([@hero.x, @hero.y], [mx, my]))
+            else
+              return Action.new(:attack, Vec.minus([@hero.x, @hero.y], [mx, my]))
+            end
           end
         else
           # * モンスターの視界内にヒーローが居れば目的地を再設定。
@@ -1443,6 +1486,33 @@ EOD
     end
   end
 
+  def monster_trick(m, dir)
+    case m.name
+    when '催眠術師'
+      @log.add("#{m.name}は 手に持っている物を 揺り動かした。")
+      monster_fall_asleep(@hero)
+    when 'ファンガス'
+      @log.add("#{m.name}は 毒のこなを 撒き散らした。")
+      take_damage_strength(1)
+    when 'ノーム'
+      potential = rand(250..1500)
+      actual = [potential, @hero.gold].min
+      if actual == 0
+        @log.add("#{@hero.name}は お金を持っていない！")
+      else
+        @log.add("#{m.name}は #{actual}ゴールドを盗んでワープした！")
+        @hero.gold -= actual
+        m.item = Gold.new(m.item.amount + actual)
+        mx, my = @level.coordinates_of(m)
+        @level.remove_object(m, mx, my)
+        x,y = @level.get_random_character_placeable_place
+        @level.put_object(m, x, y)
+      end
+    else
+      fail
+    end
+  end
+
   def monster_move(m, mx, my, dir)
     #@log.add([m.name, m.object_id,  [mx, my], dir].inspect)
     @level.cell(mx, my).remove_object(m)
@@ -1469,6 +1539,8 @@ EOD
       case action.type
       when :attack
         monster_attack(m, action.direction)
+      when :trick
+        monster_trick(m, action.direction)
       when :rest
         # 何もしない。
       else fail

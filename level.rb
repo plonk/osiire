@@ -470,13 +470,13 @@ class Level
     @dungeon[y][x]
   end
 
-  def put_object(x, y, object)
+  def put_object(object, x, y)
     fail TypeError unless x.is_a?(Integer) && y.is_a?(Integer)
     fail RangeError unless in_dungeon?(x, y)
     @dungeon[y][x].put_object(object)
   end
 
-  def remove_object(x, y, object)
+  def remove_object(object, x, y)
     @dungeon[y][x].remove_object(object)
   end
 
@@ -529,5 +529,16 @@ class Level
         return x, y
       end
     end
+  end
+
+  def coordinates_of(obj)
+    (0 ... height).flat_map do |y|
+      (0 ... width).flat_map do |x|
+        if @dungeon[y][x].objects.any? { |z| z.equal?(obj) }
+          return [x, y]
+        end
+      end
+    end
+    return nil
   end
 end

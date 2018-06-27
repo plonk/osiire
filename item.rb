@@ -1,5 +1,9 @@
 class Gold < Struct.new(:amount)
   def char; '􄀲􄀳' end
+
+  def to_s
+    "#{amount}ゴールド"
+  end
 end
 
 class Item
