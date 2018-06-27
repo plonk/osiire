@@ -521,4 +521,13 @@ class Level
            passable?(m, tx, my) &&
            passable?(m, mx, ty)
   end
+
+  def get_random_character_placeable_place
+    loop do
+      x, y = get_random_place(:FLOOR)
+      unless has_type_at?(Monster, x, y)
+        return x, y
+      end
+    end
+  end
 end

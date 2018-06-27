@@ -1190,13 +1190,7 @@ EOD
     else
       @level = @dungeon.make_level(@level_number, @hero)
       # 主人公を配置する。
-      loop do
-        x, y = @level.get_random_place(:FLOOR)
-        unless @level.has_type_at?(Monster, x, y)
-          @hero.x, @hero.y = x, y
-          break
-        end
-      end
+      @hero.x, @hero.y = @level.get_random_character_placeable_place
 
       x, y = [@hero.x, @hero.y]
       if @level.has_type_at?(Item, x, y) ||
