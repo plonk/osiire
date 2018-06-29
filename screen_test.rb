@@ -136,6 +136,15 @@ class Program
       @hero.exp += monster.exp
       @log.add("#{monster.name}を たおして #{monster.exp} ポイントの経験値を得た。")
       check_level_up
+
+      @hero.status_effects.reject! { |e|
+        if e.caster.equal?(monster)
+          on_status_effect_expire(@hero, e)
+          true
+        else
+          false
+        end
+      }
     end
   end
 
@@ -171,11 +180,6 @@ class Program
 
     picking = !%w[H J K L Y U B N].include?(c)
 
-    if @hero.held?
-      @log.add("その場に とらえられて 動けない！")
-      return :action
-    end
-
     dx, dy = vec
     if dx * dy != 0
       allowed = @level.passable?(@hero, @hero.x + dx, @hero.y + dy) &&
@@ -198,6 +202,11 @@ class Program
     if monster
       hero_attack(cell, monster)
     else
+      if @hero.held?
+        @log.add("その場に とらえられて 動けない！")
+        return :action
+      end
+
       @hero.x = x1
       @hero.y = y1
 
@@ -409,6 +418,14 @@ class Program
     case c
     when ','
       underfoot_menu
+    when '!'
+      if debug?
+        require 'pry'
+        Curses.close_screen
+        self.pry
+        Curses.refresh
+      end
+      :nothing
     when '\\'
       if debug?
         hero_levels_up
@@ -1211,6 +1228,10 @@ EOD
       @quitting = true
     else
       @level = @dungeon.make_level(@level_number, @hero)
+
+      # 状態異常のクリア
+      @hero.status_effects.clear
+
       # 主人公を配置する。
       @hero.x, @hero.y = @level.get_random_character_placeable_place
 
@@ -1348,6 +1369,14 @@ EOD
     win.close
   end
 
+  def trick_applicable?(m)
+    if m.name == "白い手"
+      !@hero.held?
+    else
+      true
+    end
+  end
+
   # Monster → Action
   def monster_action(m, mx, my)
     case m.name
@@ -1384,20 +1413,23 @@ EOD
             x, y = candidates.sample
             return Action.new(:move, [x - mx, y - my])
           end
-        end
-
-        # * ヒーローに隣接していればヒーローに攻撃。
-        if @level.can_attack?(m, mx, my, @hero.x, @hero.y) # カド越しには攻撃できない。
+        elsif @level.can_attack?(m, mx, my, @hero.x, @hero.y) # カド越しには攻撃できない。
+          # * ヒーローに隣接していればヒーローに攻撃。
           if @level.cell(@hero.x, @hero.y).item&.name == "結界の巻物"
             return Action.new(:rest, nil)
           else
-            if rand() < m.trick_rate
+            if trick_applicable?(m) && rand() < m.trick_rate
               return Action.new(:trick, Vec.minus([@hero.x, @hero.y], [mx, my]))
             else
               return Action.new(:attack, Vec.minus([@hero.x, @hero.y], [mx, my]))
             end
           end
         else
+          # 動けない。
+          if m.held?
+            return Action.new(:rest, nil)
+          end
+
           # * モンスターの視界内にヒーローが居れば目的地を再設定。
           if @level.fov(mx, my).include?(@hero.x, @hero.y)
             m.goal = [@hero.x, @hero.y]
@@ -1517,6 +1549,13 @@ EOD
         @level.remove_object(m, mx, my)
         x,y = @level.get_random_character_placeable_place
         @level.put_object(m, x, y)
+      end
+    when "白い手"
+      if !@hero.held?
+        @log.add("#{m.name}は #{@hero.name}の足をつかんだ！")
+        effect = StatusEffect.new(:held, 10)
+        effect.caster = m
+        @hero.status_effects << effect
       end
     else
       fail

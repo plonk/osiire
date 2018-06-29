@@ -70,13 +70,6 @@ class Dungeon
   end
 
   def spawn_monster(m, cell)
-    case m.name
-    when "催眠術師"
-      m.state = :awake
-      m.status_effects.push(StatusEffect.new(:paralysis, Float::INFINITY))
-    else
-      m.state = [:asleep, :awake].sample
-    end
     cell.put_object(m)
   end
 
