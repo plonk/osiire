@@ -39,6 +39,8 @@ end
 class Program
   include CharacterLevel
 
+  DIRECTIONS = [[0,-1], [1,-1], [1,0], [1,1], [0,1], [-1,1], [-1,0], [-1,-1]]
+
   def initialize
     @debug = ARGV.include?("-d")
 
@@ -1405,9 +1407,10 @@ EOD
           if m.goal
             # * 目的地があれば目的地へ向かう。(方向のpreferenceが複雑)
             dir = Vec.normalize(Vec.minus(m.goal, [mx, my]))
-            [dir,
-             *[[dir[0], 0],
-               [0, dir[1]]].shuffle].each do |dx, dy|
+            i = DIRECTIONS.index(dir)
+            [i, *[i - 1, i + 1].shuffle, *[i - 2, i + 2].shuffle].map { |j|
+              DIRECTIONS[j % 8]
+            }.each do |dx, dy|
               if @level.can_move_to?(m, mx, my, mx+dx, my+dy)
                 return Action.new(:move, [dx, dy])
               end
