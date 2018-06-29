@@ -1225,7 +1225,13 @@ EOD
     end
   end
 
+  def flushinp
+    Curses.timeout = 0
+    nil until Curses.getch == nil
+  end
+
   def read_command
+    flushinp
     Curses.timeout = 100 # milliseconds
     until c = Curses.getch
       if Time.now - @log.updated_at >= 2.0
@@ -1307,6 +1313,7 @@ EOD
       win.setpos(y, 1)
       win.addstr(line.chomp)
     end
+    flushinp
     win.getch
     win.close
   end
