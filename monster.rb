@@ -125,4 +125,23 @@ class Monster
       0.0
     end
   end
+
+  def double_speed?
+    case @name
+    when "デビルモンキー", "ツバメ"
+      true
+    else
+      false
+    end
+  end
+
+  def single_attack?
+    case @name
+    when "デビルモンキー"
+      false
+    else
+      true
+    end
+  end
+
 end

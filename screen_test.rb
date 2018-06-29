@@ -1585,15 +1585,42 @@ EOD
     end
 
     doers.each do |m, action|
-      case action.type
-      when :attack
-        monster_attack(m, action.direction)
-      when :trick
-        monster_trick(m, action.direction)
-      when :rest
-        # 何もしない。
-      else fail
+      dispatch_action(m, action)
+    end
+
+    # 2倍速モンスター行動
+    doers2 = []
+    @level.all_monsters_with_position.each do |m, mx, my|
+      next unless m.double_speed?
+      next if m.paralyzed?
+      next if m.asleep?
+
+      action = monster_action(m, mx, my)
+      if action.type == :move
+        # その場で動かす。
+        monster_move(m, mx, my, action.direction)
+      else
+        doers2 << [m, action]
       end
+    end
+
+    doers2.each do |m, action|
+      next if m.single_attack? && doers.any? { |n, _action| m.equal?(n) }
+
+      dispatch_action(m, action)
+    end
+  end
+
+  # :move 以外のアクションを実行。
+  def dispatch_action(m, action)
+    case action.type
+    when :attack
+      monster_attack(m, action.direction)
+    when :trick
+      monster_trick(m, action.direction)
+    when :rest
+    # 何もしない。
+    else fail
     end
   end
 
