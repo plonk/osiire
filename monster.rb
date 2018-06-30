@@ -119,7 +119,11 @@ class Monster
     case @name
     when "白い手"
       1.0
-    when '催眠術師', 'ファンガス', 'ノーム'
+    when '催眠術師'
+      0.25
+    when 'ファンガス'
+      0.33
+    when 'ノーム'
       0.5
     else
       0.0
