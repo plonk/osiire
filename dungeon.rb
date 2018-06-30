@@ -84,6 +84,28 @@ class Dungeon
     end
   end
 
+  def surrounded_by_empty_floor_tiles?(level, x, y)
+    level.surroundings(x, y).each_coords do |xx, yy|
+      c = level.cell(xx, yy)
+      unless c.type == :FLOOR && c.objects.none?
+        return false
+      end
+    end
+    return true
+  end
+
+  def place_statues(level, level_number)
+    num = rand(3..3)
+
+    until num == 0
+      x, y = level.get_random_place(:FLOOR)
+      if surrounded_by_empty_floor_tiles?(level, x, y)
+        level.cell(x, y).type = :STATUE
+        num -= 1
+      end
+    end
+  end
+
   def place_objective(level)
     loop do
       cell = level.cell(*level.get_random_place(:FLOOR))
@@ -148,6 +170,8 @@ class Dungeon
     fail unless level_number.is_a? Integer and level_number >= 1
 
     level = Level.new
+
+    place_statues(level, level_number)
 
     place_stair_case(level)
     unless on_return_trip?(hero)

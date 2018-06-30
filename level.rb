@@ -62,6 +62,7 @@ class Cell
 
   def background_char(hero_sees_everything)
     case @type
+    when :STATUE          then '􄄤􄄥'
     when :WALL            then '􄁀􄁁'
     when :HORIZONTAL_WALL then '􄀢􄀣'
     when :VERTICAL_WALL   then '􄀼􄀽'
@@ -395,6 +396,18 @@ class Level
     return (@dungeon[y][x].type == :FLOOR || @dungeon[y][x].type == :PASSAGE)
   end
 
+  # ナナメ移動を阻害しないタイル。
+  def uncornered?(subject, x, y)
+    unless x.between?(0, width - 1) && y.between?(0, height - 1)
+      # 画面外
+      return false
+    end
+
+    return (@dungeon[y][x].type == :FLOOR ||
+            @dungeon[y][x].type == :PASSAGE ||
+            @dungeon[y][x].type == :STATUE)
+  end
+
   def room_at(x, y)
     @rooms.each do |room|
       if room.properly_in?(x, y)
@@ -509,8 +522,8 @@ class Level
     return !@dungeon[ty][tx].monster &&
       Vec.chess_distance([mx, my], [tx, ty]) == 1 &&
       passable?(m, tx, ty) &&
-      passable?(m, tx, my) &&
-      passable?(m, mx, ty)
+      uncornered?(m, tx, my) &&
+      uncornered?(m, mx, ty)
   end
 
   def can_attack?(m, mx, my, tx, ty)
@@ -518,8 +531,8 @@ class Level
 
     return Vec.chess_distance([mx, my], [tx, ty]) == 1 &&
            passable?(m, tx, ty) &&
-           passable?(m, tx, my) &&
-           passable?(m, mx, ty)
+           uncornered?(m, tx, my) &&
+           uncornered?(m, mx, ty)
   end
 
   def get_random_character_placeable_place

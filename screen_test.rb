@@ -58,6 +58,7 @@ class Program
       @hero.inventory << Item.make_item("メタルヨテイチの盾")
       @hero.inventory << Item.make_item("あかりの巻物")
       @hero.inventory << Item.make_item("あかりの巻物")
+      @hero.inventory << Item.make_item("結界の巻物")
     end
     @level_number = 0
     @dungeon = Dungeon.new
@@ -99,7 +100,7 @@ class Program
     @log.add("#{damage} のダメージを与えた。")
     if monster.hp >= 1.0 && # 生きている
        monster.divide? &&
-       0.5 < rand()
+       rand() < 0.5
       x, y = @level.coordinates_of(monster)
       monster_split(monster, cell, x, y)
     end
@@ -189,8 +190,8 @@ class Program
     dx, dy = vec
     if dx * dy != 0
       allowed = @level.passable?(@hero, @hero.x + dx, @hero.y + dy) &&
-                @level.passable?(@hero, @hero.x + dx, @hero.y) &&
-                @level.passable?(@hero, @hero.x, @hero.y + dy)
+                @level.uncornered?(@hero, @hero.x + dx, @hero.y) &&
+                @level.uncornered?(@hero, @hero.x, @hero.y + dy)
     else
       allowed = @level.passable?(@hero, @hero.x + dx, @hero.y + dy)
     end
@@ -702,6 +703,37 @@ EOD
     end
   end
 
+  def item_hits_hero(item, monster)
+    @log.add("#{item.name}が #{@hero.name}に当たった。")
+  end
+
+  def monster_throw_item(monster, item, mx, my, dir)
+    dx, dy = dir
+    x, y = mx, my
+
+    while true
+      fail unless @level.in_dungeon?(x+dx, y+dy)
+
+      cell = @level.cell(x+dx, y+dy)
+      case cell.type
+      when :WALL, :HORIZONTAL_WALL, :VERTICAL_WALL, :STATUE
+        item_land(item, x, y)
+        break
+      when :FLOOR, :PASSAGE
+        if [x+dx, y+dy] == [@hero.x, @hero.y]
+          item_hits_hero(item, monster)
+          break
+        elsif cell.monster
+          # これだと主人公に経験値が入ってしまうな
+          item_hits_monster(item, cell.monster, cell)
+          break
+        end
+      else
+        fail "case not covered"
+      end
+      x, y = x+dx, y+dy
+    end
+  end
 
   # (Item, Array)
   def do_throw_item(item, dir)
@@ -713,7 +745,7 @@ EOD
 
       cell = @level.cell(x+dx, y+dy)
       case cell.type
-      when :WALL, :HORIZONTAL_WALL, :VERTICAL_WALL
+      when :WALL, :HORIZONTAL_WALL, :VERTICAL_WALL, :STATUE
         item_land(item, x, y)
         break
       when :FLOOR, :PASSAGE
@@ -1377,15 +1409,155 @@ EOD
     win.close
   end
 
-  def trick_applicable?(m)
-    if m.name == "白い手"
-      !@hero.held?
+  def aligned?(v1, v2)
+    diff = Vec.minus(v1, v2)
+    return diff[0].zero? ||
+           diff[1].zero? ||
+           diff[0].abs == diff[1].abs
+  end
+
+  def trick_in_range?(m, mx, my)
+    case m.trick_range
+    when :none
+      return false
+    when :sight
+      return @level.fov(mx, my).include?(@hero.x, @hero.y)
+    when :line
+      return @level.fov(mx, my).include?(@hero.x, @hero.y) &&
+        aligned?([mx, my], [@hero.x, @hero.y])
+    when :reach
+      return @level.can_attack?(m, mx, my, @hero.x, @hero.y)
     else
-      true
+      fail
     end
   end
 
-  # Monster → Action
+  def trick_applicable?(m)
+    mx, my = @level.coordinates_of(m)
+    return trick_in_range?(m, mx, my) &&
+           case m.name
+               # TODO: 目玉追加
+           when "白い手"
+             !@hero.held?
+           else
+             true
+           end
+  end
+
+  # (Monster, Integer, Integer) → Action
+  def monster_move_action(m, mx, my)
+    # 動けない。
+    if m.held?
+      return Action.new(:rest, nil)
+    end
+
+    # * モンスターの視界内にヒーローが居れば目的地を再設定。
+    if @level.fov(mx, my).include?(@hero.x, @hero.y)
+      m.goal = [@hero.x, @hero.y]
+    end
+
+    # * 目的地がある場合...
+    if m.goal
+      # * 目的地に到着していれば目的地をリセット。
+      if m.goal == [mx, my]
+        m.goal = nil
+      end
+    end
+
+    if m.goal
+      # * 目的地があれば目的地へ向かう。(方向のpreferenceが複雑)
+      dir = Vec.normalize(Vec.minus(m.goal, [mx, my]))
+      i = DIRECTIONS.index(dir)
+      [i, *[i - 1, i + 1].shuffle, *[i - 2, i + 2].shuffle].map { |j|
+        DIRECTIONS[j % 8]
+      }.each do |dx, dy|
+        if @level.can_move_to?(m, mx, my, mx+dx, my+dy) &&
+           @level.cell(mx+dx, my+dy).item&.name != "結界の巻物"
+          return Action.new(:move, [dx, dy])
+        end
+      end
+
+      # 目的地に行けそうもないのであきらめる。(はやっ!)
+      m.goal = nil
+      return Action.new(:rest, nil)
+    else
+      # * 目的地が無ければ...
+
+      # * 部屋の中に居れば、出口の1つを目的地に設定する。
+      room = @level.room_at(mx, my)
+      if room
+        exit_points = @level.room_exits(room)
+        preferred = exit_points.reject { |x,y|
+          [x,y] == [mx - m.facing[0], my - m.facing[1]] # 今入ってきた出入口は除外する。
+        }
+        if preferred.any?
+          m.goal = preferred.sample
+          return monster_action(m, mx, my)
+        elsif exit_points.any?
+          # 今入ってきた出入口でも選択する。
+          m.goal = exit_points.sample
+          return monster_action(m, mx, my)
+        else
+          return Action.new(:rest, nil) # どうすりゃいいんだい
+        end
+      else
+        # * 部屋の外に居れば、向いている方向へ進もうとする。
+
+        tx, ty = [mx + m.facing[0], my + m.facing[1]]
+        if @level.can_move_to?(m, mx, my, tx, ty) &&
+           @level.cell(tx, ty).item&.name != "結界の巻物"
+          return Action.new(:move, m.facing)
+        else
+          # * 進めなければ反対以外の方向に進もうとする。
+          #   通路を曲がるには ±90度で十分か。
+          dirs = [
+            Vec.rotate_clockwise_45(m.facing, +2),
+            Vec.rotate_clockwise_45(m.facing, -2),
+            Vec.rotate_clockwise_45(m.facing, +1),
+            Vec.rotate_clockwise_45(m.facing, -1),
+          ].shuffle
+          dirs.each do |dx, dy|
+            if @level.can_move_to?(m, mx, my, mx+dx, my+dy) &&
+               @level.cell(mx+dx, my+dy).item&.name != "結界の巻物"
+              return Action.new(:move, [dx,dy])
+            end
+          end
+
+          # * 進めなければその場で足踏み。反対を向く。
+          m.facing = Vec.negate(m.facing)
+          return Action.new(:rest, nil)
+        end
+      end
+    end
+  end
+
+  # (Monster, Integer, Integer) → Action
+  def monster_tipsy_move_action(m, mx, my)
+    candidates = []
+    rect = @level.surroundings(mx, my)
+    rect.each_coords do |x, y|
+      next unless @level.in_dungeon?(x, y) &&
+                  (@level.cell(x, y).type == :FLOOR ||
+                   @level.cell(x, y).type == :PASSAGE)
+      if [x,y] != [@hero.x,@hero.y] &&
+         @level.can_move_to?(m, mx, my, x, y) &&
+         @level.cell(x, y).item&.name != "結界の巻物"
+        candidates << [x, y]
+      end
+    end
+    if candidates.any?
+      x, y = candidates.sample
+      return Action.new(:move, [x - mx, y - my])
+    else
+      return Action.new(:rest, nil)
+    end
+  end
+
+  def adjacent?(v1, v2)
+    return Vec.chess_distance(v1, v2) == 1
+  end
+
+  # (Monster, Integer, Integer) → Action
   def monster_action(m, mx, my)
     case m.name
     # 特殊な行動パターンを持つモンスターはここに when 節を追加。
@@ -1406,113 +1578,17 @@ EOD
 
         # ちどり足。
         if m.tipsy? && rand() < 0.5
-          candidates = []
-          rect = @level.surroundings(mx, my)
-          rect.each_coords do |x, y|
-            next unless @level.in_dungeon?(x, y) &&
-                        (@level.cell(x, y).type == :FLOOR ||
-                         @level.cell(x, y).type == :PASSAGE)
-            cell = @level.cell(x, y)
-            if !cell.monster && [x,y] != [@hero.x,@hero.y]
-              candidates << [x, y]
-            end
-          end
-          if candidates.any?
-            x, y = candidates.sample
-            return Action.new(:move, [x - mx, y - my])
-          end
-        elsif @level.can_attack?(m, mx, my, @hero.x, @hero.y) # カド越しには攻撃できない。
+          return monster_tipsy_move_action(m, mx, my)
+        elsif adjacent?([mx, my], [@hero.x, @hero.y]) &&
+              @level.cell(@hero.x, @hero.y).item&.name == "結界の巻物"
+          return monster_move_action(m, mx, my) # Action.new(:rest, nil)
+        elsif trick_applicable?(m) && rand() < m.trick_rate
+          return Action.new(:trick, nil)
+        elsif @level.can_attack?(m, mx, my, @hero.x, @hero.y)
           # * ヒーローに隣接していればヒーローに攻撃。
-          if @level.cell(@hero.x, @hero.y).item&.name == "結界の巻物"
-            return Action.new(:rest, nil)
-          else
-            if trick_applicable?(m) && rand() < m.trick_rate
-              return Action.new(:trick, Vec.minus([@hero.x, @hero.y], [mx, my]))
-            else
-              return Action.new(:attack, Vec.minus([@hero.x, @hero.y], [mx, my]))
-            end
-          end
+          return Action.new(:attack, Vec.minus([@hero.x, @hero.y], [mx, my]))
         else
-          # 動けない。
-          if m.held?
-            return Action.new(:rest, nil)
-          end
-
-          # * モンスターの視界内にヒーローが居れば目的地を再設定。
-          if @level.fov(mx, my).include?(@hero.x, @hero.y)
-            m.goal = [@hero.x, @hero.y]
-          end
-
-          # * 目的地がある場合...
-          if m.goal
-            # * 目的地に到着していれば目的地をリセット。
-            if m.goal == [mx, my]
-              m.goal = nil
-            end
-          end
-
-          if m.goal
-            # * 目的地があれば目的地へ向かう。(方向のpreferenceが複雑)
-            dir = Vec.normalize(Vec.minus(m.goal, [mx, my]))
-            i = DIRECTIONS.index(dir)
-            [i, *[i - 1, i + 1].shuffle, *[i - 2, i + 2].shuffle].map { |j|
-              DIRECTIONS[j % 8]
-            }.each do |dx, dy|
-              if @level.can_move_to?(m, mx, my, mx+dx, my+dy)
-                return Action.new(:move, [dx, dy])
-              end
-            end
-
-            # 目的地に行けそうもないのであきらめる。(はやっ!)
-            m.goal = nil
-            return Action.new(:rest, nil)
-          else
-            # * 目的地が無ければ...
-
-            # * 部屋の中に居れば、出口の1つを目的地に設定する。
-            room = @level.room_at(mx, my)
-            if room
-              exit_points = @level.room_exits(room)
-              preferred = exit_points.reject { |x,y|
-                [x,y] == [mx - m.facing[0], my - m.facing[1]] # 今入ってきた出入口は除外する。
-              }
-              if preferred.any?
-                m.goal = preferred.sample
-                return monster_action(m, mx, my)
-              elsif exit_points.any?
-                # 今入ってきた出入口でも選択する。
-                m.goal = exit_points.sample
-                return monster_action(m, mx, my)
-              else
-                return Action.new(:rest, nil) # どうすりゃいいんだい
-              end
-            else
-              # * 部屋の外に居れば、向いている方向へ進もうとする。
-
-              tx, ty = [mx + m.facing[0], my + m.facing[1]]
-              if @level.can_move_to?(m, mx, my, tx, ty)
-                return Action.new(:move, m.facing)
-              else
-                # * 進めなければ反対以外の方向に進もうとする。
-                #   通路を曲がるには ±90度で十分か。
-                dirs = [
-                  Vec.rotate_clockwise_45(m.facing, +2),
-                  Vec.rotate_clockwise_45(m.facing, -2),
-                  Vec.rotate_clockwise_45(m.facing, +1),
-                  Vec.rotate_clockwise_45(m.facing, -1),
-                       ].shuffle
-                dirs.each do |dx, dy|
-                  if @level.can_move_to?(m, mx, my, mx+dx, my+dy)
-                    return Action.new(:move, [dx,dy])
-                  end
-                end
-
-                # * 進めなければその場で足踏み。反対を向く。
-                m.facing = Vec.negate(m.facing)
-                return Action.new(:rest, nil)
-              end
-            end
-          end
+          return monster_move_action(m, mx, my)
         end
       else
         fail
@@ -1536,7 +1612,7 @@ EOD
     end
   end
 
-  def monster_trick(m, dir)
+  def monster_trick(m)
     case m.name
     when '催眠術師'
       @log.add("#{m.name}は 手に持っている物を 揺り動かした。")
@@ -1565,6 +1641,12 @@ EOD
         effect.caster = m
         @hero.status_effects << effect
       end
+
+    when "ピューシャン"
+      mx, my = @level.coordinates_of(m)
+      dir = Vec.normalize(Vec.minus([@hero.x, @hero.y], [mx, my]))
+      arrow = Item.make_item("木の矢")
+      monster_throw_item(m, arrow, mx, my, dir)
     else
       fail
     end
@@ -1625,7 +1707,7 @@ EOD
     when :attack
       monster_attack(m, action.direction)
     when :trick
-      monster_trick(m, action.direction)
+      monster_trick(m)
     when :rest
     # 何もしない。
     else fail
@@ -1667,6 +1749,7 @@ EOD
 
     ((room.top+1)..(room.bottom-1)).each do |y|
       ((room.left+1)..(room.right-1)).each do |x|
+
         monster = @level.cell(x, y).monster
         if monster
           if monster.state == :asleep
@@ -1675,8 +1758,10 @@ EOD
             end
           end
         end
+
       end
     end
+
   end
 
   def on_status_effect_expire(character, effect)
