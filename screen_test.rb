@@ -16,7 +16,7 @@ class MessageLog
 
   def add(msg)
     @lines << msg
-    while @lines.size > 4
+    while @lines.size > 10
       @lines.shift
     end
     @updated_at = Time.now
