@@ -148,4 +148,13 @@ class Monster
     end
   end
 
+  def divide?
+    case @name
+    when "グール"
+      true
+    else
+      false
+    end
+  end
+
 end

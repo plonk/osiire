@@ -96,7 +96,13 @@ class Program
 
   def monster_take_damage(monster, damage, cell)
     monster.hp -= damage
-    @log.add("#{monster.name}に #{damage} のダメージを与えた。")
+    @log.add("#{damage} のダメージを与えた。")
+    if monster.hp >= 1.0 && # 生きている
+       monster.divide? &&
+       0.5 < rand()
+      x, y = @level.coordinates_of(monster)
+      monster_split(monster, cell, x, y)
+    end
     check_monster_dead(cell, monster)
   end
 
@@ -807,7 +813,9 @@ EOD
         break
       end
     end
-    unless placed
+    if placed
+      @log.add("#{monster.name}は 分裂した！")
+    else
       @log.add("しかし 何も 起こらなかった。")
     end
   end
