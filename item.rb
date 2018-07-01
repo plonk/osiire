@@ -122,6 +122,8 @@ class Item
           # 杖の場合 5~8 で回数を設定する。
           item.number = 3 + rand(5)
         end
+      when :projectile
+        item.number = rand(5..15)
       end
 
       return item
@@ -189,6 +191,12 @@ class Item
       "#{star}#{name}#{ws_num_fmt.(relative_number)}"
     when :staff
       "#{name}[#{number}]"
+    when :projectile
+      if number == 1
+        name
+      else
+        "#{number}本の#{name}"
+      end
     else
       name
     end
@@ -204,7 +212,7 @@ class Item
     when :herb
       ["飲む"] + basics
     when :projectile
-      [] + basics
+      ["装備"] + basics
     when :ring
       ["装備"] + basics
     when :scroll
@@ -232,11 +240,11 @@ class Item
       2
     when :ring
       3
-    when :food
-      4
-    when :herb
-      5
     when :projectile
+      4
+    when :food
+      5
+    when :herb
       6
     when :scroll
       7
@@ -247,6 +255,11 @@ class Item
     else
       fail "unknown item type #{type}"
     end
+  end
+
+  def projectile_strength
+    fail unless type == :projectile
+    return 5
   end
 
 end

@@ -87,6 +87,11 @@ class Program
     (basic + basic * (weapon_score + @hero.strength - 8)/16.0).round
   end
 
+  def get_hero_projectile_attack(projectile_strength)
+    basic = lv_to_attack(exp_to_lv(@hero.exp))
+    (basic + basic * (projectile_strength - 8)/16.0).round
+  end
+
   def get_monster_attack(m)
     m.strength
   end
@@ -281,7 +286,7 @@ class Program
     end
 
     count = 0
-    candidates = @hero.inventory.reject { |x| x.equal?(@hero.weapon) || x.equal?(@hero.shield) }
+    candidates = @hero.inventory.reject { |x| @hero.equipped?(x) }
     candidates.shuffle!
     [[0,-1], [1,-1], [1,0], [1,1], [0,1], [-1,1], [-1,0], [-1,-1]].each do |dx, dy|
       break if candidates.empty?
@@ -345,19 +350,23 @@ class Program
     end
   end
 
+  def need_inventory_slot?(item)
+    @hero.inventory.none? { |x| item.type == x.type && item.name == x.name }
+  end
+
   # ヒーロー @hero が配列 objects の要素 item を拾おうとする。
   def pick(cell, item)
-    if @hero.inventory.size < 20
-      if item.stuck
-        @log.add("#{item.name}は 床にはりついて 拾えない。")
-      else
-        cell.remove_object(item)
-        @hero.inventory << item
-        update_stairs_direction
-        @log.add("#{@hero.name}は #{item.name}を 拾った。")
-      end
-    else
+    if need_inventory_slot?(item) && @hero.inventory.size >= 20
       @log.add("持ち物が いっぱいで #{item.name}が 拾えない。")
+    end
+
+    if item.stuck
+      @log.add("#{item.name}は 床にはりついて 拾えない。")
+    else
+      cell.remove_object(item)
+      @hero.add_to_inventory(item)
+      update_stairs_direction
+      @log.add("#{@hero.name}は #{item.to_s}を 拾った。")
     end
   end
 
@@ -461,10 +470,21 @@ class Program
     when '>'
       activate_underfoot
     when 'q'
+      @log.add("ゲームを終了するには大文字の Q を押してね。")
+      :nothing
+    when 'Q'
       set_quitting
     when 's'
       status_window
       :nothing
+    when 't'
+      if @hero.projectile
+        throw_item(@hero.projectile)
+        :action
+      else
+        @log.add("投げ物を装備していない。")
+        :nothing
+      end
     when '.'
       search
     else
@@ -554,14 +574,15 @@ EOD
   # () → :action | :nothing
   def open_inventory
     dispfunc = proc { |item|
-      text = if @hero.weapon.equal?(item) ||
+      prefix = if @hero.weapon.equal?(item) ||
                 @hero.shield.equal?(item) ||
-                @hero.ring.equal?(item)
-               "E" + item.to_s
+                @hero.ring.equal?(item) ||
+                @hero.projectile.equal?(item)
+               "E"
              else
-               item.to_s
+               " "
              end
-      item.char + text
+      "#{prefix}#{item.char}#{item.to_s}"
     }
 
     menu = nil
@@ -627,15 +648,75 @@ EOD
     menu.close
   end
 
+  # アイテム落下則
+  # 20 18 16 17 19
+  # 13  6  4  5 12
+  # 11  3  1  2 10
+  # 15  9  7  8 14
+  # 25 23 21 22 24
+
+  LAND_POSITIONS = [
+    [0,0], [1,0], [-1,0],
+    [0,-1], [1,-1], [-1,-1],
+    [0,1], [1,1], [-1,1],
+    [2,0], [-2,0],
+    [2,-1], [-2,-1],
+    [2,1], [-2,1],
+    [0,-2], [1,-2], [-1,-2], [2,-2], [-2,-2],
+    [0,2], [1,2], [-1,2], [2,2], [-2,2]
+  ]
+
+  # 以下の位置(10~25)に落ちるためには、
+  # 別の位置(2~9のいずれか)が床でなければならない。
+  LAND_DEPENDENT_POSITION = {
+    [2,0]   => [1,0],
+    [-2,0]  => [-1,0],
+    [2,-1]  => [1,-1],
+    [-2,-1] => [-1,-1],
+    [2,1]   => [1,1],
+    [-2,1]  => [-1,1],
+    [0,-2]  => [0,-1],
+    [1,-2]  => [1,-1],
+    [-1,-2] => [-1,-1],
+    [2,-2]  => [1,-1],
+    [-2,-2] => [-1,-1],
+    [0,2]   => [0,1],
+    [1,2]   => [1,1],
+    [-1,2]  => [-1,1],
+    [2,2]   => [1,1],
+    [-2,2]  => [-1,1]
+  }
+
+
   # 投げられたアイテムが着地する。
   def item_land(item, x, y)
     cell = @level.cell(x, y)
-    if cell.can_place?
-      cell.put_object(item)
-      @log.add("#{item}は 床に落ちた。")
-    else
-      @log.add("#{item}は消えてしまった。")
+
+    if cell.trap && !cell.trap.visible
+      cell.trap.visible = true
     end
+
+    LAND_POSITIONS.each do |dx, dy|
+      if LAND_DEPENDENT_POSITION[[dx,dy]]
+        dx2, dy2 = LAND_DEPENDENT_POSITION[[dx,dy]]
+        unless (@level.in_dungeon?(x+dx2, y+dy2) &&
+                (@level.cell(x+dx2, y+dy2).type == :FLOOR || 
+                 @level.cell(x+dx2, y+dy2).type == :PASSAGE))
+          next
+        end
+      end
+      if (@level.in_dungeon?(x+dx, y+dy) &&
+          @level.cell(x+dx, y+dy).can_place?)
+
+        @level.cell(x+dx, y+dy).put_object(item)
+        if item.name == "結界の巻物"
+          item.stuck = true
+        end
+        @log.add("#{item}は 床に落ちた。")
+        return
+      end
+    end
+    @log.add("#{item}は消えてしまった。")
   end
 
   def herb_hits_monster(item, monster, cell)
@@ -681,10 +762,19 @@ EOD
     check_monster_dead(cell, monster)
   end
 
+  def projectile_hits_monster(item, monster, cell)
+    on_monster_attacked(monster)
+    attack = get_hero_projectile_attack(item.projectile_strength)
+    damage = ( (attack * (15.0/16.0)**monster.defense) * (112 + rand(32))/128.0 ).to_i
+    monster.hp -= damage
+    @log.add("#{monster.name}に #{damage} のダメージを与えた。")
+    check_monster_dead(cell, monster)
+  end
+
   def item_hits_monster(item, monster, cell)
     @log.add("#{item}は #{monster.name}に当たった。")
     case item.type
-    when :box, :food, :projectile, :scroll, :ring
+    when :box, :food, :scroll, :ring
       on_monster_attacked(monster)
       damage = 1 + rand(1)
       monster.hp -= damage
@@ -698,6 +788,8 @@ EOD
       shield_hits_monster(item, monster, cell)
     when :weapon
       weapon_hits_monster(item, monster, cell)
+    when :projectile
+      projectile_hits_monster(item, monster, cell)
     else
       fail "case not covered"
     end
@@ -705,6 +797,13 @@ EOD
 
   def item_hits_hero(item, monster)
     @log.add("#{item.name}が #{@hero.name}に当たった。")
+    if item.type == :projectile
+      take_damage(attack_to_hero_damage(item.projectile_strength))
+    elsif item.type == :weapon || item.type == :shield
+      take_damage(attack_to_hero_damage(item.number))
+    else
+      take_damage(attack_to_hero_damage(1))
+    end
   end
 
   def monster_throw_item(monster, item, mx, my, dir)
@@ -721,11 +820,19 @@ EOD
         break
       when :FLOOR, :PASSAGE
         if [x+dx, y+dy] == [@hero.x, @hero.y]
-          item_hits_hero(item, monster)
+          if rand() < 0.125
+            item_land(item, x+dx, y+dy)
+          else
+            item_hits_hero(item, monster)
+          end
           break
         elsif cell.monster
-          # これだと主人公に経験値が入ってしまうな
-          item_hits_monster(item, cell.monster, cell)
+          # FIXME: これだと主人公に経験値が入ってしまうな
+          if rand() < 0.125
+            item_land(item, x+dx, y+dy)
+          else
+            item_hits_monster(item, cell.monster, cell)
+          end
           break
         end
       else
@@ -750,7 +857,11 @@ EOD
         break
       when :FLOOR, :PASSAGE
         if cell.monster
-          item_hits_monster(item, cell.monster, cell)
+          if rand() < 0.125
+            item_land(item, x+dx, y+dy)
+          else
+            item_hits_monster(item, cell.monster, cell)
+          end
           break
         end
       else
@@ -789,8 +900,15 @@ EOD
   
   def throw_item(item)
     dir = ask_direction()
-    @hero.remove_from_inventory(item)
-    do_throw_item(item, dir)
+    if item.type == :projectile && item.number > 1
+      one = Item.make_item(item.name)
+      one.number = 1
+      item.number -= 1
+      do_throw_item(one, dir)
+    else
+      @hero.remove_from_inventory(item)
+      do_throw_item(item, dir)
+    end
   end
 
   def zap_staff(item)
@@ -1126,6 +1244,8 @@ EOD
       equip_shield(item)
     when :ring
       equip_ring(item)
+    when :projectile
+      equip_projectile(item)
     else
       fail "equip"
     end
@@ -1157,6 +1277,16 @@ EOD
       @log.add("#{item.name}を 外した。")
     else
       @hero.ring = item
+      @log.add("#{item.name}を 装備した。")
+    end
+  end
+
+  def equip_projectile(item)
+    if @hero.projectile.equal?(item)
+      @hero.projectile = nil
+      @log.add("#{item.name}を 外した。")
+    else
+      @hero.projectile = item
       @log.add("#{item.name}を 装備した。")
     end
   end
@@ -1596,6 +1726,10 @@ EOD
     end
   end
 
+  def attack_to_hero_damage(attack)
+    return ( ( attack * (15.0/16.0)**get_hero_defense ) * (112 + rand(32))/128.0 ).to_i
+  end
+
   def monster_attack(m, dir)
     attack = get_monster_attack(m)
 
@@ -1606,7 +1740,7 @@ EOD
       if rand() < 0.125
         @log.add("#{@hero.name}は ひらりと身をかわした。")
       else
-        damage = ( ( attack * (15.0/16.0)**get_hero_defense ) * (112 + rand(32))/128.0 ).to_i
+        damage = attack_to_hero_damage(attack)
         take_damage(damage)
       end
     end
@@ -1646,6 +1780,7 @@ EOD
       mx, my = @level.coordinates_of(m)
       dir = Vec.normalize(Vec.minus([@hero.x, @hero.y], [mx, my]))
       arrow = Item.make_item("木の矢")
+      arrow.number = 1
       monster_throw_item(m, arrow, mx, my, dir)
     else
       fail

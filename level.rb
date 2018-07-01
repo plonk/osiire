@@ -147,7 +147,7 @@ end
 
 class Hero < Struct.new(:x, :y, :hp, :max_hp, :strength, :max_strength, :gold, :exp, :fullness, :max_fullness, :lv)
   attr_accessor :inventory
-  attr_accessor :weapon, :shield, :ring
+  attr_accessor :weapon, :shield, :ring, :projectile
 
   include StatusEffectPredicates
 
@@ -171,6 +171,13 @@ class Hero < Struct.new(:x, :y, :hp, :max_hp, :strength, :max_strength, :gold, :
     end
   end
 
+  def equipped?(x)
+    return x.equal?(@hero.weapon) ||
+           x.equal?(@hero.shield) ||
+           x.equal?(@hero.ring) ||
+           x.equal?(@hero.projectile)
+  end
+
   def remove_from_inventory(item)
     if item.equal?(weapon)
       self.weapon = nil
@@ -178,11 +185,33 @@ class Hero < Struct.new(:x, :y, :hp, :max_hp, :strength, :max_strength, :gold, :
     if item.equal?(shield)
       self.shield = nil
     end
+    if item.equal?(ring)
+      self.ring = nil
+    end
+    if item.equal?(projectile)
+      self.projectile = nil
+    end
     old_size = @inventory.size
     @inventory = @inventory.reject { |x|
       x.equal?(item)
     }
     fail unless @inventory.size == old_size - 1
+  end
+
+  def add_to_inventory(item)
+    if item.type == :projectile
+      stock = @inventory.find { |x| x.name == item.name }
+      if stock
+        stock.number = [stock.number + item.number, 99].min
+        return
+      end
+    end
+
+    if @inventory.size >= 20
+      fail 'inventory full'
+    end
+
+    @inventory.push(item)
   end
 
   def name; 'よてえもん' end
