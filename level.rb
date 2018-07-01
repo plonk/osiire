@@ -172,10 +172,10 @@ class Hero < Struct.new(:x, :y, :hp, :max_hp, :strength, :max_strength, :gold, :
   end
 
   def equipped?(x)
-    return x.equal?(@hero.weapon) ||
-           x.equal?(@hero.shield) ||
-           x.equal?(@hero.ring) ||
-           x.equal?(@hero.projectile)
+    return x.equal?(weapon) ||
+           x.equal?(shield) ||
+           x.equal?(ring) ||
+           x.equal?(projectile)
   end
 
   def remove_from_inventory(item)
