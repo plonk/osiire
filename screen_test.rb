@@ -520,7 +520,7 @@ class Program
      .       周りを調べる。
      ?       このヘルプを表示。
      q       キャンセル。
-             ゲームを終了する。
+     Q       ゲームを終了する。
 EOD
 
     win = Curses::Window.new(21, 50, 2, 4) # lines, cols, y, x
