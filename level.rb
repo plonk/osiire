@@ -105,7 +105,7 @@ class Cell
   def can_place?
     return (@type == :FLOOR || @type == :PASSAGE) && @objects.none? { |x|
       case x
-      when StairCase, Trap, Item
+      when StairCase, Trap, Item, Gold
         true
       else
         false
