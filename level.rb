@@ -35,14 +35,10 @@ class Cell
         case obj
         when Trap
           obj.visible
-        when Monster
-          if obj.invisible
-            false
-          else
-            true
-          end
         else
-          if @lit
+          if obj.is_a?(Monster) && obj.invisible
+            false
+          elsif @lit
             true
           else
             if @explored
