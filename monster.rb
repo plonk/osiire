@@ -8,6 +8,21 @@ class StatusEffect < Struct.new(:type, :remaining_duration)
 
   # def on_end
   # end
+
+  def name
+    case type
+    when :sleep
+      "睡眠"
+    when :paralysis
+      "かなしばり"
+    when :held
+      "はりつけ"
+    when :confused
+      "混乱"
+    else
+      type.to_s
+    end
+  end
 end
 
 module StatusEffectPredicates
@@ -24,6 +39,12 @@ module StatusEffectPredicates
   def held?
     @status_effects.any? { |e| e.type == :held }
   end
+
+
+  def confused?
+    @status_effects.any? { |e| e.type == :confused }
+  end
+
 end
 
 class Monster
@@ -148,6 +169,8 @@ class Monster
       0.5
     when "土偶"
       0.5 # HP 0.25 / ちから 0.25
+    when "目玉"
+      0.25
     else
       0.0
     end

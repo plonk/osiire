@@ -164,16 +164,20 @@ class Hero < Struct.new(:x, :y, :hp, :max_hp, :strength, :max_strength, :gold, :
   end
 
   def char
-    if weapon && shield
-      '􄀦􄀧'
-    elsif weapon
-      '􄄾􄄿'
-    elsif shield
-      '􄄼􄄽'
-    elsif hp < 1.0
+    if hp < 1.0
+      '􄅂􄅃'
+    elsif asleep?
       '􄅂􄅃'
     else
-      '􄅀􄅁'
+      if weapon && shield
+        '􄀦􄀧'
+      elsif weapon
+        '􄄾􄄿'
+      elsif shield
+        '􄄼􄄽'
+      else
+        '􄅀􄅁'
+      end
     end
   end
 

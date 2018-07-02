@@ -56,6 +56,7 @@ class Program
     if debug?
       @hero.inventory << Item.make_item("エクスカリバー")
       @hero.inventory << Item.make_item("メタルヨテイチの盾")
+      @hero.inventory << Item.make_item("目薬草")
       @hero.inventory << Item.make_item("薬草")
       @hero.inventory << Item.make_item("薬草")
       @hero.inventory << Item.make_item("高級薬草")
@@ -198,6 +199,10 @@ class Program
     fail ArgumentError unless vec
 
     picking = !%w[H J K L Y U B N].include?(c)
+
+    if @hero.confused?
+      vec = DIRECTIONS.sample
+    end
 
     dx, dy = vec
     if dx * dy != 0
@@ -349,11 +354,29 @@ class Program
       take_damage_strength(1)
     when "地雷"
       @log.add("足元で爆発が起こった！")
-      take_damage((@hero.hp / 2.0).ceil)
+      mine_activate(trap)
     when "落とし穴"
       @log.add("落とし穴だ！")
       new_level(+1)
     else fail
+    end
+  end
+
+  def mine_activate(mine)
+    take_damage((@hero.hp / 2.0).ceil)
+
+    tx, ty = @level.coordinates_of(mine)
+    rect = @level.surroundings(tx, ty)
+    rect.each_coords do |x, y|
+      if @level.in_dungeon?(x, y)
+        cell = @level.cell(x, y)
+        if cell.monster
+          cell.remove_object(cell.monster)
+        end
+        if cell.item
+          cell.remove_object(cell.item)
+        end
+      end
     end
   end
 
@@ -1514,12 +1537,13 @@ EOD
     # キャラクターステータスの表示
     Curses.setpos(0, 0)
     Curses.clrtoeol
-    line = "%dF  Lv %d  HP %d/%d  %dG  満腹度 %d%% [%04d]" %
+    line = "%dF  Lv %d  HP %d/%d  %dG  満腹度 %d%% %s [%04d]" %
            [@level_number,
             @hero.lv,
             @hero.hp, @hero.max_hp,
             @hero.gold,
             @hero.fullness.ceil,
+            @hero.status_effects.map(&:name).join(' '),
             @level.turn]
     Curses.addstr(line)
   end
@@ -1604,7 +1628,8 @@ EOD
     mx, my = @level.coordinates_of(m)
     return trick_in_range?(m, mx, my) &&
            case m.name
-               # TODO: 目玉追加
+           when "目玉"
+             !@hero.confused?
            when "白い手"
              !@hero.held?
            else
@@ -1836,6 +1861,13 @@ EOD
       else
         take_damage_max_hp(5)
       end
+
+    when "目玉"
+      unless @hero.confused?
+        @hero.status_effects.push(StatusEffect.new(:confused, 10))
+        @log.add("#{@hero.name}は 混乱した。")
+      end
+
     else
       fail
     end
@@ -1978,6 +2010,8 @@ EOD
       @log.add("#{character.name}は 目をさました。")
     when :held
       @log.add("#{character.name}の 足が抜けた。")
+    when :confused
+      @log.add("#{character.name}の 混乱がとけた。")
     else
       @log.add("#{character.name}の #{effect.type}状態がとけた。")
     end
