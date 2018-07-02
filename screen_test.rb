@@ -56,6 +56,11 @@ class Program
     if debug?
       @hero.inventory << Item.make_item("エクスカリバー")
       @hero.inventory << Item.make_item("メタルヨテイチの盾")
+      @hero.inventory << Item.make_item("薬草")
+      @hero.inventory << Item.make_item("薬草")
+      @hero.inventory << Item.make_item("高級薬草")
+      @hero.inventory << Item.make_item("高級薬草")
+      @hero.inventory << Item.make_item("毒けし草")
       @hero.inventory << Item.make_item("あかりの巻物")
       @hero.inventory << Item.make_item("あかりの巻物")
       @hero.inventory << Item.make_item("結界の巻物")
@@ -102,7 +107,7 @@ class Program
 
   def monster_take_damage(monster, damage, cell)
     monster.hp -= damage
-    @log.add("#{damage} のダメージを与えた。")
+    @log.add("#{monster.name}に #{damage} のダメージを与えた。")
     if monster.hp >= 1.0 && # 生きている
        monster.divide? &&
        rand() < 0.5
@@ -130,7 +135,10 @@ class Program
 
   def check_monster_dead(cell, monster)
     if monster.hp < 1.0
+      monster.invisible = false
+
       cell.remove_object(monster)
+
       if monster.item
         thing = monster.item
       elsif rand() < monster.drop_rate && cell.can_place?
@@ -138,13 +146,12 @@ class Program
       else
         thing = nil
       end
+
       if thing
-        if cell.can_place?
-          cell.put_object(thing)
-        else
-          @log.add("#{thing}は 消えてしまった…。")
-        end
+        x, y = @level.coordinates_of_cell(cell)
+        item_land(thing, x, y)
       end
+
       @hero.exp += monster.exp
       @log.add("#{monster.name}を たおして #{monster.exp} ポイントの経験値を得た。")
       check_level_up
@@ -591,7 +598,7 @@ EOD
     loop do
       item = c = nil
       menu = Menu.new(@hero.inventory,
-                      y: 1, x: 0, cols: 25,
+                      y: 1, x: 0, cols: 27,
                       dispfunc: dispfunc,
                       title: "持ち物 [s]ソート",
                       sortable: true)
@@ -604,7 +611,7 @@ EOD
       when :chosen
         item, = args
 
-        action_menu = Menu.new(actions_for_item(item), y: 1, x: 25, cols: 9)
+        action_menu = Menu.new(actions_for_item(item), y: 1, x: 27, cols: 9)
         c, *args = action_menu.choose
         case c
         when :cancel
@@ -1244,6 +1251,19 @@ EOD
     end
   end
 
+  def hero_levels_down
+    if @hero.lv == 1
+      @log.add("しかし 何も起こらなかった。")
+    else
+      exp = lv_to_exp(@hero.lv) - 1
+      @hero.lv = @hero.lv - 1
+      @hero.exp = exp
+      @hero.max_hp = [@hero.max_hp - 5, 1].max
+      @hero.hp = [@hero.hp, @hero.max_hp].min
+      @log.add("#{@hero.name}の レベルが下がった。")
+    end
+  end
+
   def hero_fall_asleep
     if @hero.sleep_resistent?
       @log.add("しかし なんともなかった。")
@@ -1546,7 +1566,7 @@ EOD
            "つぎのLvまで %d\n" % [exp_until_next_lv || "∞"] +
            "満腹度 %d%%/%d%%\n" % [@hero.fullness.ceil, @hero.max_fullness]
 
-    win = Curses::Window.new(9+2, 28, 1, 0) # lines, cols, y, x
+    win = Curses::Window.new(9+2, 30, 1, 0) # lines, cols, y, x
     win.clear
     win.box("\0", "\0")
     text.each_line.with_index(1) do |line, y|
@@ -1800,9 +1820,42 @@ EOD
       arrow = Item.make_item("木の矢")
       arrow.number = 1
       monster_throw_item(m, arrow, mx, my, dir)
+
+    when "アクアター"
+      @log.add("#{m.name}は 酸を浴せた。")
+      if @hero.shield
+        take_damage_shield
+      end
+
+    when "パペット"
+      hero_levels_down
+
+    when "土偶"
+      if rand() < 0.5
+        take_damage_max_strength(1)
+      else
+        take_damage_max_hp(5)
+      end
     else
       fail
     end
+  end
+
+  def take_damage_max_strength(amount)
+    fail unless amount == 1
+    if @hero.max_strength <= 1
+      @log.add("#{@hero.name}の ちからは これ以上さがらない。")
+    else
+      @hero.max_strength -= 1
+      @hero.strength = [@hero.strength, @hero.max_strength].min
+      @log.add("#{@hero.name}の ちからの最大値が 下がった。")
+    end
+  end
+
+  def take_damage_max_hp(amount)
+    @hero.max_hp = [@hero.max_hp - amount, 1].max
+    @hero.hp = [@hero.hp, @hero.max_hp].min
+    @log.add("#{@hero.name}の 最大HPが 減った。")
   end
 
   def monster_move(m, mx, my, dir)

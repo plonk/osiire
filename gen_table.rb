@@ -35,10 +35,10 @@ MONSTER_TABLE = [
 
 require 'pp'
 
-pp MONSTER_TABLE
+#pp MONSTER_TABLE
 
 table = (1..99).map { |f| [f] }
-p table
+#p table
 
 MONSTER_TABLE.each do |name, ranges|
   if ranges.is_a? Range

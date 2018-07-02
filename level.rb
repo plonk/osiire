@@ -35,6 +35,12 @@ class Cell
         case obj
         when Trap
           obj.visible
+        when Monster
+          if obj.invisible
+            false
+          else
+            true
+          end
         else
           if @lit
             true
@@ -571,6 +577,19 @@ class Level
         return x, y
       end
     end
+  end
+
+  def coordinates_of_cell(cell)
+    fail TypeError unless cell.is_a? Cell
+
+    (0 ... height).flat_map do |y|
+      (0 ... width).flat_map do |x|
+        if @dungeon[y][x].equal?(cell)
+          return [x, y]
+        end
+      end
+    end
+    return nil
   end
 
   def coordinates_of(obj)

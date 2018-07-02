@@ -75,11 +75,12 @@ class Monster
     end
   end
 
-  attr :char, :name, :max_hp, :strength, :defense, :exp, :drop_rate
+  attr :char, :max_hp, :strength, :defense, :exp, :drop_rate
   attr_accessor :hp
   attr_accessor :state, :facing, :goal
   attr_accessor :item
   attr :trick_range
+  attr_accessor :invisible
 
   include StatusEffectPredicates
 
@@ -112,6 +113,17 @@ class Monster
     end
 
     @trick_range = trick_range
+
+    case @name
+    when "ゆうれい"
+      @invisible = true
+    else
+      @invisible = false
+    end
+  end
+
+  def name
+    @invisible ? "見えない敵" : @name
   end
 
   def tipsy?
@@ -130,6 +142,12 @@ class Monster
       0.5
     when 'ピューシャン'
       0.75
+    when "アクアター"
+      0.5
+    when "パペット"
+      0.5
+    when "土偶"
+      0.5 # HP 0.25 / ちから 0.25
     else
       0.0
     end
@@ -137,7 +155,7 @@ class Monster
 
   def double_speed?
     case @name
-    when "デビルモンキー", "ツバメ"
+    when "デビルモンキー", "ツバメ", "四人トリオ", "メタルヨテイチ"
       true
     else
       false
@@ -146,7 +164,7 @@ class Monster
 
   def single_attack?
     case @name
-    when "デビルモンキー"
+    when "デビルモンキー", "四人トリオ", "メタルヨテイチ"
       false
     else
       true
