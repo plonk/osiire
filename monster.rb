@@ -162,4 +162,22 @@ class Monster
     end
   end
 
+  def poisonous?
+    case @name
+    when 'ファンガス', '土偶'
+      true
+    else
+      false
+    end
+  end
+
+  def undead?
+    case @name
+    when '木乃伊', 'ゆうれい'
+      true
+    else
+      false
+    end
+  end
+
 end

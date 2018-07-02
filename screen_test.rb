@@ -729,6 +729,24 @@ EOD
       monster_fall_asleep(monster)
     when "ワープ草"
       monster_teleport(monster, cell)
+    when "薬草"
+      if monster.undead?
+        monster_take_damage(monster, 25, cell)
+      else
+        @log.add("しかし 何も 起こらなかった。")
+      end
+    when "高級薬草"
+      if monster.undead?
+        monster_take_damage(monster, 100, cell)
+      else
+        @log.add("しかし 何も 起こらなかった。")
+      end
+    when "毒けし草"
+      if monster.poisonous?
+        monster_take_damage(monster, 50, cell)
+      else
+        @log.add("しかし 何も 起こらなかった。")
+      end
     else
       @log.add("しかし 何も 起こらなかった。")
     end
