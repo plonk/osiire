@@ -1,3 +1,5 @@
+require_relative 'curses_ext'
+
 class Menu
   def initialize(items, opts = {})
     @items = items
@@ -22,7 +24,7 @@ class Menu
 
   def choose
     @win.clear
-    @win.box("\0", "\0")
+    @win.rounded_box
     @win.setpos(0, 1)
     @win.addstr(@title)
 

@@ -5,6 +5,7 @@ require_relative 'dungeon'
 require_relative 'menu'
 require_relative 'vec'
 require_relative 'charlevel'
+require_relative 'curses_ext'
 
 class MessageLog
   attr_reader :message, :updated_at
@@ -561,7 +562,7 @@ EOD
 
     win = Curses::Window.new(21, 50, 2, 4) # lines, cols, y, x
     win.clear
-    win.box("\0", "\0")
+    win.rounded_box
     text.each_line.with_index(1) do |line, y|
       win.setpos(y, 1)
       win.addstr(line.chomp)
@@ -579,7 +580,7 @@ EOD
 
     win = Curses::Window.new(3, 10, 5, 15) # lines, cols, y, x
     win.clear
-    win.box("\0", "\0")
+    win.rounded_box
     text.each_line.with_index(1) do |line, y|
       win.setpos(y, 1)
       win.addstr(line.chomp)
@@ -960,7 +961,7 @@ b j n
 EOD
     win = Curses::Window.new(5, 7, 5, 33) # lines, cols, y, x
     win.clear
-    win.box("\0", "\0")
+    win.rounded_box
     win.setpos(0, 1)
     win.addstr("方向")
     text.each_line.with_index(1) do |line, y|
@@ -1594,7 +1595,7 @@ EOD
 
     win = Curses::Window.new(3, 16, 5, 13) # lines, cols, y, x
     win.clear
-    win.box("\0", "\0")
+    win.rounded_box
     text.each_line.with_index(1) do |line, y|
       win.setpos(y, 1)
       win.addstr(line.chomp)
@@ -1625,7 +1626,9 @@ EOD
 
     win = Curses::Window.new(9+2, 30, 1, 0) # lines, cols, y, x
     win.clear
-    win.box("\0", "\0")
+    win.rounded_box
+    win.setpos(0, 1)
+    win.addstr(@hero.name)
     text.each_line.with_index(1) do |line, y|
       win.setpos(y, 1)
       win.addstr(line.chomp)
@@ -2104,6 +2107,40 @@ EOD
 
   end
 
+  def naming_screen
+    require_relative 'naming_screen'
+
+    # 背景画面をクリア
+    Curses.stdscr.clear
+    Curses.stdscr.refresh
+
+    name = NamingScreen.run
+    @hero.name = name
+    main
+  end
+
+  def initial_menu
+    menu = Menu.new([
+                      "冒険に出る",
+                      # "番付"
+                    ], y: 0, x: 0, cols: 14)
+    cmd, *args = menu.choose
+    case cmd
+    when :cancel
+      return
+    when :chosen
+      item, = args
+      case item
+      when "冒険に出る"
+        naming_screen
+      when "番付"
+        # naiyo
+      else
+        fail item
+      end
+    end
+  end
+
   def main
     new_level
 
@@ -2175,4 +2212,4 @@ EOD
   end
 end
 
-Program.new.main
+Program.new.initial_menu

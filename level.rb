@@ -150,6 +150,7 @@ end
 class Hero < Struct.new(:x, :y, :hp, :max_hp, :strength, :max_strength, :gold, :exp, :fullness, :max_fullness, :lv)
   attr_accessor :inventory
   attr_accessor :weapon, :shield, :ring, :projectile
+  attr_accessor :name
 
   include StatusEffectPredicates
 
@@ -157,6 +158,7 @@ class Hero < Struct.new(:x, :y, :hp, :max_hp, :strength, :max_strength, :gold, :
     super
     @inventory = []
     @status_effects = []
+    @name = "名無しさん"
   end
 
   def char
@@ -219,8 +221,6 @@ class Hero < Struct.new(:x, :y, :hp, :max_hp, :strength, :max_strength, :gold, :
 
     @inventory.push(item)
   end
-
-  def name; 'よてえもん' end
 
   def full?
     fullness > max_fullness - 1.0
