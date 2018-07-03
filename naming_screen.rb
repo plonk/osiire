@@ -191,7 +191,7 @@ module NamingScreen
           end
         end
       else
-        fail "#{c.inspect}"
+        # fail "#{c.inspect}"
       end
     end
 
