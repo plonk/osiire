@@ -387,23 +387,18 @@ class Program
     end
   end
 
-  def need_inventory_slot?(item)
-    @hero.inventory.none? { |x| item.type == x.type && item.name == x.name }
-  end
-
   # ヒーロー @hero が配列 objects の要素 item を拾おうとする。
   def pick(cell, item)
-    if need_inventory_slot?(item) && @hero.inventory.size >= 20
-      @log.add("持ち物が いっぱいで #{item.name}が 拾えない。")
-    end
-
     if item.stuck
       @log.add("#{item.name}は 床にはりついて 拾えない。")
     else
-      cell.remove_object(item)
-      @hero.add_to_inventory(item)
-      update_stairs_direction
-      @log.add("#{@hero.name}は #{item.to_s}を 拾った。")
+      if @hero.add_to_inventory(item)
+        cell.remove_object(item)
+        update_stairs_direction
+        @log.add("#{@hero.name}は #{item.to_s}を 拾った。")
+      else
+        @log.add("持ち物が いっぱいで #{item.name}が 拾えない。")
+      end
     end
   end
 

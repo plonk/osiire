@@ -206,20 +206,22 @@ class Hero < Struct.new(:x, :y, :hp, :max_hp, :strength, :max_strength, :gold, :
     fail unless @inventory.size == old_size - 1
   end
 
+  # 成功したら true。さもなくば false。
   def add_to_inventory(item)
     if item.type == :projectile
       stock = @inventory.find { |x| x.name == item.name }
       if stock
         stock.number = [stock.number + item.number, 99].min
-        return
+        return true
       end
     end
 
     if @inventory.size >= 20
-      fail 'inventory full'
+      return false
+    else
+      @inventory.push(item)
+      return true
     end
-
-    @inventory.push(item)
   end
 
   def full?
