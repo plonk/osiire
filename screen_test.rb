@@ -358,7 +358,13 @@ class Program
     when "落とし穴"
       @log.add("落とし穴だ！")
       new_level(+1)
+      return # ワナ破損処理をスキップする
     else fail
+    end
+
+    tx, ty = @level.coordinates_of(trap)
+    if rand() < 0.5
+      @level.remove_object(trap, tx, ty)
     end
   end
 

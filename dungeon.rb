@@ -117,8 +117,20 @@ class Dungeon
   end
 
   def place_traps(level, level_number)
-    # 30 では多い。
-    10.times do
+    case level_number
+    when 1..2
+      n = 0
+    when 3..10
+      n = rand(1..3)
+    when 11..20
+      n = rand(3..5)
+    when 21..30
+      n = rand(5..7)
+    else
+      n = rand(7..9)
+    end
+
+    n.times do
       cell = level.cell(*level.get_random_place(:FLOOR))
       if cell.can_place?
         cell.put_object(Trap.new(Trap::TRAPS.sample, false))
