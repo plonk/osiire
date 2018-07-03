@@ -890,6 +890,33 @@ EOD
     end
   end
 
+  def breath_of_fire(monster, mx, my, dir)
+    dx, dy = dir
+    x, y = mx, my
+
+    while true
+      fail unless @level.in_dungeon?(x+dx, y+dy)
+
+      cell = @level.cell(x+dx, y+dy)
+      case cell.type
+      when :WALL, :HORIZONTAL_WALL, :VERTICAL_WALL, :STATUE
+        break
+      when :FLOOR, :PASSAGE
+        if [x+dx, y+dy] == [@hero.x, @hero.y]
+          take_damage(rand(17..23))
+          break
+        elsif cell.monster
+          # FIXME: これだと主人公に経験値が入ってしまうな
+          monster_take_damage(cell.monster, rand(17..23), cell)
+          break
+        end
+      else
+        fail "case not covered"
+      end
+      x, y = x+dx, y+dy
+    end
+  end
+
   # (Item, Array)
   def do_throw_item(item, dir)
     dx, dy = dir
@@ -1632,6 +1659,8 @@ EOD
              !@hero.confused?
            when "白い手"
              !@hero.held?
+           when "どろぼう猫"
+             m.item.nil?
            else
              true
            end
@@ -1645,7 +1674,7 @@ EOD
     end
 
     # * モンスターの視界内にヒーローが居れば目的地を再設定。
-    if @level.fov(mx, my).include?(@hero.x, @hero.y)
+    if !m.hallucinating? && @level.fov(mx, my).include?(@hero.x, @hero.y)
       m.goal = [@hero.x, @hero.y]
     end
 
@@ -1779,6 +1808,9 @@ EOD
           return Action.new(:trick, nil)
         elsif @level.can_attack?(m, mx, my, @hero.x, @hero.y)
           # * ヒーローに隣接していればヒーローに攻撃。
+          if m.name == "ガーゴイル"
+            m.status_effects.reject! { |x| x.type == :held }
+          end
           return Action.new(:attack, Vec.minus([@hero.x, @hero.y], [mx, my]))
         else
           return monster_move_action(m, mx, my)
@@ -1826,6 +1858,11 @@ EOD
         @log.add("#{m.name}は #{actual}ゴールドを盗んでワープした！")
         @hero.gold -= actual
         m.item = Gold.new(m.item.amount + actual)
+
+        unless m.hallucinating?
+          m.status_effects << StatusEffect.new(:hallucination, Float::INFINITY)
+        end
+
         mx, my = @level.coordinates_of(m)
         @level.remove_object(m, mx, my)
         x,y = @level.get_random_character_placeable_place
@@ -1867,6 +1904,32 @@ EOD
         @hero.status_effects.push(StatusEffect.new(:confused, 10))
         @log.add("#{@hero.name}は 混乱した。")
       end
+
+    when "どろぼう猫"
+      candidates = @hero.inventory.reject { |x| @hero.equipped?(x) }
+      item = candidates.sample
+      @hero.remove_from_inventory(item)
+      m.item = item
+      @log.add("#{m.name}は #{item.name}を盗んでワープした。")
+
+      unless m.hallucinating?
+        m.status_effects << StatusEffect.new(:hallucination, Float::INFINITY)
+      end
+
+      mx, my = @level.coordinates_of(m)
+      @level.remove_object(m, mx, my)
+      x,y = @level.get_random_character_placeable_place
+      @level.put_object(m, x, y)
+
+    when "竜"
+      mx, my = @level.coordinates_of(m)
+      dir = Vec.normalize(Vec.minus([@hero.x, @hero.y], [mx, my]))
+      @log.add("#{m.name}は 火を吐いた。")
+      breath_of_fire(m, mx, my, dir)
+
+    when "ソーサラー"
+      @log.add("#{m.name}は ワープの杖を振った。")
+      hero_teleport
 
     else
       fail

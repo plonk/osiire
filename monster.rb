@@ -19,6 +19,8 @@ class StatusEffect < Struct.new(:type, :remaining_duration)
       "はりつけ"
     when :confused
       "混乱"
+    when :hallucination
+      "まどわし"
     else
       type.to_s
     end
@@ -40,16 +42,19 @@ module StatusEffectPredicates
     @status_effects.any? { |e| e.type == :held }
   end
 
-
   def confused?
     @status_effects.any? { |e| e.type == :confused }
+  end
+
+  def hallucinating?
+    @status_effects.any? { |e| e.type == :hallucination }
   end
 
 end
 
 class Monster
   SPECIES = [
-    # char, name, max_hp, exp, strength, defense, drop, asleep_rate
+    # char, name, max_hp, exp, strength, defense, drop, asleep_rate, range
     ['􄁂􄁃', 'スライム', 5, 1, 2, 1, 0.01, 0.5, :none],            # 弱い
     ['􄁆􄁇', 'コウモリ', 7, 2, 3, 1, 0.01, 0.5, :none],            # ふらふら
     ['􄁈􄁉', 'オオウミウシ', 7, 3, 2, 4, 0.01, 0.5, :none],        # 体当たり
@@ -74,7 +79,7 @@ class Monster
     ['􄁮􄁯', 'ボンプキン', 70, 30, 12, 23, 0.01, 0.5, :none],      # 爆発する
     ['􄁰􄁱', 'パペット', 36, 40, 13, 23, 0.16, 0.5, :reach],       # レベルを下げる
     ['􄁲􄁳', 'ゆうれい', 60, 150, 17, 27, 0.0, 0.5, :none],        # 見えない。ふらふら
-    ['􄁴􄁵', 'ミミック', 50, 30, 24, 24, 0.0, 0.5, :none],         # アイテム・階段に化ける
+    ['􄁴􄁵', 'ミミック', 50, 30, 24, 24, 0.0, 0.0, :none],         # アイテム・階段に化ける
     ['􄄠􄄡', 'トロール', 51, 380, 51, 21, 0.16, 0.5, :none],       # 強い
     ['􄁶􄁷', '目玉', 62, 250, 31, 27, 0.16, 0.5, :sight],          # 混乱させてくる
     ['􄁸􄁹', '化け狸', 80, 20, 9, 14, 0.0, 0.5, :none],            # 別のモンスターに化ける
@@ -96,7 +101,7 @@ class Monster
     end
   end
 
-  attr :char, :max_hp, :strength, :defense, :exp, :drop_rate
+  attr :max_hp, :strength, :defense, :exp, :drop_rate
   attr_accessor :hp
   attr_accessor :state, :facing, :goal
   attr_accessor :item
@@ -129,8 +134,12 @@ class Monster
       @status_effects << StatusEffect.new(:paralysis, Float::INFINITY)
     when "ノーム"
       @item = Gold.new(rand(250..1500))
-    when  "白い手"
+    when "白い手", "ガーゴイル"
       @status_effects << StatusEffect.new(:held, Float::INFINITY)
+    when "メタルヨテイチ"
+      @status_effects << StatusEffect.new(:hallucination, Float::INFINITY)
+    when "ミミック"
+      @status_effects << StatusEffect.new(:paralysis, Float::INFINITY)
     end
 
     @trick_range = trick_range
@@ -140,6 +149,20 @@ class Monster
       @invisible = true
     else
       @invisible = false
+    end
+
+    @impersonating = nil
+    case @name
+    when "ミミック"
+      @impersonating = (Item::CHARS.values + ['􄀨􄀩']).sample
+    end
+  end
+
+  def char
+    if @name == "ミミック" && paralyzed?
+      @impersonating
+    else
+      @char
     end
   end
 
@@ -171,6 +194,12 @@ class Monster
       0.5 # HP 0.25 / ちから 0.25
     when "目玉"
       0.25
+    when "どろぼう猫"
+      0.5
+    when "竜"
+      0.5
+    when "ソーサラー"
+      0.33
     else
       0.0
     end
