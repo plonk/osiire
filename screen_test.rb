@@ -1280,9 +1280,7 @@ EOD
     when "メダパニ草"
       @log.add("実装してないよ。")
     when "睡眠草"
-      unless @hero.asleep?
-        hero_fall_asleep
-      end
+      hero_fall_asleep
     when "ワープ草"
       hero_teleport
       @log.add("#{@hero.name}は ワープした。")
@@ -1320,8 +1318,10 @@ EOD
     if @hero.sleep_resistent?
       @log.add("しかし なんともなかった。")
     else
-      @hero.status_effects.push(StatusEffect.new(:sleep, 5))
-      @log.add("#{@hero.name}は 眠りに落ちた。")
+      unless @hero.asleep?
+        @hero.status_effects.push(StatusEffect.new(:sleep, 5))
+        @log.add("#{@hero.name}は 眠りに落ちた。")
+      end
     end
   end
 
@@ -1849,7 +1849,7 @@ EOD
     case m.name
     when '催眠術師'
       @log.add("#{m.name}は 手に持っている物を 揺り動かした。")
-      monster_fall_asleep(@hero)
+      hero_fall_asleep
     when 'ファンガス'
       @log.add("#{m.name}は 毒のこなを 撒き散らした。")
       take_damage_strength(1)
