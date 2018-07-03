@@ -72,7 +72,7 @@ class Monster
     ['􄁠􄁡', 'おめん武者', 35, 40, 15, 26, 0.16, 0.5, :none],      # 鎧の中は空洞だ
     ['􄁢􄁣', 'アクアター', 30, 25, 0, 19, 0.01, 0.5, :reach],      # ガッポーン。盾が錆びるぞ
     ['􄁤􄁥', 'どろぼう猫', 40, 20, 0, 17, 1.0, 0.0, :reach],       # アイテムを盗む
-    ['􄄤􄄥', 'ガーゴイル', 45, 50, 18, 27, 0.33, 0.5, :none],      # 石像のふりをしている
+    ['􄄤􄄥', '動くモアイ像', 45, 50, 18, 27, 0.33, 0.5, :none],      # 石像のふりをしている
     ['􄁨􄁩', '四人トリオ', 60, 10, 11, 3, 0.0, 1.0, :none],        # 4人で固まって出現する
     ['􄁪􄁫', '白い手', 72, 40, 7, 23, 0.0, 0.0, :reach],           # つかまると倒すまで動けない
     ['􄁬􄁭', 'ゴーレム', 52, 180, 32, 27, 0.33, 0.5, :none],       # 巨大な泥人形
@@ -134,7 +134,7 @@ class Monster
       @status_effects << StatusEffect.new(:paralysis, Float::INFINITY)
     when "ノーム"
       @item = Gold.new(rand(250..1500))
-    when "白い手", "ガーゴイル"
+    when "白い手", "動くモアイ像"
       @status_effects << StatusEffect.new(:held, Float::INFINITY)
     when "メタルヨテイチ"
       @status_effects << StatusEffect.new(:hallucination, Float::INFINITY)

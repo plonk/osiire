@@ -1808,7 +1808,7 @@ EOD
           return Action.new(:trick, nil)
         elsif @level.can_attack?(m, mx, my, @hero.x, @hero.y)
           # * ヒーローに隣接していればヒーローに攻撃。
-          if m.name == "ガーゴイル"
+          if m.name == "動くモアイ像"
             m.status_effects.reject! { |x| x.type == :held }
           end
           return Action.new(:attack, Vec.minus([@hero.x, @hero.y], [mx, my]))
