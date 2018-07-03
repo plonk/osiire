@@ -138,6 +138,8 @@ module NamingScreen
       case c
       when 9 # Tab
         handle_input.('l')
+      when Curses::KEY_BTAB
+        handle_input.('h')
       when 'h', Curses::KEY_LEFT
         x = (x - 1) % (y == 0 ? COMMAND_ROW.size : LAYERS[layer_index][y-1].size)
       when 'j', Curses::KEY_DOWN
