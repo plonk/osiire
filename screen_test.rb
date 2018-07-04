@@ -6,6 +6,7 @@ require_relative 'menu'
 require_relative 'vec'
 require_relative 'charlevel'
 require_relative 'curses_ext'
+require_relative 'result_screen'
 
 class MessageLog
   attr_reader :message, :updated_at
@@ -72,6 +73,8 @@ class Program
     @log = MessageLog.new
 
     @last_room = nil
+
+    @start_time = nil
   end
 
   def debug?
@@ -569,19 +572,15 @@ EOD
   end
 
   def clear_message
-    text = <<EOD
-クリア
-EOD
+    data = ResultScreen.to_data(@hero)
+           .merge({"screen_shot" => take_screen_shot(),
+                   "time" => (Time.now - @start_time).to_i,
+                   "message" => "魔除けを持って無事帰る。",
+                   "level" => @level_number,
+                   "return_trip" => @dungeon.on_return_trip?(@hero),
+                  })
 
-    win = Curses::Window.new(3, 10, 5, 15) # lines, cols, y, x
-    win.clear
-    win.rounded_box
-    text.each_line.with_index(1) do |line, y|
-      win.setpos(y, 1)
-      win.addstr(line.chomp)
-    end
-    win.getch
-    win.close
+    ResultScreen.run(data)
   end
 
   # アイテムに適用可能な行動
@@ -1506,13 +1505,8 @@ EOD
     end
   end
 
-  def flushinp
-    Curses.timeout = 0
-    nil until Curses.getch == nil
-  end
-
   def read_command
-    flushinp
+    Curses.flushinp
     Curses.timeout = 100 # milliseconds
     until c = Curses.getch
       if Time.now - @log.updated_at >= 2.0
@@ -1542,6 +1536,27 @@ EOD
           Curses.addstr('　')
         end
       end
+    end
+  end
+
+  # 主人公を中心として 5x5 の範囲を撮影する。
+  # 返り値は String の Array。要素数は 5。
+  # 個々の String の文字数は 10。
+  def take_screen_shot
+    (-2).upto(2).map do |dy|
+      (-7).upto(7).map do |dx|
+        y1 = @hero.y + dy
+        x1 = @hero.x + dx
+        if @level.in_dungeon?(x1, y1)
+          if @hero.x == x1 && @hero.y == y1
+            @hero.char
+          else
+            @level.dungeon_char(x1, y1)
+          end
+        else
+          '　'
+        end
+      end.join("")
     end
   end
 
@@ -1584,20 +1599,20 @@ EOD
   end
 
   def gameover_message
-    text = <<EOD
-ゲームオーバー
-EOD
-
-    win = Curses::Window.new(3, 16, 5, 13) # lines, cols, y, x
-    win.clear
-    win.rounded_box
-    text.each_line.with_index(1) do |line, y|
-      win.setpos(y, 1)
-      win.addstr(line.chomp)
+    if @dungeon.on_return_trip?(@hero)
+      message = "魔除けを持って#{@level_number}Fで力尽きる。"
+    else
+      message = "#{@level_number}Fで力尽きる。"
     end
-    flushinp
-    win.getch
-    win.close
+    data = ResultScreen.to_data(@hero)
+           .merge({"screen_shot" => take_screen_shot(),
+                   "time" => (Time.now - @start_time).to_i,
+                   "message" => message,
+                   "level" => @level_number,
+                   "return_trip" => @dungeon.on_return_trip?(@hero),
+                  })
+
+    ResultScreen.run(data)
   end
 
   def exp_until_next_lv
@@ -2137,6 +2152,8 @@ EOD
   end
 
   def main
+    @start_time = Time.now
+
     new_level
 
     @quitting = false

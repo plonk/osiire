@@ -1,3 +1,11 @@
+module Curses
+  def flushinp
+    Curses.timeout = 0
+    nil until Curses.getch == nil
+  end
+  module_function :flushinp
+end
+
 class Curses::Window
   def rounded_box
     win = self
