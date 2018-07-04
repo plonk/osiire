@@ -166,6 +166,8 @@ module NamingScreen
       when 'n'
         handle_input.('l')
         handle_input.('j')
+      when 'q'
+        return nil
       when 10 # Enter
         if y == 0
           case COMMAND_ROW[x]

@@ -1,3 +1,4 @@
+require 'json'
 require 'curses'
 require_relative 'room'
 require_relative 'level'
@@ -42,6 +43,7 @@ class Program
   include CharacterLevel
 
   DIRECTIONS = [[0,-1], [1,-1], [1,0], [1,1], [0,1], [-1,1], [-1,0], [-1,-1]]
+  RANKING_FILE_NAME = "ranking.json"
 
   def initialize
     @debug = ARGV.include?("-d")
@@ -53,6 +55,11 @@ class Program
     at_exit {
       Curses.close_screen
     }
+
+    reset()
+  end
+
+  def reset
     @hero = Hero.new(0, 0, 15, 15, 8, 8, 0, 0, 100.0, 100.0, 1)
     @hero.inventory << Item.make_item("大きなパン")
     if debug?
@@ -554,11 +561,12 @@ class Program
      ,       足元を調べる。
      .       周りを調べる。
      ?       このヘルプを表示。
+     s       主人公のステータスを表示。
      q       キャンセル。
      Q       ゲームを終了する。
 EOD
 
-    win = Curses::Window.new(21, 50, 2, 4) # lines, cols, y, x
+    win = Curses::Window.new(22, 50, 2, 4) # lines, cols, y, x
     win.clear
     win.rounded_box
     text.each_line.with_index(1) do |line, y|
@@ -578,9 +586,43 @@ EOD
                    "message" => "魔除けを持って無事帰る。",
                    "level" => @level_number,
                    "return_trip" => @dungeon.on_return_trip?(@hero),
+                   "timestamp" => Time.now.to_i,
                   })
 
     ResultScreen.run(data)
+
+    if add_to_ranking(data)
+      message_window("番付に載りました。")
+    end
+  end
+
+  def add_to_ranking(data)
+    begin
+      f = File.open(RANKING_FILE_NAME, "r+")
+      f.flock(File::LOCK_EX)
+
+      ranking = sort_ranking(JSON.parse(f.read) + [data])
+      ranking = ranking[0..9]
+      ranked_in = ranking.any? { |item| item.equal?(data) }
+      if ranked_in
+        f.rewind
+        f.write(JSON.dump(ranking))
+        f.truncate(f.pos)
+        return true
+      else
+        return false
+      end
+    rescue Errno::ENOENT
+      # この間に別のプロセスによってファイルが作成されないことを祈りま
+      # しょう。
+      File.open(RANKING_FILE_NAME, "w") do |g|
+        g.flock(File::LOCK_EX)
+        g.write("[]")
+      end
+      return add_to_ranking(data)
+    ensure
+      f&.close
+    end
   end
 
   # アイテムに適用可能な行動
@@ -731,7 +773,7 @@ EOD
       if LAND_DEPENDENT_POSITION[[dx,dy]]
         dx2, dy2 = LAND_DEPENDENT_POSITION[[dx,dy]]
         unless (@level.in_dungeon?(x+dx2, y+dy2) &&
-                (@level.cell(x+dx2, y+dy2).type == :FLOOR || 
+                (@level.cell(x+dx2, y+dy2).type == :FLOOR ||
                  @level.cell(x+dx2, y+dy2).type == :PASSAGE))
           next
         end
@@ -833,7 +875,7 @@ EOD
       herb_hits_monster(item, monster, cell)
     when :staff
       staff_hits_monster(item, monster, cell)
-    when :shield 
+    when :shield
       shield_hits_monster(item, monster, cell)
     when :weapon
       weapon_hits_monster(item, monster, cell)
@@ -969,11 +1011,11 @@ EOD
         return KEY_TO_DIRVEC[c]
       end
     end
-    
+
   ensure
     win&.close
   end
-  
+
   def throw_item(item)
     dir = ask_direction()
     if item.type == :projectile && item.number > 1
@@ -1223,7 +1265,7 @@ EOD
       @log.add("#{monster_count}匹の モンスターに 合計 #{total_damage}ポイントのダメージ！")
     end
   end
- 
+
   def take_herb(item)
     fail "not a herb" unless item.type == :herb
 
@@ -1610,9 +1652,14 @@ EOD
                    "message" => message,
                    "level" => @level_number,
                    "return_trip" => @dungeon.on_return_trip?(@hero),
+                   "timestamp" => Time.now.to_i,
                   })
 
     ResultScreen.run(data)
+
+    if add_to_ranking(data)
+      message_window("番付に載りました。")
+    end
   end
 
   def exp_until_next_lv
@@ -2125,14 +2172,121 @@ EOD
     Curses.stdscr.refresh
 
     name = NamingScreen.run
-    @hero.name = name
-    main
+    if name
+      @hero.name = name
+      main
+    end
+  end
+
+  def validate_ranking(data)
+    data.is_a?(Array)
+  end
+
+  def message_window(message, opts = {})
+    cols = message.size * 2 + 2
+    win = Curses::Window.new(3, cols, (Curses.lines - 3)/2, (Curses.cols - cols)/2) # lines, cols, y, x
+    win.clear
+    win.rounded_box
+
+    win.setpos(1, 1)
+    win.addstr(message.chomp)
+
+    Curses.flushinp
+    win.getch
+    win.close
+  end
+
+  def format_timestamp(unix_time)
+    Time.at(unix_time).strftime("%Y-%m-%d")
+  end
+
+  def sort_ranking(ranking)
+    ranking.sort { |a,b|
+      if a["return_trip"] == b["return_trip"]
+        if a["return_trip"]
+          level = a["level"] <=> b["level"]
+        else
+          level = b["level"] <=> a["level"]
+        end
+        if level == 0
+          time = a["time"] <=> b["time"]
+          if time == 0
+            a["timestamp"] <=> b["timestamp"]
+          else
+            time
+          end
+        else
+          level
+        end
+      elsif a["return_trip"]
+        -1
+      else
+        1
+      end
+    }
+  end
+
+  def ranking_screen
+    Curses.stdscr.clear
+    Curses.stdscr.refresh
+
+    begin
+      f = File.open(RANKING_FILE_NAME, "r")
+      f.flock(File::LOCK_SH)
+      ranking = JSON.parse(f.read)
+      unless validate_ranking(ranking)
+        message_window("番付ファイルが壊れています。")
+        return
+      end
+    rescue Errno::ENOENT
+      ranking = []
+    ensure
+      f&.close
+    end
+
+    if ranking.empty?
+      message_window("まだ記録がありません。")
+    else
+      ranking = sort_ranking(ranking)
+
+      dispfunc = proc do |data|
+        name = data["hero_name"] + ('　'*(6-data["hero_name"].size))
+        "#{name}  #{format_timestamp(data["timestamp"])}  #{data["message"]}"
+      end
+      menu = Menu.new(ranking, y: 0, x: 5, cols: 60, dispfunc: dispfunc, title: "番付")
+      while true
+        Curses.stdscr.clear
+        Curses.stdscr.refresh
+
+        cmd, *args = menu.choose
+        case cmd
+        when :cancel
+          return
+        when :chosen
+          data = args[0]
+
+          ResultScreen.run(data)
+        end
+      end
+    end
   end
 
   def initial_menu
+    reset()
+
+    Curses.stdscr.clear
+
+    Curses.stdscr.setpos(Curses.stdscr.maxy-2, 0)
+    Curses.stdscr.addstr("決定: Enter")
+    Curses.stdscr.setpos(Curses.stdscr.maxy-1, 0)
+    Curses.stdscr.addstr("もどる: q")
+
+    Curses.stdscr.refresh
+
     menu = Menu.new([
                       "冒険に出る",
-                      # "番付"
+                      "番付",
+                      "終了",
                     ], y: 0, x: 0, cols: 14)
     cmd, *args = menu.choose
     case cmd
@@ -2144,11 +2298,14 @@ EOD
       when "冒険に出る"
         naming_screen
       when "番付"
-        # naiyo
+        ranking_screen
+      when "終了"
+        return
       else
         fail item
       end
     end
+    initial_menu
   end
 
   def main
