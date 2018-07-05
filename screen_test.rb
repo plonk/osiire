@@ -8,9 +8,10 @@ require_relative 'vec'
 require_relative 'charlevel'
 require_relative 'curses_ext'
 require_relative 'result_screen'
+require_relative 'naming_screen'
 
 class MessageLog
-  attr_reader :message, :updated_at
+  attr_reader :updated_at, :lines
 
   def initialize
     @lines = []
@@ -23,10 +24,6 @@ class MessageLog
       @lines.shift
     end
     @updated_at = Time.now
-  end
-
-  def message
-    return @lines.join("\n")
   end
 
   def clear
@@ -60,7 +57,7 @@ class Program
   end
 
   def reset
-    @hero = Hero.new(0, 0, 15, 15, 8, 8, 0, 0, 100.0, 100.0, 1)
+    @hero = Hero.new(nil, nil, 15, 15, 8, 8, 0, 0, 100.0, 100.0, 1)
     @hero.inventory << Item.make_item("大きなパン")
     if debug?
       @hero.inventory << Item.make_item("エクスカリバー")
@@ -1551,7 +1548,7 @@ EOD
     Curses.flushinp
     Curses.timeout = 100 # milliseconds
     until c = Curses.getch
-      if Time.now - @log.updated_at >= 2.0
+      if Time.now - @log.updated_at >= 2.0 && @log.lines.size == 1
         @log.clear
         render
       end
@@ -1636,8 +1633,22 @@ EOD
 
   # メッセージの表示。
   def render_message
-    Curses.setpos(1, 0)
-    Curses.addstr(@log.message)
+    case @log.lines.size
+    when 0
+      # nothing
+    when 1
+      Curses.setpos(Curses.lines-1, 0)
+      Curses.addstr(@log.lines[0])
+      Curses.clrtoeol
+    else
+      Curses.setpos(Curses.lines-1, 0)
+      Curses.addstr(@log.lines.shift)
+      # Curses.addstr("\u{104146}\u{104147}")
+      Curses.clrtoeol
+      Curses.refresh
+      sleep 0.5
+      render_message
+    end
   end
 
   def gameover_message
@@ -2165,8 +2176,6 @@ EOD
   end
 
   def naming_screen
-    require_relative 'naming_screen'
-
     # 背景画面をクリア
     Curses.stdscr.clear
     Curses.stdscr.refresh
@@ -2330,7 +2339,6 @@ EOD
         break
       end
 
-      #@log.add("#{@last_room.object_id} -> #{current_room.object_id}")
       if @last_room != current_room
         if @last_room
           wake_monsters_in_room(@last_room, 0.5)
@@ -2351,7 +2359,6 @@ EOD
       render
 
       if @hero.asleep?
-        sleep 1
         @log.add("眠くて何もできない。")
         sym = :action
       else
