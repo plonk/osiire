@@ -1951,10 +1951,12 @@ EOD
     end
   end
 
+  # 敵の攻撃力から、実際にヒーローが受けるダメージを計算する。
   def attack_to_hero_damage(attack)
     return ( ( attack * (15.0/16.0)**get_hero_defense ) * (112 + rand(32))/128.0 ).to_i
   end
 
+  # モンスターが攻撃する。
   def monster_attack(m, dir)
     attack = get_monster_attack(m)
 
@@ -1971,6 +1973,7 @@ EOD
     end
   end
 
+  # モンスターが特技を使用する。
   def monster_trick(m)
     case m.name
     when '催眠術師'
@@ -2066,6 +2069,7 @@ EOD
     end
   end
 
+  # ヒーローがちからの最大値にダメージを受ける。
   def take_damage_max_strength(amount)
     fail unless amount == 1
     if @hero.max_strength <= 1
@@ -2077,18 +2081,21 @@ EOD
     end
   end
 
+  # ヒーローが最大HPにダメージを受ける。
   def take_damage_max_hp(amount)
     @hero.max_hp = [@hero.max_hp - amount, 1].max
     @hero.hp = [@hero.hp, @hero.max_hp].min
     @log.add("#{@hero.name}の 最大HPが 減った。")
   end
 
+  # モンスターが移動する。
   def monster_move(m, mx, my, dir)
     @level.cell(mx, my).remove_object(m)
     @level.cell(mx + dir[0], my + dir[1]).put_object(m)
     m.facing = dir
   end
 
+  # モンスターの移動・行動フェーズ。
   def monster_phase
     doers = []
     @level.all_monsters_with_position.each do |m, mx, my|
@@ -2144,6 +2151,7 @@ EOD
     end
   end
 
+  # 行動により満腹度が消費される。満腹度が無い時はHPが減る。
   def hero_fullness_decrease
     old = @hero.fullness
     if @hero.fullness > 0.0
@@ -2168,10 +2176,12 @@ EOD
     @dungeon.place_monster(@level, @level_number, @level.fov(@hero.x, @hero.y))
   end
 
+  # ヒーローが居る部屋。
   def current_room
     @level.room_at(@hero.x, @hero.y)
   end
 
+  # 部屋の出入りでモンスターが起きる。
   def wake_monsters_in_room(room, probability)
     if @hero.ring&.name == "盗賊の指輪"
       probability = 0.0
@@ -2194,6 +2204,7 @@ EOD
 
   end
 
+  # 状態以上が解けた時のメッセージ。
   def on_status_effect_expire(character, effect)
     case effect.type
     when :paralysis
@@ -2209,6 +2220,7 @@ EOD
     end
   end
 
+  # 状態以上の残りターン数減少処理。
   def status_effects_wear_out
     monsters = @level.all_monsters_with_position.map { |m, x, y| m }
 
@@ -2227,6 +2239,7 @@ EOD
 
   end
 
+  # ヒーローの名前を付ける。
   def naming_screen
     # 背景画面をクリア
     Curses.stdscr.clear
@@ -2243,6 +2256,7 @@ EOD
     data.is_a?(Array)
   end
 
+  # メッセージボックス。
   def message_window(message, opts = {})
     cols = message.size * 2 + 2
     win = Curses::Window.new(3, cols, (Curses.lines - 3)/2, (Curses.cols - cols)/2) # lines, cols, y, x
@@ -2257,10 +2271,12 @@ EOD
     win.close
   end
 
+  # ランキングでの登録日時フォーマット。
   def format_timestamp(unix_time)
     Time.at(unix_time).strftime("%Y-%m-%d")
   end
 
+  # ランキングをソートする。
   def sort_ranking(ranking)
     ranking.sort { |a,b|
       if a["return_trip"] == b["return_trip"]
@@ -2287,6 +2303,7 @@ EOD
     }
   end
 
+  # ランキング表示画面。
   def ranking_screen
     Curses.stdscr.clear
     Curses.stdscr.refresh
@@ -2332,6 +2349,7 @@ EOD
     end
   end
 
+  # 起動時のメニュー。
   def initial_menu
     reset()
 
@@ -2369,6 +2387,7 @@ EOD
     initial_menu
   end
 
+  # ダンジョンのプレイ。
   def main
     @start_time = Time.now
 
