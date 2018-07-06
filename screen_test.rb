@@ -11,24 +11,18 @@ require_relative 'result_screen'
 require_relative 'naming_screen'
 
 class MessageLog
-  attr_reader :updated_at, :lines
+  attr_reader :lines
 
   def initialize
     @lines = []
-    @updated_at = Time.now
   end
 
   def add(msg)
     @lines << msg
-    while @lines.size > 10
-      @lines.shift
-    end
-    @updated_at = Time.now
   end
 
   def clear
     @lines.clear
-    @updated_at = Time.now
   end
 
 end
@@ -56,6 +50,7 @@ class Program
     reset()
   end
 
+  # ゲームの状態をリセット。
   def reset
     @hero = Hero.new(nil, nil, 15, 15, 8, 8, 0, 0, 100.0, 100.0, 1)
     @hero.inventory << Item.make_item("大きなパン")
@@ -81,10 +76,12 @@ class Program
     @start_time = nil
   end
 
+  # デバッグモードで動作中？
   def debug?
     @debug
   end
 
+  # 経験値が溜まっていればヒーローのレベルアップをする。
   def check_level_up
     while @hero.lv < exp_to_lv(@hero.exp)
       @log.add("#{@hero.name}の レベルが 上がった。")
@@ -95,25 +92,30 @@ class Program
     end
   end
 
+  # ヒーローの攻撃力。(Lvと武器)
   def get_hero_attack
     basic = lv_to_attack(exp_to_lv(@hero.exp))
     weapon_score = @hero.weapon ? @hero.weapon.number : 0
     (basic + basic * (weapon_score + @hero.strength - 8)/16.0).round
   end
 
+  # ヒーローの投擲攻撃力。
   def get_hero_projectile_attack(projectile_strength)
     basic = lv_to_attack(exp_to_lv(@hero.exp))
     (basic + basic * (projectile_strength - 8)/16.0).round
   end
 
-  def get_monster_attack(m)
-    m.strength
-  end
-
+  # ヒーローの防御力。
   def get_hero_defense
     @hero.shield ? @hero.shield.number : 0
   end
 
+  # モンスターの攻撃力。
+  def get_monster_attack(m)
+    m.strength
+  end
+
+  # モンスターにダメージを与える。
   def monster_take_damage(monster, damage, cell)
     monster.hp -= damage
     @log.add("#{monster.name}に #{damage} のダメージを与えた。")
@@ -126,6 +128,7 @@ class Program
     check_monster_dead(cell, monster)
   end
 
+  # ヒーローがモンスターを攻撃する。
   def hero_attack(cell, monster)
     on_monster_attacked(monster)
     if rand() < 0.125
@@ -142,6 +145,7 @@ class Program
     end
   end
 
+  # モンスターが死んでいたら、その場合の処理を行う。
   def check_monster_dead(cell, monster)
     if monster.hp < 1.0
       monster.invisible = false
@@ -176,6 +180,7 @@ class Program
     end
   end
 
+  # 移動キー定義。
   KEY_TO_DIRVEC = {
     'h' => [-1,  0],
     'j' => [ 0, +1],
@@ -201,6 +206,7 @@ class Program
     Curses::KEY_DOWN => [0, +1],
   }
 
+  # ヒーローの移動・攻撃。
   # String → :move
   def hero_move(c)
     vec = KEY_TO_DIRVEC[c]
@@ -269,7 +275,7 @@ class Program
         if @hero.ring&.name != "ワナ抜けの指輪" && rand() < activation_rate
           trap_activate(trap)
         else
-          trap_not_activate(trap)
+          @log.add("#{trap.name}は 発動しなかった。")
         end
       end
     end
@@ -277,10 +283,7 @@ class Program
     return :move
   end
 
-  def trap_not_activate(trap)
-    @log.add("#{trap.name}は 発動しなかった。")
-  end
-
+  # 盾が錆びる。
   def take_damage_shield
     if @hero.shield
       if @hero.shield.rustproof?
@@ -325,6 +328,7 @@ class Program
     end
   end
 
+  # ヒーローがワープする。
   def hero_teleport
     x, y = @level.get_random_place(:FLOOR)
     until !@level.cell(x, y).monster
@@ -334,6 +338,7 @@ class Program
   end
 
 
+  # ヒーローに踏まれた罠が発動する。
   def trap_activate(trap)
     case trap.name
     when "ワープゾーン"
@@ -376,6 +381,7 @@ class Program
     end
   end
 
+  # 地雷が発動する。
   def mine_activate(mine)
     take_damage((@hero.hp / 2.0).ceil)
 
@@ -409,6 +415,7 @@ class Program
     end
   end
 
+  # (x,y) の罠を見つける。
   def reveal_trap(x, y)
     cell = @level.cell(x, y)
     trap = cell.trap
@@ -429,12 +436,9 @@ class Program
     return :action
   end
 
-  def get_current_cell
-    @level.cell(@hero.x, @hero.y)
-  end
-
+  # 足元にある物の種類に応じて行動する。
   def activate_underfoot
-    cell = get_current_cell
+    cell = @level.cell(@hero.x, @hero.y)
     if cell.stair_case
       return go_downstairs()
     elsif cell.item
@@ -538,6 +542,7 @@ class Program
     :nothing
   end
 
+  # 取扱説明。
   # () → :nothing
   def help
     text = <<EOD
@@ -576,6 +581,7 @@ EOD
     return :nothing
   end
 
+  # ダンジョンをクリアしたリザルト画面。
   def clear_message
     data = ResultScreen.to_data(@hero)
            .merge({"screen_shot" => take_screen_shot(),
@@ -593,6 +599,7 @@ EOD
     end
   end
 
+  # ランキングに追加。
   def add_to_ranking(data)
     begin
       f = File.open(RANKING_FILE_NAME, "r+")
@@ -627,6 +634,7 @@ EOD
     item.actions
   end
 
+  # 足元にアイテムを置く。
   def try_place_item(item)
     if @level.cell(@hero.x, @hero.y).can_place?
       @hero.remove_from_inventory(item)
@@ -641,6 +649,7 @@ EOD
     end
   end
 
+  # 持ち物メニューを開く。
   # () → :action | :nothing
   def open_inventory
     dispfunc = proc { |item|
@@ -789,6 +798,7 @@ EOD
     @log.add("#{item}は消えてしまった。")
   end
 
+  # 草がモンスターに当たった時の効果。
   def herb_hits_monster(item, monster, cell)
     on_monster_attacked(monster)
 
@@ -822,6 +832,7 @@ EOD
     end
   end
 
+  # 杖がモンスターに当たった時の効果。
   def staff_hits_monster(item, monster, cell)
     mx, my = [nil, nil]
     @level.all_monsters_with_position.each do |m, x, y|
@@ -834,6 +845,7 @@ EOD
     magic_bullet_hits_monster(item, monster, cell, mx, my)
   end
 
+  # 盾がモンスターに当たる。
   def shield_hits_monster(item, monster, cell)
     on_monster_attacked(monster)
     damage = item.number
@@ -842,6 +854,7 @@ EOD
     check_monster_dead(cell, monster)
   end
 
+  # 武器がモンスターに当たる。
   def weapon_hits_monster(item, monster, cell)
     on_monster_attacked(monster)
     damage = item.number
@@ -850,6 +863,7 @@ EOD
     check_monster_dead(cell, monster)
   end
 
+  # 魔法弾がモンスターに当たる。
   def projectile_hits_monster(item, monster, cell)
     on_monster_attacked(monster)
     attack = get_hero_projectile_attack(item.projectile_strength)
@@ -859,6 +873,7 @@ EOD
     check_monster_dead(cell, monster)
   end
 
+  # アイテムがモンスターに当たる。
   def item_hits_monster(item, monster, cell)
     @log.add("#{item}は #{monster.name}に当たった。")
     case item.type
@@ -883,6 +898,7 @@ EOD
     end
   end
 
+  # アイテムがヒーローに当たる。(今のところ矢しか当たらない？)
   def item_hits_hero(item, monster)
     @log.add("#{item.name}が #{@hero.name}に当たった。")
     if item.type == :projectile
@@ -894,6 +910,7 @@ EOD
     end
   end
 
+  # モンスターがアイテムを投げる。矢を撃つ敵の行動。
   def monster_throw_item(monster, item, mx, my, dir)
     dx, dy = dir
     x, y = mx, my
@@ -930,6 +947,7 @@ EOD
     end
   end
 
+  # ドラゴンの炎。
   def breath_of_fire(monster, mx, my, dir)
     dx, dy = dir
     x, y = mx, my
@@ -957,6 +975,7 @@ EOD
     end
   end
 
+  # ヒーローがアイテムを投げる。
   # (Item, Array)
   def do_throw_item(item, dir)
     dx, dy = dir
@@ -986,6 +1005,7 @@ EOD
     end
   end
 
+  # 方向を入力させて、その方向のベクトルを返す。
   def ask_direction
     text = <<EOD
 y k u
@@ -1008,11 +1028,11 @@ EOD
         return KEY_TO_DIRVEC[c]
       end
     end
-
   ensure
     win&.close
   end
 
+  # アイテムを投げるコマンド。
   def throw_item(item)
     dir = ask_direction()
     if item.type == :projectile && item.number > 1
@@ -1026,6 +1046,7 @@ EOD
     end
   end
 
+  # 杖を振るコマンド。
   def zap_staff(item)
     fail if item.type != :staff
 
@@ -1040,6 +1061,7 @@ EOD
     end
   end
 
+  # モンスターが睡眠状態になる。
   def monster_fall_asleep(monster)
     unless monster.asleep?
       monster.status_effects.push(StatusEffect.new(:sleep, 5))
@@ -1047,6 +1069,7 @@ EOD
     end
   end
 
+  # モンスターがワープする。
   def monster_teleport(monster, cell)
     x, y = @level.get_random_place(:FLOOR)
     until !@level.cell(x, y).monster && !(x==@hero.x && y==@hero.y)
@@ -1056,13 +1079,16 @@ EOD
     @level.put_object(monster, x, y)
   end
 
+  # モンスターが変化す。
   def monster_metamorphose(monster, cell, x, y)
     m = Monster.make_monster(Monster::SPECIES.sample[1])
     m.state = :awake
     cell.remove_object(monster)
     @level.put_object(m, x, y)
+    @log.add("#{monster.name}は #{m.name}に変わった！")
   end
 
+  # モンスターが分裂する。
   def monster_split(monster, cell, x, y)
     m = Monster.make_monster(monster.name)
     m.state = :awake
@@ -1085,6 +1111,7 @@ EOD
     end
   end
 
+  # 魔法弾がモンスターに当たる。
   def magic_bullet_hits_monster(staff, monster, cell, x, y)
     on_monster_attacked(monster)
     case staff.name
@@ -1109,6 +1136,7 @@ EOD
     end
   end
 
+  # 杖を振る。
   def do_zap_staff(staff, dir)
     dx, dy = dir
     x, y = @hero.x, @hero.y
@@ -1133,6 +1161,7 @@ EOD
     end
   end
 
+  # ヒーローの最大HPが増える。
   def increase_max_hp(amount)
     if @hero.max_hp >= 999
       @log.add("これ以上 HP は増えない！")
@@ -1144,17 +1173,20 @@ EOD
     end
   end
 
+  # ヒーローのHPが回復する。
   def increase_hp(amount)
     increment = [@hero.max_hp - @hero.hp, amount].min
     @hero.hp += increment
     @log.add("HPが #{increment.floor}ポイント 回復した。")
   end
 
+  # ヒーローのちからが回復する。
   def recover_strength
     @hero.strength = @hero.max_strength
     @log.add("ちからが 回復した。")
   end
 
+  # 巻物を読む。
   def read_scroll(item)
     fail "not a scroll" unless item.type == :scroll
 
@@ -1226,6 +1258,7 @@ EOD
     end
   end
 
+  # モンスターが攻撃された時の処理。起きる。
   def on_monster_attacked(monster)
     wake_monster(monster)
     # かなしばり状態も解ける。
@@ -1234,12 +1267,14 @@ EOD
     }
   end
 
+  # モンスターを起こす。
   def wake_monster(monster)
     if monster.state == :asleep
       monster.state = :awake
     end
   end
 
+  # 爆発の巻物の効果。視界全体に攻撃。
   def attack_monsters_in_room(range)
     total_damage = 0
     monster_count = 0
@@ -1263,6 +1298,7 @@ EOD
     end
   end
 
+  # 草を飲む。
   def take_herb(item)
     fail "not a herb" unless item.type == :herb
 
@@ -1329,6 +1365,7 @@ EOD
     end
   end
 
+  # ヒーローのレベルが上がる効果。
   def hero_levels_up
     required_exp = lv_to_exp(@hero.lv + 1)
     if required_exp
@@ -1339,6 +1376,7 @@ EOD
     end
   end
 
+  # ヒーローのレベルが下がる効果。
   def hero_levels_down
     if @hero.lv == 1
       @log.add("しかし 何も起こらなかった。")
@@ -1352,6 +1390,7 @@ EOD
     end
   end
 
+  # ヒーローが眠る効果。
   def hero_fall_asleep
     if @hero.sleep_resistent?
       @log.add("しかし なんともなかった。")
@@ -1363,6 +1402,7 @@ EOD
     end
   end
 
+  # 装備する。
   def equip(item)
     fail "not in inventory" unless @hero.inventory.find(item)
     case item.type
@@ -1379,6 +1419,7 @@ EOD
     end
   end
 
+  # 武器を装備する。
   def equip_weapon(item)
     if @hero.weapon.equal?(item) # coreferential?
       @hero.weapon = nil
@@ -1389,6 +1430,7 @@ EOD
     end
   end
 
+  # 盾を装備する。
   def equip_shield(item)
     if @hero.shield.equal?(item)
       @hero.shield = nil
@@ -1399,6 +1441,7 @@ EOD
     end
   end
 
+  # 指輪を装備する。
   def equip_ring(item)
     if @hero.ring.equal?(item)
       @hero.ring = nil
@@ -1409,6 +1452,7 @@ EOD
     end
   end
 
+  # 矢を装備する。
   def equip_projectile(item)
     if @hero.projectile.equal?(item)
       @hero.projectile = nil
@@ -1428,6 +1472,7 @@ EOD
     end
   end
 
+  # 満腹度が回復する。
   def increase_fullness(amount)
     @hero.increase_fullness(amount)
     if @hero.full?
@@ -1437,6 +1482,7 @@ EOD
     end
   end
 
+  # ヒーローがダメージを受ける。
   def take_damage(amount)
     @log.add("%.0f ポイントの ダメージを受けた。" % [amount])
     @hero.hp -= amount
@@ -1459,6 +1505,7 @@ EOD
     end
   end
 
+  # パンを食べる。
   def eat_food(food)
     fail "not a food" unless food.type == :food
 
@@ -1490,6 +1537,7 @@ EOD
     end
   end
 
+  # 下の階へ移動。
   def cheat_go_downstairs
     if @level_number < 99
       new_level(+1)
@@ -1497,6 +1545,7 @@ EOD
     return :nothing
   end
 
+  # 上の階へ移動。
   def cheat_go_upstairs
     if @level_number > 1
       new_level(-1)
@@ -1504,6 +1553,7 @@ EOD
     return :nothing
   end
 
+  # 階段を降りる。
   # () -> :nothing
   def go_downstairs
     st = @level.cell(@hero.x, @hero.y).stair_case
@@ -1515,10 +1565,12 @@ EOD
     return :nothing
   end
 
+  # 階段の方向を更新。
   def update_stairs_direction
     @level.stairs_going_up = @dungeon.on_return_trip?(@hero)
   end
 
+  # 新しいフロアに移動する。
   def new_level(dir = +1)
     @level_number += dir
     if @level_number == 0
@@ -1544,18 +1596,14 @@ EOD
     end
   end
 
+  # キー入力。
   def read_command
     Curses.flushinp
-    Curses.timeout = 100 # milliseconds
-    until c = Curses.getch
-      if Time.now - @log.updated_at >= 2.0 && @log.lines.size == 1
-        @log.clear
-        render
-      end
-    end
-    return c
+    Curses.timeout = -1 # milliseconds
+    return Curses.getch
   end
 
+  # マップを表示。
   def render_map
     # マップの描画
     (0 ... (Curses.lines)).each do |y|
@@ -1599,11 +1647,13 @@ EOD
     end
   end
 
+  # 画面でヒーローの居る位置にカーソルを移動する。
   def move_cursor_to_hero
     # カーソルをキャラクター位置に移動。
     Curses.setpos(Curses.lines/2, Curses.cols/2)
   end
 
+  # 画面の表示。
   def render
     render_map()
 
@@ -1616,6 +1666,7 @@ EOD
     Curses.refresh
   end
 
+  # 画面最上部、ステータス行の表示。
   def render_status
     # キャラクターステータスの表示
     Curses.setpos(0, 0)
@@ -1635,10 +1686,7 @@ EOD
   def render_message
     case @log.lines.size
     when 0
-      # nothing
-    when 1
       Curses.setpos(Curses.lines-1, 0)
-      Curses.addstr(@log.lines[0])
       Curses.clrtoeol
     else
       Curses.setpos(Curses.lines-1, 0)
@@ -1651,6 +1699,7 @@ EOD
     end
   end
 
+  # 死んだ時のリザルト画面。
   def gameover_message
     if @dungeon.on_return_trip?(@hero)
       message = "魔除けを持って#{@level_number}Fで力尽きる。"
@@ -1673,6 +1722,7 @@ EOD
     end
   end
 
+  # 次のレベルまでに必要な経験値。
   def exp_until_next_lv
     if @hero.lv == 37
       return nil
@@ -1705,6 +1755,7 @@ EOD
     win.close
   end
 
+  # 位置 v1 と v2 は縦・横・ナナメのいずれかの線が通っている。
   def aligned?(v1, v2)
     diff = Vec.minus(v1, v2)
     return diff[0].zero? ||
@@ -1712,6 +1763,7 @@ EOD
            diff[0].abs == diff[1].abs
   end
 
+  # モンスターの特技が使える位置にヒーローが居るか？
   def trick_in_range?(m, mx, my)
     case m.trick_range
     when :none
@@ -1728,6 +1780,7 @@ EOD
     end
   end
 
+  # 特技を使う条件が満たされているか？
   def trick_applicable?(m)
     mx, my = @level.coordinates_of(m)
     return trick_in_range?(m, mx, my) &&
@@ -2031,7 +2084,6 @@ EOD
   end
 
   def monster_move(m, mx, my, dir)
-    #@log.add([m.name, m.object_id,  [mx, my], dir].inspect)
     @level.cell(mx, my).remove_object(m)
     @level.cell(mx + dir[0], my + dir[1]).put_object(m)
     m.facing = dir
