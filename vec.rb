@@ -9,6 +9,10 @@ module Vec
     [v[0] - ov[0], v[1] - ov[1]]
   end
 
+  def plus(v, u)
+    [v[0] + u[0], v[1] + u[1]]
+  end
+
   def negate(v)
     [-v[0], -v[1]]
   end
