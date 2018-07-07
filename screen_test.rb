@@ -11,14 +11,22 @@ require_relative 'result_screen'
 require_relative 'naming_screen'
 
 class MessageLog
-  attr_reader :lines
+  attr_reader :lines, :last_message
+  attr_accessor :last_message_shown_at
 
   def initialize
     @lines = []
+    @last_message = ""
+    @last_message_shown_at = Time.at(0)
   end
 
   def add(msg)
-    @lines << msg
+    if @lines.size > 0 && @lines[-1].size + msg.size < 40
+      @lines[-1].concat(msg)
+    else
+      @lines << msg
+    end
+    @last_message = @lines[-1]
   end
 
   def clear
@@ -131,6 +139,7 @@ class Program
 
   # ヒーローがモンスターを攻撃する。
   def hero_attack(cell, monster)
+    @log.add("#{@hero.name} の攻撃！ ")
     on_monster_attacked(monster)
     if rand() < 0.125
       @log.add("#{@hero.name}の 攻撃は外れた。")
@@ -242,7 +251,7 @@ class Program
       hero_attack(cell, monster)
     else
       if @hero.held?
-        @log.add("その場に とらえられて 動けない！")
+        @log.add("その場に とらえられて 動けない！ ")
         return :action
       end
 
@@ -302,7 +311,7 @@ class Program
       else
         if @hero.shield.number > 0
           @hero.shield.number -= 1
-          @log.add("盾が錆びてしまった！")
+          @log.add("盾が錆びてしまった！ ")
         else
           @log.add("しかし 何も起こらなかった。")
         end
@@ -335,7 +344,7 @@ class Program
     end
 
     if count > 0
-      @log.add("アイテムを #{count}個 ばらまいてしまった！")
+      @log.add("アイテムを #{count}個 ばらまいてしまった！ ")
     end
   end
 
@@ -353,33 +362,33 @@ class Program
     case trap.name
     when "ワープゾーン"
       hero_teleport
-      @log.add("ワープゾーンだ！")
+      @log.add("ワープゾーンだ！ ")
     when "硫酸"
-      @log.add("足元から酸がわき出ている！")
+      @log.add("足元から酸がわき出ている！ ")
       take_damage_shield
     when "トラばさみ"
-      @log.add("トラばさみに かかってしまった！")
+      @log.add("トラばさみに かかってしまった！ ")
       unless @hero.held?
         @hero.status_effects << StatusEffect.new(:held, 10)
       end
     when "眠りガス"
-      @log.add("足元から 霧が出ている！")
+      @log.add("足元から 霧が出ている！ ")
       hero_fall_asleep()
     when "石ころ"
-      @log.add("石にけつまずいて 転んだ！")
+      @log.add("石にけつまずいて 転んだ！ ")
       strew_items
     when "矢"
-      @log.add("矢が飛んできた！")
+      @log.add("矢が飛んできた！ ")
       take_damage(5)
     when "毒矢"
-      @log.add("矢が飛んできた！")
+      @log.add("矢が飛んできた！ ")
       take_damage(5)
       take_damage_strength(1)
     when "地雷"
-      @log.add("足元で爆発が起こった！")
+      @log.add("足元で爆発が起こった！ ")
       mine_activate(trap)
     when "落とし穴"
-      @log.add("落とし穴だ！")
+      @log.add("落とし穴だ！ ")
       new_level(+1)
       return # ワナ破損処理をスキップする
     else fail
@@ -1118,7 +1127,7 @@ EOD
     m.state = :awake
     cell.remove_object(monster)
     @level.put_object(m, x, y)
-    @log.add("#{monster.name}は #{m.name}に変わった！")
+    @log.add("#{monster.name}は #{m.name}に変わった！ ")
   end
 
   # モンスターが分裂する。
@@ -1138,7 +1147,7 @@ EOD
       end
     end
     if placed
-      @log.add("#{monster.name}は 分裂した！")
+      @log.add("#{monster.name}は 分裂した！ ")
     else
       @log.add("しかし 何も 起こらなかった。")
     end
@@ -1197,7 +1206,7 @@ EOD
   # ヒーローの最大HPが増える。
   def increase_max_hp(amount)
     if @hero.max_hp >= 999
-      @log.add("これ以上 HP は増えない！")
+      @log.add("これ以上 HP は増えない！ ")
     else
       increment = [amount, 999 - @hero.max_hp].min
       @hero.max_hp += amount
@@ -1246,7 +1255,7 @@ EOD
       end
     when "メッキの巻物"
       if @hero.shield && !@hero.shield.rustproof?
-        @log.add("#{@hero.shield}に メッキがほどこされた！")
+        @log.add("#{@hero.shield}に メッキがほどこされた！ ")
         @hero.shield.gold_plated = true
       else
         @log.add("しかし 何も起こらなかった。")
@@ -1280,11 +1289,11 @@ EOD
       elsif @level_number <= 1
         @log.add("しかし何も起こらなかった。")
       else
-        @log.add("不思議なちからで 1階 に引き戻された！")
+        @log.add("不思議なちからで 1階 に引き戻された！ ")
         new_level(1 - @level_number)
       end
     when "爆発の巻物"
-      @log.add("空中で 爆発が 起こった！")
+      @log.add("空中で 爆発が 起こった！ ")
       attack_monsters_in_room(5..35)
     else
       @log.add("実装してないよ。")
@@ -1327,7 +1336,7 @@ EOD
       end
     end
     if monster_count > 0
-      @log.add("#{monster_count}匹の モンスターに 合計 #{total_damage}ポイントのダメージ！")
+      @log.add("#{monster_count}匹の モンスターに 合計 #{total_damage}ポイントのダメージ！ ")
     end
   end
 
@@ -1392,7 +1401,7 @@ EOD
       hero_teleport
       @log.add("#{@hero.name}は ワープした。")
     when "火炎草"
-      @log.add("こいつは HOT だ！")
+      @log.add("こいつは HOT だ！ ")
     when "混乱草"
       unless @hero.confused?
         @hero.status_effects.push(StatusEffect.new(:confused, 10))
@@ -1641,7 +1650,7 @@ EOD
   # キー入力。
   def read_command
     Curses.flushinp
-    Curses.timeout = -1 # milliseconds
+    Curses.timeout = 1000 # milliseconds
     return Curses.getch
   end
 
@@ -1729,14 +1738,22 @@ EOD
     case @log.lines.size
     when 0
       Curses.setpos(Curses.lines-1, 0)
+      if Time.now - @log.last_message_shown_at < 1.0
+        Curses.addstr(@log.last_message)
+      end
       Curses.clrtoeol
+    when 1
+      Curses.setpos(Curses.lines-1, 0)
+      Curses.addstr(@log.lines.shift)
+      Curses.clrtoeol
+      @log.last_message_shown_at = Time.now
     else
       Curses.setpos(Curses.lines-1, 0)
       Curses.addstr(@log.lines.shift)
-      # Curses.addstr("\u{104146}\u{104147}")
       Curses.clrtoeol
+
       Curses.refresh
-      sleep 0.5
+      sleep 0.75
       render_message
     end
   end
@@ -2022,7 +2039,7 @@ EOD
     if attack == 0
       @log.add("#{m.name}は 様子を見ている。")
     else
-      @log.add("#{m.name}の こうげき！")
+      @log.add("#{m.name}の こうげき！ ")
       if rand() < 0.125
         @log.add("#{@hero.name}は ひらりと身をかわした。")
       else
@@ -2045,9 +2062,9 @@ EOD
       potential = rand(250..1500)
       actual = [potential, @hero.gold].min
       if actual == 0
-        @log.add("#{@hero.name}は お金を持っていない！")
+        @log.add("#{@hero.name}は お金を持っていない！ ")
       else
-        @log.add("#{m.name}は #{actual}ゴールドを盗んでワープした！")
+        @log.add("#{m.name}は #{actual}ゴールドを盗んでワープした！ ")
         @hero.gold -= actual
         m.item = Gold.new(m.item.amount + actual)
 
@@ -2062,7 +2079,7 @@ EOD
       end
     when "白い手"
       if !@hero.held?
-        @log.add("#{m.name}は #{@hero.name}の足をつかんだ！")
+        @log.add("#{m.name}は #{@hero.name}の足をつかんだ！ ")
         effect = StatusEffect.new(:held, 10)
         effect.caster = m
         @hero.status_effects << effect
@@ -2220,7 +2237,7 @@ EOD
       elsif old >= 10.0 && @hero.fullness <= 10.0
         @log.add("空腹で ふらふらしてきた。")
       elsif @hero.fullness <= 0.0
-        @log.add("早く何か食べないと死んでしまう！")
+        @log.add("早く何か食べないと死んでしまう！ ")
       end
 
       # 自然回復
@@ -2524,7 +2541,7 @@ EOD
         end
         if current_room
           if current_room == @level.party_room
-            @log.add("魔物の巣窟だ！")
+            @log.add("魔物の巣窟だ！ ")
             wake_monsters_in_room(current_room, 1.0)
             @level.party_room = nil
           else
@@ -2534,15 +2551,20 @@ EOD
       end
       @last_room = current_room
 
-      # 画面更新
-      render
-
       if @hero.asleep?
         @log.add("眠くて何もできない。")
         sym = :action
       else
-        c = read_command
-        sym = dispatch_command(c)
+        while true
+          # 画面更新
+          render
+
+          c = read_command
+          if c
+            sym = dispatch_command(c)
+            break
+          end
+        end
       end
 
       case sym
