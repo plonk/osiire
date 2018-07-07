@@ -74,7 +74,12 @@ class Cell
       else
         '􄀾􄀿'
       end
-    when :PASSAGE         then '􄀤􄀥'
+    when :PASSAGE
+      if @lit || hero_sees_everything
+        '􄀤􄀥'
+      else
+        '􄀾􄀿'
+      end
     else '？'
     end
   end
