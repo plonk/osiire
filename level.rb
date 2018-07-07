@@ -369,6 +369,19 @@ class Level
     candidates.sample
   end
 
+  # pred: Proc(cell, x, y)
+  def find_random_place(&pred)
+    candidates = []
+    (0 ... height).each do |y|
+      (0 ... width).each do |x|
+        if pred.call(@dungeon[y][x], x, y)
+          candidates << [x, y]
+        end
+      end
+    end
+    return candidates.sample
+  end
+
   def each_coords
     (0 ... height).each do |y|
       (0 ... width).each do |x|

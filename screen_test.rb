@@ -330,11 +330,10 @@ class Program
 
   # ヒーローがワープする。
   def hero_teleport
-    x, y = @level.get_random_place(:FLOOR)
-    until !@level.cell(x, y).monster
-      x, y = @level.get_random_place(:FLOOR)
-    end
-    @hero.x, @hero.y = x, y
+    x, y = @level.find_random_place { |cell, x, y|
+      cell.type == :FLOOR && !cell.monster
+    }
+    hero_change_position(x, y)
   end
 
 
