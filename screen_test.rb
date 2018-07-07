@@ -245,42 +245,52 @@ class Program
         return :action
       end
 
-      @hero.x = x1
-      @hero.y = y1
-
-      gold = cell.gold
-      if gold
-        if picking
-          cell.remove_object(gold)
-          @hero.gold += gold.amount
-          @log.add("#{gold.amount}G を拾った。")
-        else
-          @log.add("#{gold.amount}G の上に乗った。")
-        end
-      end
-
-      item = cell.item
-      if item
-        if picking
-          pick(cell, item)
-        else
-          @log.add("#{item.name}の上に乗った。")
-        end
-      end
-
-      trap = cell.trap
-      if trap
-        activation_rate = trap.visible ? (1/4.0) : (3/4.0)
-        trap.visible = true
-        if @hero.ring&.name != "ワナ抜けの指輪" && rand() < activation_rate
-          trap_activate(trap)
-        else
-          @log.add("#{trap.name}は 発動しなかった。")
-        end
-      end
+      hero_walk(x1, y1, picking)
     end
 
     return :move
+  end
+
+  def hero_walk(x1, y1, picking)
+    hero_change_position(x1, y1)
+
+    cell = @level.cell(x1, y1)
+
+    gold = cell.gold
+    if gold
+      if picking
+        cell.remove_object(gold)
+        @hero.gold += gold.amount
+        @log.add("#{gold.amount}G を拾った。")
+      else
+        @log.add("#{gold.amount}G の上に乗った。")
+      end
+    end
+
+    item = cell.item
+    if item
+      if picking
+        pick(cell, item)
+      else
+        @log.add("#{item.name}の上に乗った。")
+      end
+    end
+
+    trap = cell.trap
+    if trap
+      activation_rate = trap.visible ? (1/4.0) : (3/4.0)
+      trap.visible = true
+      if @hero.ring&.name != "ワナ抜けの指輪" && rand() < activation_rate
+        trap_activate(trap)
+      else
+        @log.add("#{trap.name}は 発動しなかった。")
+      end
+    end
+  end
+
+  def hero_change_position(x1, y1)
+    @hero.x, @hero.y = x1, y1
+    @level.update_lighting(x1, y1)
   end
 
   # 盾が錆びる。
@@ -1591,6 +1601,9 @@ EOD
         @log.add("足元になにかある。")
       end
 
+      # 視界
+      @level.update_lighting(@hero.x, @hero.y)
+
       update_stairs_direction
     end
   end
@@ -2397,10 +2410,6 @@ EOD
     # メインループ
     until @quitting
       # 視界
-      rect = @level.fov(@hero.x, @hero.y)
-      @level.mark_explored(rect)
-      @level.light_up(rect)
-
       if @hero.hp < 1.0
         @log.add("#{@hero.name}は ちからつきた。")
         render
@@ -2433,7 +2442,6 @@ EOD
         sym = :action
       else
         c = read_command
-        @level.darken(@level.fov(@hero.x, @hero.y))
         sym = dispatch_command(c)
       end
 

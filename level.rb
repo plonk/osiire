@@ -522,12 +522,6 @@ class Level
     end
   end
 
-  def darken(fov)
-    fov.each_coords do |x, y|
-      @dungeon[y][x].lit = false
-    end
-  end
-
   def mark_explored(fov)
     fov.each_coords do |x, y|
       @dungeon[y][x].explored = true
@@ -621,5 +615,20 @@ class Level
       end
     end
     return nil
+  end
+
+  def darken
+    (0 ... height).each do |y|
+      (0 ... width).each do |x|
+        @dungeon[y][x].lit = false
+      end
+    end
+  end
+
+  def update_lighting(x, y)
+    darken
+    rect = fov(x, y)
+    mark_explored(rect)
+    light_up(rect)
   end
 end
