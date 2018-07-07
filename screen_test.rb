@@ -83,6 +83,8 @@ class Program
     @last_room = nil
 
     @start_time = nil
+
+    @beat = false
   end
 
   # デバッグモードで動作中？
@@ -610,7 +612,7 @@ EOD
     data = ResultScreen.to_data(@hero)
            .merge({"screen_shot" => take_screen_shot(),
                    "time" => (Time.now - @start_time).to_i,
-                   "message" => "魔除けを持って無事帰る。",
+                   "message" => "魔除けを持って無事帰る！",
                    "level" => @level_number,
                    "return_trip" => @dungeon.on_return_trip?(@hero),
                    "timestamp" => Time.now.to_i,
@@ -1634,6 +1636,7 @@ EOD
   def new_level(dir = +1)
     @level_number += dir
     if @level_number == 0
+      @beat = true
       clear_message
       @quitting = true
     else
@@ -2339,7 +2342,10 @@ EOD
       while true
         reset()
         @hero.name = name
-        main
+        play()
+        if @beat
+          break
+        end
         unless ask_retry?
           break
         end
@@ -2394,9 +2400,9 @@ EOD
 
   # メッセージボックス。
   def message_window(message, opts = {})
+    cols = opts[:cols] || message.size * 2 + 2
     y = opts[:y] || (Curses.lines - 3)/2
     x = opts[:x] || (Curses.cols - cols)/2
-    cols = opts[:cols] || message.size * 2 + 2
 
     win = Curses::Window.new(3, cols, y, x) # lines, cols, y, x
     win.clear
@@ -2529,7 +2535,7 @@ EOD
   end
 
   # ダンジョンのプレイ。
-  def main
+  def play
     @start_time = Time.now
 
     new_level
@@ -2538,11 +2544,10 @@ EOD
 
     # メインループ
     until @quitting
-      # 視界
       if @hero.hp < 1.0
         @log.add("#{@hero.name}は ちからつきた。")
         render
-        sleep 1.5
+        sleep 1
         gameover_message
         break
       end
