@@ -12,90 +12,90 @@ end
 
 class Item
   ITEMS = [
-    [:weapon, "こん棒", 1],
-    [:weapon, "金の剣", 2],
-    [:weapon, "銅の剣", 3],
-    [:weapon, "鉄の斧", 4],
-    [:weapon, "ドラゴンキラー", 5],
-    [:weapon, "メタルヨテイチの剣", 7],
-    [:weapon, "エクスカリバー", 10],
-    [:projectile, "木の矢", nil],
-    [:projectile, "鉄の矢", nil],
-    [:projectile, "銀の矢", nil],
-    [:shield, "皮の盾", 3],
-    [:shield, "青銅の盾", 3],
-    [:shield, "うろこの盾", 4],
-    [:shield, "銀の盾", 5],
-    [:shield, "鋼鉄の盾", 6],
-    [:shield, "ドラゴンシールド", 7],
-    [:shield, "メタルヨテイチの盾", 10],
-    [:herb, "薬草", nil],
-    [:herb, "高級薬草", nil],
-    [:herb, "毒けし草", nil],
-    [:herb, "ちからの種", nil],
-    [:herb, "幸せの種", nil],
-    [:herb, "すばやさの種", nil],
-    [:herb, "目薬草", nil],
-    [:herb, "毒草", nil],
-    [:herb, "目つぶし草", nil],
-    [:herb, "まどわし草", nil],
-    [:herb, "混乱草", nil],
-    [:herb, "睡眠草", nil],
-    [:herb, "ワープ草", nil],
-    [:herb, "火炎草", nil],
-    [:scroll, "やりなおしの巻物", nil],
-    [:scroll, "武器強化の巻物", nil],
-    [:scroll, "盾強化の巻物", nil],
-    [:scroll, "メッキの巻物", nil],
-    [:scroll, "シャナクの巻物", nil],
-    [:scroll, "インパスの巻物", nil],
-    [:scroll, "あかりの巻物", nil],
-    [:scroll, "かなしばりの巻物", nil],
-    [:scroll, "結界の巻物", nil],
-    [:scroll, "さいごの巻物", nil],
-    [:scroll, "証明の巻物", nil],
-    [:scroll, "千里眼の巻物", nil],
-    [:scroll, "地獄耳の巻物", nil],
-    [:scroll, "パンの巻物", nil],
-    [:scroll, "祈りの巻物", nil],
-    [:scroll, "爆発の巻物", nil],
-    [:scroll, "くちなしの巻物", nil],
-    [:scroll, "時の砂の巻物", nil],
-    [:scroll, "ワナの巻物", nil],
-    [:scroll, "パルプンテの巻物", nil],
-    [:staff, "いかずちの杖", nil],
-    [:staff, "ボミオスの杖", nil],
-    [:staff, "睡眠の杖", nil],
-    [:staff, "メダパニの杖", nil],
-    [:staff, "封印の杖", nil],
-    [:staff, "ワープの杖", nil],
-    [:staff, "変化の杖", nil],
-    [:staff, "ピオリムの杖", nil],
-    [:staff, "レオルムの杖", nil],
-    [:staff, "転ばぬ先の杖", nil],
-    [:staff, "分裂の杖", nil],
-    [:staff, "ザキの杖", nil],
-    [:staff, "もろ刃の杖", nil],
-    [:staff, "大損の杖", nil],
-    [:ring, "ちからの指輪", nil],
-    [:ring, "毒けしの指輪", nil],
-    [:ring, "眠らずの指輪", nil],
-    [:ring, "ルーラの指輪", nil],
-    [:ring, "ハラヘラズの指輪", nil],
-    [:ring, "盗賊の指輪", nil],
-    [:ring, "きれいな指輪", nil],
-    [:ring, "シャドーの指輪", nil],
-    [:ring, "ハラペコの指輪", nil],
-    [:ring, "ワナ抜けの指輪", nil],
-    [:ring, "人形よけの指輪", nil],
-    [:ring, "ザメハの指輪", nil],
-    [:food, "パン", nil],
-    [:food, "大きなパン", nil],
-    [:food, "くさったパン", nil],
-    [:box, "鉄の金庫", nil],
-    [:box, "王様の宝石箱", nil],
-    [:box, "イェンダーの魔除け", nil],
-    [:box, "奇妙な箱", nil],
+    [:weapon, "こん棒", 1, nil],
+    [:weapon, "金の剣", 2, nil],
+    [:weapon, "銅の剣", 3, nil],
+    [:weapon, "鉄の斧", 4, nil],
+    [:weapon, "ドラゴンキラー", 5, nil],
+    [:weapon, "メタルヨテイチの剣", 7, nil],
+    [:weapon, "エクスカリバー", 10, nil],
+    [:projectile, "木の矢", nil, nil],
+    [:projectile, "鉄の矢", nil, nil],
+    [:projectile, "銀の矢", nil, nil],
+    [:shield, "皮の盾", 3, "強さ3の盾。腹が減りにくくなる。"],
+    [:shield, "青銅の盾", 3, nil],
+    [:shield, "うろこの盾", 4, "強さ4の盾。毒を受けなくなる。"],
+    [:shield, "銀の盾", 5, nil],
+    [:shield, "鋼鉄の盾", 6, nil],
+    [:shield, "ドラゴンシールド", 7, nil],
+    [:shield, "メタルヨテイチの盾", 10, nil],
+    [:herb, "薬草", nil, "HPを25回復する。"],
+    [:herb, "高級薬草", nil, "HPを100回復する。"],
+    [:herb, "毒けし草", nil, "ちからが回復する。"],
+    [:herb, "ちからの種", nil, "ちからが満タンの時に最大値を1つ増やす。"],
+    [:herb, "幸せの種", nil, "レベルが1つ上がる。"],
+    [:herb, "すばやさの種", nil, nil],
+    [:herb, "目薬草", nil, "ワナが見えるようになる。"],
+    [:herb, "毒草", nil, nil],
+    [:herb, "目つぶし草", nil, nil],
+    [:herb, "まどわし草", nil, nil],
+    [:herb, "混乱草", nil, "混乱してしまう。投げて使おう。"],
+    [:herb, "睡眠草", nil, "眠ってしまう。投げて使おう。"],
+    [:herb, "ワープ草", nil, "フロアの別の場所にワープする。"],
+    [:herb, "火炎草", nil, nil],
+    [:scroll, "やりなおしの巻物", nil, nil],
+    [:scroll, "武器強化の巻物", nil, "武器が少し強くなる。"],
+    [:scroll, "盾強化の巻物", nil, "盾が少し強くなる。"],
+    [:scroll, "メッキの巻物", nil, "盾が錆びなくなる。"],
+    [:scroll, "シャナクの巻物", nil, nil],
+    [:scroll, "インパスの巻物", nil, nil],
+    [:scroll, "あかりの巻物", nil, "フロア全体が見えるようになる。"],
+    [:scroll, "かなしばりの巻物", nil, "隣接している敵をかなしばり状態にする。"],
+    [:scroll, "結界の巻物", nil, "床に置くと敵に攻撃されなくなる。"],
+    [:scroll, "さいごの巻物", nil, nil],
+    [:scroll, "証明の巻物", nil, nil],
+    [:scroll, "千里眼の巻物", nil, nil],
+    [:scroll, "地獄耳の巻物", nil, nil],
+    [:scroll, "パンの巻物", nil, nil],
+    [:scroll, "祈りの巻物", nil, nil],
+    [:scroll, "爆発の巻物", nil, "部屋の敵にダメージを与える。"],
+    [:scroll, "くちなしの巻物", nil, nil],
+    [:scroll, "時の砂の巻物", nil, nil],
+    [:scroll, "ワナの巻物", nil, nil],
+    [:scroll, "パルプンテの巻物", nil, nil],
+    [:staff, "いかずちの杖", nil, "敵にダメージを与える。"],
+    [:staff, "ボミオスの杖", nil, nil],
+    [:staff, "睡眠の杖", nil, "敵を眠らせる。"],
+    [:staff, "メダパニの杖", nil, nil],
+    [:staff, "封印の杖", nil, nil],
+    [:staff, "ワープの杖", nil, nil],
+    [:staff, "変化の杖", nil, "敵を別の種類のモンスターに変化させる。"],
+    [:staff, "ピオリムの杖", nil, nil],
+    [:staff, "レオルムの杖", nil, nil],
+    [:staff, "転ばぬ先の杖", nil, nil],
+    [:staff, "分裂の杖", nil, "敵を分裂させてしまう。"],
+    [:staff, "ザキの杖", nil, nil],
+    [:staff, "もろ刃の杖", nil, "敵のHPを残り1にするが、自分のHPが半分になる。"],
+    [:staff, "大損の杖", nil, nil],
+    [:ring, "ちからの指輪", nil, nil],
+    [:ring, "毒けしの指輪", nil, "毒を受けなくなる。"],
+    [:ring, "眠らずの指輪", nil, "眠らなくなる。"],
+    [:ring, "ルーラの指輪", nil, nil],
+    [:ring, "ハラヘラズの指輪", nil, "腹が減らなくなる。"],
+    [:ring, "盗賊の指輪", nil, "部屋を出入りしたり敵に隣接しても敵が起きなくなる。"],
+    [:ring, "きれいな指輪", nil, nil],
+    [:ring, "シャドーの指輪", nil, nil],
+    [:ring, "ハラペコの指輪", nil, nil],
+    [:ring, "ワナ抜けの指輪", nil, nil],
+    [:ring, "人形よけの指輪", nil, "敵にレベルやHPを下げられなくなる。"],
+    [:ring, "ザメハの指輪", nil, nil],
+    [:food, "パン", nil, "満腹度が50%回復する。"],
+    [:food, "大きなパン", nil, "満腹度が100%回復する。"],
+    [:food, "くさったパン", nil, "満腹度が100%回復するがダメージを受けてちからが減る。"],
+    [:box, "鉄の金庫", nil, nil],
+    [:box, "王様の宝石箱", nil, nil],
+    [:box, "イェンダーの魔除け", nil, "これを取ったら帰り道。"],
+    [:box, "奇妙な箱", nil, nil],
   ]
 
   CHARS = {
@@ -115,8 +115,8 @@ class Item
       row = ITEMS.find { |r| r[1] == name }
       fail "no such item: #{name}" if row.nil?
 
-      type, name, number = row
-      item = Item.new(type, name, number)
+      type, name, number, desc = row
+      item = Item.new(type, name, number, desc)
 
       case item.type
       when :staff
@@ -139,10 +139,11 @@ class Item
   attr_accessor :gold_plated
   attr_accessor :stuck
 
-  def initialize(type, name, number)
+  def initialize(type, name, number, desc)
     @type   = type
     @name   = name
     @number = number
+    @desc   = desc
     if type == :shield
       if name == "銀の盾" || name == "皮の盾"
         @rustproof = true
@@ -155,10 +156,19 @@ class Item
     @stuck = false
   end
 
-  def relative_number
+  def original_number
     row = ITEMS.find { |r| r[1] == @name }
     if row
-      return @number - row[2]
+      return row[2]
+    else
+      return nil
+    end
+  end
+
+  def relative_number
+    n = original_number
+    if n
+      return @number - n
     else
       return nil
     end
@@ -264,6 +274,19 @@ class Item
   def projectile_strength
     fail unless type == :projectile
     return 5
+  end
+
+  def desc
+    @desc || case type
+             when :weapon
+               "強さ#{original_number}の武器だ。"
+             when :shield
+               "強さ#{original_number}の盾だ。"
+             when :projectile
+               "投げて使う。"
+             else
+               "(なし)"
+             end
   end
 
 end

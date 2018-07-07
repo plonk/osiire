@@ -698,18 +698,10 @@ EOD
       when :chosen
         item, = args
 
-        action_menu = Menu.new(actions_for_item(item), y: 1, x: 27, cols: 9)
-        c, *args = action_menu.choose
-        case c
-        when :cancel
-          #Curses.beep
-          action_menu.close
+        c = item_action_menu(item)
+        if c.nil?
           next
-        when :chosen
-          c, = args
-        else fail
         end
-        action_menu.close
       when :sort
         @hero.inventory = @hero.inventory.map.with_index.sort { |(a, i),(b, j)|
           [a.sort_priority, i] <=> [b.sort_priority, j]
@@ -740,6 +732,28 @@ EOD
     return :action
   ensure
     menu.close
+  end
+
+  def item_action_menu(item)
+    action_menu = Menu.new(actions_for_item(item), y: 1, x: 27, cols: 9)
+    begin
+      c, *args = action_menu.choose
+      case c
+      when :cancel
+        return nil
+      when :chosen
+        c, = args
+        if c == "説明"
+          describe_item(item)
+          return nil
+        else
+          return c
+        end
+      else fail
+      end
+    ensure
+      action_menu.close
+    end
   end
 
   # アイテム落下則
@@ -781,6 +795,10 @@ EOD
     [-2,2]  => [-1,1]
   }
 
+
+  def describe_item(item)
+    message_window(item.desc, y: 1, x: 36)
+  end
 
   # 投げられたアイテムが着地する。
   def item_land(item, x, y)
@@ -2347,8 +2365,11 @@ EOD
 
   # メッセージボックス。
   def message_window(message, opts = {})
-    cols = message.size * 2 + 2
-    win = Curses::Window.new(3, cols, (Curses.lines - 3)/2, (Curses.cols - cols)/2) # lines, cols, y, x
+    y = opts[:y] || (Curses.lines - 3)/2
+    x = opts[:x] || (Curses.cols - cols)/2
+    cols = opts[:cols] || message.size * 2 + 2
+
+    win = Curses::Window.new(3, cols, y, x) # lines, cols, y, x
     win.clear
     win.rounded_box
 
@@ -2357,6 +2378,8 @@ EOD
 
     Curses.flushinp
     win.getch
+    win.clear
+    win.refresh
     win.close
   end
 
