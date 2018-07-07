@@ -38,6 +38,7 @@ class Program
 
   def initialize
     @debug = ARGV.include?("-d")
+    @default_name = nil
 
     Curses.init_screen
     Curses.noecho
@@ -522,10 +523,15 @@ class Program
     when '>'
       activate_underfoot
     when 'q'
-      @log.add("ゲームを終了するには大文字の Q を押してね。")
+      @log.add("冒険をあきらめるには大文字の Q を押してね。")
       :nothing
     when 'Q'
-      set_quitting
+      if confirm_give_up?
+        give_up_message
+        set_quitting
+      else
+        :nothing
+      end
     when 's'
       status_window
       :nothing
@@ -566,18 +572,18 @@ class Program
      [Enter] 決定。
      [Shift] 移動時にアイテムを拾わない。
      i       道具一覧を開く。
-     >       階段を降りる。
-             足元のワナを踏む。
-             足元のアイテムを拾う。
+     >       階段を降りる。足元のワナを踏む、
+             アイテムを拾う。
      ,       足元を調べる。
      .       周りを調べる。
      ?       このヘルプを表示。
      s       主人公のステータスを表示。
+     t       装備している投げ物を使う。
      q       キャンセル。
-     Q       ゲームを終了する。
+     Q       冒険をあきらめる。
 EOD
 
-    win = Curses::Window.new(22, 50, 2, 4) # lines, cols, y, x
+    win = Curses::Window.new(22, 50, 1, 4) # lines, cols, y, x
     win.clear
     win.rounded_box
     text.each_line.with_index(1) do |line, y|
@@ -1369,6 +1375,12 @@ EOD
       @log.add("#{@hero.name}は ワープした。")
     when "火炎草"
       @log.add("こいつは HOT だ！")
+    when "混乱草"
+      unless @hero.confused?
+        @hero.status_effects.push(StatusEffect.new(:confused, 10))
+        @log.add("#{@hero.name}は 混乱した。")
+      end
+
     else
       fail "uncoverd case: #{item}"
     end
@@ -1722,6 +1734,23 @@ EOD
            .merge({"screen_shot" => take_screen_shot(),
                    "time" => (Time.now - @start_time).to_i,
                    "message" => message,
+                   "level" => @level_number,
+                   "return_trip" => @dungeon.on_return_trip?(@hero),
+                   "timestamp" => Time.now.to_i,
+                  })
+
+    ResultScreen.run(data)
+
+    if add_to_ranking(data)
+      message_window("番付に載りました。")
+    end
+  end
+
+  def give_up_message
+    data = ResultScreen.to_data(@hero)
+           .merge({"screen_shot" => take_screen_shot(),
+                   "time" => (Time.now - @start_time).to_i,
+                   "message" => "冒険をあきらめた。",
                    "level" => @level_number,
                    "return_trip" => @dungeon.on_return_trip?(@hero),
                    "timestamp" => Time.now.to_i,
@@ -2257,10 +2286,58 @@ EOD
     Curses.stdscr.clear
     Curses.stdscr.refresh
 
-    name = NamingScreen.run
+    name = NamingScreen.run(@default_name)
     if name
-      @hero.name = name
-      main
+      @default_name = name
+      while true
+        reset()
+        @hero.name = name
+        main
+        unless ask_retry?
+          break
+        end
+      end
+    end
+  end
+
+  def confirm_give_up?
+    menu = Menu.new(["冒険をあきらめる", "あきらめない"],
+                    cols: 20, y: 8, x: 30)
+    type, item = menu.choose
+    case type
+    when :chosen
+      case item
+      when "冒険をあきらめる"
+        return true
+      when "あきらめない"
+        return false
+      else fail
+      end
+    when :cancel
+      return false
+    else fail
+    end
+  end
+
+  def ask_retry?
+    Curses.stdscr.clear
+    Curses.stdscr.refresh
+
+    menu = Menu.new(["もう一度挑戦する", "やめる"],
+                    cols: 20, y: 8, x: 30)
+    type, item = menu.choose
+    case type
+    when :chosen
+      case item
+      when "もう一度挑戦する"
+        return true
+      when "やめる"
+        return false
+      else fail
+      end
+    when :cancel
+      return false
+    else fail
     end
   end
 

@@ -103,8 +103,8 @@ module NamingScreen
     "ＯＬ",
   ]
 
-  def run
-    name = ""
+  def run(default_name = nil)
+    name = default_name || ""
     layer_index = 0
     y, x = 0, 0
     tm = 1 # (Curses.lines - 13)/2 # top margin
