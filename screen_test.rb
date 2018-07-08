@@ -714,9 +714,7 @@ EOD
           next
         end
       when :sort
-        @hero.inventory = @hero.inventory.map.with_index.sort { |(a, i),(b, j)|
-          [a.sort_priority, i] <=> [b.sort_priority, j]
-        }.map(&:first)
+        @hero.sort_inventory!
       end
 
       break if item and c

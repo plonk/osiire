@@ -269,6 +269,12 @@ class Hero < Struct.new(:x, :y, :hp, :max_hp, :strength, :max_strength, :gold, :
     ring&.name == "眠らずの指輪"
   end
 
+  def sort_inventory!
+    self.inventory = inventory.map.with_index.sort { |(a,i), (b,j)|
+      [a.sort_priority, i] <=> [b.sort_priority, j]
+    }.map(&:first).group_by { |i| i.name }.values.flatten(1)
+  end
+
 end
 
 class Rect < Struct.new(:top, :bottom, :left, :right)
