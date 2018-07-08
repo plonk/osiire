@@ -548,8 +548,7 @@ class Program
       :nothing
     when 't'
       if @hero.projectile
-        throw_item(@hero.projectile)
-        :action
+        return throw_item(@hero.projectile)
       else
         @log.add("投げ物を装備していない。")
         :nothing
@@ -724,17 +723,17 @@ EOD
     when "置く"
       try_place_item(item)
     when "投げる"
-      throw_item(item)
+      return throw_item(item)
     when "食べる"
       eat_food(item)
     when "飲む"
-      take_herb(item)
+      return take_herb(item)
     when "装備"
       equip(item)
     when "読む"
       read_scroll(item)
     when "ふる"
-      zap_staff(item)
+      return zap_staff(item)
     else
       @log.add("case not covered: #{item}を#{c}。")
     end
@@ -1068,6 +1067,8 @@ EOD
       c = win.getch
       if KEY_TO_DIRVEC[c]
         return KEY_TO_DIRVEC[c]
+      elsif c == 'q' # キャンセル
+        return nil
       end
     end
   ensure
@@ -1075,8 +1076,13 @@ EOD
   end
 
   # アイテムを投げるコマンド。
+  # Item -> :action | :nothing
   def throw_item(item)
     dir = ask_direction()
+    if dir.nil?
+      return :nothing
+    end
+
     if item.type == :projectile && item.number > 1
       one = Item.make_item(item.name)
       one.number = 1
@@ -1086,20 +1092,27 @@ EOD
       @hero.remove_from_inventory(item)
       do_throw_item(item, dir)
     end
+    return :action
   end
 
   # 杖を振るコマンド。
+  # Item -> :nothing | :action
   def zap_staff(item)
     fail if item.type != :staff
 
     dir = ask_direction()
-    if item.number == 0
-      @log.add("しかしなにも起こらなかった。")
-    elsif item.number > 0
-      item.number -= 1
-      do_zap_staff(item, dir)
+    if dir.nil?
+      return :nothing
     else
-      fail "negative staff number"
+      if item.number == 0
+        @log.add("しかしなにも起こらなかった。")
+      elsif item.number > 0
+        item.number -= 1
+        do_zap_staff(item, dir)
+      else
+        fail "negative staff number"
+      end
+      return :action
     end
   end
 
@@ -1341,6 +1354,7 @@ EOD
   end
 
   # 草を飲む。
+  # Item -> :nothing | :action
   def take_herb(item)
     fail "not a herb" unless item.type == :herb
 
@@ -1402,7 +1416,12 @@ EOD
       @log.add("#{@hero.name}は ワープした。")
     when "火炎草"
       @log.add("#{@hero.name}は 口から火を はいた！ ")
+
       vec = ask_direction
+      if vec.nil?
+        return :nothing
+      end
+
       tx, ty = Vec.plus([@hero.x, @hero.y], vec)
       fail unless @level.in_dungeon?(tx, ty)
       cell = @level.cell(tx, ty)
@@ -1423,6 +1442,7 @@ EOD
     else
       fail "uncoverd case: #{item}"
     end
+    return :action
   end
 
   # ヒーローのレベルが上がる効果。
