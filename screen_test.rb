@@ -2280,7 +2280,7 @@ EOD
       end
 
       # 自然回復
-      @hero.hp = [@hero.hp + @hero.hp/150.0, @hero.max_hp].min
+      @hero.hp = [@hero.hp + @hero.max_hp/150.0, @hero.max_hp].min
     else
       @hero.hp -= 1
     end
