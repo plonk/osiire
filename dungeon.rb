@@ -178,10 +178,50 @@ class Dungeon
     end
   end
 
+  def tileset(level_number)
+    case level_number
+    when 3..4
+      {
+        :STATUE          => '􄄤􄄥',
+        :WALL            => '􄅘􄅙',
+        :HORIZONTAL_WALL => '􄅔􄅕',
+        :VERTICAL_WALL   => '􄅖􄅗',
+      }
+    when 5..6
+      {
+        :STATUE          => '􄄤􄄥',
+        :WALL            => '􄅞􄅟',
+        :HORIZONTAL_WALL => '􄅚􄅛',
+        :VERTICAL_WALL   => '􄅜􄅝',
+      }
+    when 25..26
+      {
+        :STATUE          => '􄄤􄄥',
+        :WALL            => '􄅒􄅓',
+        :HORIZONTAL_WALL => '􄅐􄅑',
+        :VERTICAL_WALL   => '􄅎􄅏',
+      }
+    when 19..21
+      {
+        :STATUE          => '􄄤􄄥',
+        :WALL            => '􄅌􄅍',
+        :HORIZONTAL_WALL => '􄅈􄅉',
+        :VERTICAL_WALL   => '􄅊􄅋',
+      }
+    else
+      {
+        :STATUE          => '􄄤􄄥',
+        :WALL            => '􄁀􄁁',
+        :HORIZONTAL_WALL => '􄀢􄀣',
+        :VERTICAL_WALL   => '􄀼􄀽',
+      }
+    end
+  end
+
   def make_level(level_number, hero)
     fail unless level_number.is_a? Integer and level_number >= 1
 
-    level = Level.new
+    level = Level.new(tileset(level_number))
 
     place_statues(level, level_number)
 

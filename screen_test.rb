@@ -1687,6 +1687,14 @@ EOD
     return Curses.getch
   end
 
+  def dungeon_char(x, y)
+    if @hero.x == x && @hero.y == y
+      @hero.char
+    else
+      @level.dungeon_char(x, y)
+    end
+  end
+
   # マップを表示。
   def render_map
     # マップの描画
@@ -1698,11 +1706,7 @@ EOD
         x1 = x + @hero.x - Curses.cols/4
         if y1 >= 0 && y1 < @level.height &&
            x1 >= 0 && x1 < @level.width
-          if @hero.x == x1 && @hero.y == y1
-            Curses.addstr(@hero.char)
-          else
-            Curses.addstr(@level.dungeon_char(x1, y1))
-          end
+          Curses.addstr(dungeon_char(x1, y1))
         else
           Curses.addstr('　')
         end
@@ -1719,11 +1723,7 @@ EOD
         y1 = @hero.y + dy
         x1 = @hero.x + dx
         if @level.in_dungeon?(x1, y1)
-          if @hero.x == x1 && @hero.y == y1
-            @hero.char
-          else
-            @level.dungeon_char(x1, y1)
-          end
+          dungeon_char(x1, y1)
         else
           '　'
         end

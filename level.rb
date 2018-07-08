@@ -14,7 +14,7 @@ class Cell
     @objects = [].freeze
   end
 
-  def char(hero_sees_everything)
+  def char(hero_sees_everything, tileset)
     if hero_sees_everything
       visible_objects = @objects.select { |obj|
         case obj
@@ -28,7 +28,7 @@ class Cell
       if !visible_objects.empty?
         return visible_objects.first.char
       else
-        return background_char(hero_sees_everything)
+        return background_char(hero_sees_everything, tileset)
       end
     else
       visible_objects = @objects.select { |obj|
@@ -58,16 +58,16 @@ class Cell
         return visible_objects.first.char
       end
 
-      background_char(hero_sees_everything)
+      background_char(hero_sees_everything, tileset)
     end
   end
 
-  def background_char(hero_sees_everything)
+  def background_char(hero_sees_everything, tileset)
     case @type
-    when :STATUE          then '􄄤􄄥'
-    when :WALL            then '􄁀􄁁'
-    when :HORIZONTAL_WALL then '􄀢􄀣'
-    when :VERTICAL_WALL   then '􄀼􄀽'
+    when :STATUE          then tileset[:STATUE]
+    when :WALL            then tileset[:WALL]
+    when :HORIZONTAL_WALL then tileset[:HORIZONTAL_WALL]
+    when :VERTICAL_WALL   then tileset[:VERTICAL_WALL]
     when :FLOOR
       if @lit || hero_sees_everything
         '􄀪􄀫'
@@ -298,7 +298,7 @@ class Level
   attr_accessor :party_room
   attr_reader :rooms
 
-  def initialize
+  def initialize(tileset)
     @dungeon = Array.new(24) { Array.new(80) { Cell.new(:WALL) } }
 
     # 0 1 2
@@ -352,10 +352,12 @@ class Level
     @stairs_going_up = false
     @whole_level_lit = false
     @turn = 0
+
+    @tileset = tileset
   end
 
   def dungeon_char(x, y)
-    @dungeon[y][x].char(@whole_level_lit)
+    @dungeon[y][x].char(@whole_level_lit, @tileset)
   end
 
   def width
