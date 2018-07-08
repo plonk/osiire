@@ -326,7 +326,7 @@ class Program
   # アイテムをばらまく。
   def strew_items
     if @hero.inventory.any? { |x| x.name == "転ばぬ先の杖" }
-      @log.add("しかし 対したことはなかった。")
+      @log.add("しかし #{@hero.name}は 転ばなかった。")
       return
     end
 
