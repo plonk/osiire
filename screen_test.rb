@@ -1732,18 +1732,24 @@ EOD
 
   # 画面最上部、ステータス行の表示。
   def render_status
-    # キャラクターステータスの表示
+    low_hp   = @hero.hp.floor <= (@hero.max_hp / 10.0).ceil
+    starving = @hero.fullness <= 0.0
+
     Curses.setpos(0, 0)
     Curses.clrtoeol
-    line = "%dF  Lv %d  HP %d/%d  %dG  満腹度 %d%% %s [%04d]" %
-           [@level_number,
-            @hero.lv,
-            @hero.hp, @hero.max_hp,
-            @hero.gold,
-            @hero.fullness.ceil,
-            @hero.status_effects.map(&:name).join(' '),
-            @level.turn]
-    Curses.addstr(line)
+    Curses.addstr("%dF  "   % [@level_number])
+    Curses.addstr("Lv %d  " % [@hero.lv])
+    Curses.attron(Curses::A_BLINK) if low_hp
+    Curses.addstr("HP ")
+    Curses.attroff(Curses::A_BLINK) if low_hp
+    Curses.addstr("%d/%d  " % [@hero.hp, @hero.max_hp])
+    Curses.addstr("%dG  "   % [@hero.gold])
+    Curses.attron(Curses::A_BLINK) if starving
+    Curses.addstr("満腹度 ")
+    Curses.attroff(Curses::A_BLINK) if starving
+    Curses.addstr("%d%% "   % [@hero.fullness.ceil])
+    Curses.addstr("%s "     % [@hero.status_effects.map(&:name).join(' ')])
+    Curses.addstr("[%04d]"  % [@level.turn])
   end
 
   # メッセージの表示。
