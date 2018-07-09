@@ -1122,6 +1122,7 @@ h   l
 b j n
 EOD
     win = Curses::Window.new(5, 7, 5, 33) # lines, cols, y, x
+    win.keypad(true)
     win.clear
     win.rounded_box
     win.setpos(0, 1)
