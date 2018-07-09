@@ -523,6 +523,11 @@ class Program
       else
         :nothing
       end
+    when 'p'
+      if debug?
+        cheat_get_item()
+      end
+      :nothing
     when '?'
       help
     when 'h','j','k','l','y','u','b','n',
@@ -558,6 +563,51 @@ class Program
     else
       @log.add("[#{c}]なんて 知らない。[?]でヘルプ。")
       :nothing
+    end
+  end
+
+  def cheat_get_item
+    item_kinds = {
+      "武器" => :weapon,
+      "投げ物" => :projectile,
+      "盾" => :shield,
+      "草" => :herb,
+      "巻物" => :scroll,
+      "杖" => :staff,
+      "指輪" => :ring,
+      "箱" => :box,
+    }
+
+    menu = Menu.new(item_kinds.keys)
+    begin
+      c, arg = menu.choose
+      case c
+      when :chosen
+        kind = item_kinds[arg]
+        names = Item::ITEMS.select { |k,| k == kind }.map { |_,name,| name }
+        menu2 = Menu.new(names)
+        begin
+          c2, arg2 = menu2.choose
+          case c2
+          when :chosen
+            item = Item::make_item(arg2)
+            if @hero.add_to_inventory(item)
+              @log.add("#{item}を 手に入れた。")
+              return
+            else
+              item_land(item, @hero.x, @hero.y)
+            end
+          else
+            return
+          end
+        ensure
+          menu2.close
+        end
+      else
+        return
+      end
+    ensure
+      menu.close
     end
   end
 
