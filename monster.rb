@@ -138,6 +138,7 @@ class Monster
       @status_effects << StatusEffect.new(:held, Float::INFINITY)
     when "メタルヨテイチ"
       @status_effects << StatusEffect.new(:hallucination, Float::INFINITY)
+      @item = Item::make_item("幸せの種")
     when "ミミック"
       @status_effects << StatusEffect.new(:paralysis, Float::INFINITY)
     end
