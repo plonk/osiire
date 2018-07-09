@@ -1476,7 +1476,10 @@ EOD
     when "目つぶし草"
       @log.add("実装してないよ。")
     when "まどわし草"
-      @log.add("実装してないよ。")
+      unless @hero.hallucinating?
+        @hero.status_effects << StatusEffect.new(:hallucination, 50)
+        @log.add("ウェーイ！")
+      end
     when "メダパニ草"
       @log.add("実装してないよ。")
     when "睡眠草"
@@ -1763,7 +1766,11 @@ EOD
     if @hero.x == x && @hero.y == y
       @hero.char
     else
-      @level.dungeon_char(x, y)
+      if @hero.hallucinating?
+        "􄅨􄅩"
+      else
+        @level.dungeon_char(x, y)
+      end
     end
   end
 
