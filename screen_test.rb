@@ -2227,19 +2227,24 @@ EOD
 
     when "どろぼう猫"
       candidates = @hero.inventory.reject { |x| @hero.equipped?(x) }
-      item = candidates.sample
-      @hero.remove_from_inventory(item)
-      m.item = item
-      @log.add("#{m.name}は #{item.name}を盗んでワープした。")
 
-      unless m.hallucinating?
-        m.status_effects << StatusEffect.new(:hallucination, Float::INFINITY)
+      if candidates.any?
+        item = candidates.sample
+        @hero.remove_from_inventory(item)
+        m.item = item
+        @log.add("#{m.name}は #{item.name}を盗んでワープした。")
+
+        unless m.hallucinating?
+          m.status_effects << StatusEffect.new(:hallucination, Float::INFINITY)
+        end
+
+        mx, my = @level.coordinates_of(m)
+        @level.remove_object(m, mx, my)
+        x,y = @level.get_random_character_placeable_place
+        @level.put_object(m, x, y)
+      else
+        @log.add("#{@hero.name}は 何も持っていない。")
       end
-
-      mx, my = @level.coordinates_of(m)
-      @level.remove_object(m, mx, my)
-      x,y = @level.get_random_character_placeable_place
-      @level.put_object(m, x, y)
 
     when "竜"
       mx, my = @level.coordinates_of(m)
@@ -2299,7 +2304,9 @@ EOD
     end
 
     doers.each do |m, action|
-      dispatch_action(m, action)
+      unless m.hp < 1.0
+        dispatch_action(m, action)
+      end
     end
 
     # 2倍速モンスター行動
@@ -2319,9 +2326,12 @@ EOD
     end
 
     doers2.each do |m, action|
-      next if m.single_attack? && doers.any? { |n, _action| m.equal?(n) }
+      unless m.hp < 1.0
+        dispatch_action(m, action)
+        next if m.single_attack? && doers.any? { |n, _action| m.equal?(n) }
 
-      dispatch_action(m, action)
+        dispatch_action(m, action)
+      end
     end
   end
 
