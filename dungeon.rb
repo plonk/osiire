@@ -180,6 +180,13 @@ class Dungeon
 
   def tileset(level_number)
     case level_number
+    when 1..2
+      {
+        :STATUE          => '􄄤􄄥',
+        :WALL            => '􄅦􄅧',
+        :HORIZONTAL_WALL => '􄅠􄅡',
+        :VERTICAL_WALL   => '􄅢􄅣',
+      }
     when 3..4
       {
         :STATUE          => '􄄤􄄥',
