@@ -128,6 +128,9 @@ class Program
 
   # モンスターにダメージを与える。
   def monster_take_damage(monster, damage, cell)
+    if monster.name == "メタルヨテイチ"
+      damage = [damage, 1].min
+    end
     monster.hp -= damage
     @log.add("#{monster.name}に #{damage} のダメージを与えた。")
     if monster.hp >= 1.0 && # 生きている
@@ -148,9 +151,7 @@ class Program
     else
       attack = get_hero_attack
       damage = ( ( attack * (15.0/16.0)**monster.defense ) * (112 + rand(32))/128.0 ).to_i
-      if monster.name == "メタルヨテイチ"
-        damage = [damage, 1].min
-      elsif monster.name == "竜" && @hero.weapon&.name == "ドラゴンキラー"
+      if monster.name == "竜" && @hero.weapon&.name == "ドラゴンキラー"
         damage *= 2
       end
       monster_take_damage(monster, damage, cell)
@@ -966,18 +967,14 @@ EOD
   def shield_hits_monster(item, monster, cell)
     on_monster_attacked(monster)
     damage = item.number
-    monster.hp -= damage
-    @log.add("#{monster.name}に #{damage} のダメージを与えた。")
-    check_monster_dead(cell, monster)
+    monster_take_damage(monster, damage, cell)
   end
 
   # 武器がモンスターに当たる。
   def weapon_hits_monster(item, monster, cell)
     on_monster_attacked(monster)
     damage = item.number
-    monster.hp -= damage
-    @log.add("#{monster.name}に #{damage} のダメージを与えた。")
-    check_monster_dead(cell, monster)
+    monster_take_damage(monster, damage, cell)
   end
 
   # 魔法弾がモンスターに当たる。
@@ -985,9 +982,7 @@ EOD
     on_monster_attacked(monster)
     attack = get_hero_projectile_attack(item.projectile_strength)
     damage = ( (attack * (15.0/16.0)**monster.defense) * (112 + rand(32))/128.0 ).to_i
-    monster.hp -= damage
-    @log.add("#{monster.name}に #{damage} のダメージを与えた。")
-    check_monster_dead(cell, monster)
+    monster_take_damage(monster, damage, cell)
   end
 
   # アイテムがモンスターに当たる。
@@ -997,9 +992,7 @@ EOD
     when :box, :food, :scroll, :ring
       on_monster_attacked(monster)
       damage = 1 + rand(1)
-      monster.hp -= damage
-      @log.add("#{monster.name}に #{damage} のダメージを与えた。")
-      check_monster_dead(cell, monster)
+      monster_take_damage(monster, damage, cell)
     when :herb
       herb_hits_monster(item, monster, cell)
     when :staff
@@ -1417,25 +1410,16 @@ EOD
 
   # 爆発の巻物の効果。視界全体に攻撃。
   def attack_monsters_in_room(range)
-    total_damage = 0
-    monster_count = 0
     rect = @level.fov(@hero.x, @hero.y)
     rect.each_coords do |x, y|
       if @level.in_dungeon?(x, y)
         cell = @level.cell(x, y)
         monster = cell.monster
         if monster
-          wake_monster(monster)
-          monster_count += 1
-          r = rand(range)
-          total_damage += r
-          monster.hp -= r
-          check_monster_dead(cell, monster)
+          on_monster_attacked(monster)
+          monster_take_damage(monster, rand(range), cell)
         end
       end
-    end
-    if monster_count > 0
-      @log.add("#{monster_count}匹の モンスターに 合計 #{total_damage}ポイントのダメージ！ ")
     end
   end
 
