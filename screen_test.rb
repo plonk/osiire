@@ -2018,7 +2018,8 @@ EOD
       [i, *[i - 1, i + 1].shuffle, *[i - 2, i + 2].shuffle].map { |j|
         DIRECTIONS[j % 8]
       }.each do |dx, dy|
-        if @level.can_move_to?(m, mx, my, mx+dx, my+dy) &&
+        if @level.can_move_to?(m, mx, my, mx+dx, my+dy) && 
+           [mx+dx, my+dy] != [@hero.x, @hero.y] &&
            @level.cell(mx+dx, my+dy).item&.name != "結界の巻物"
           return Action.new(:move, [dx, dy])
         end
@@ -2052,6 +2053,7 @@ EOD
 
         tx, ty = [mx + m.facing[0], my + m.facing[1]]
         if @level.can_move_to?(m, mx, my, tx, ty) &&
+           [tx, ty] != [@hero.x, @hero.y] &&
            @level.cell(tx, ty).item&.name != "結界の巻物"
           return Action.new(:move, m.facing)
         else
@@ -2065,6 +2067,7 @@ EOD
           ].shuffle
           dirs.each do |dx, dy|
             if @level.can_move_to?(m, mx, my, mx+dx, my+dy) &&
+               [mx+dx, my+dy] != [@hero.x, @hero.y] &&
                @level.cell(mx+dx, my+dy).item&.name != "結界の巻物"
               return Action.new(:move, [dx,dy])
             end
@@ -2126,6 +2129,8 @@ EOD
         # ちどり足。
         if m.tipsy? && rand() < 0.5
           return monster_tipsy_move_action(m, mx, my)
+        elsif m.hallucinating? # まどわし状態では攻撃しない。
+          return monster_move_action(m, mx, my)
         elsif adjacent?([mx, my], [@hero.x, @hero.y]) &&
               @level.cell(@hero.x, @hero.y).item&.name == "結界の巻物"
           return monster_move_action(m, mx, my) # Action.new(:rest, nil)
