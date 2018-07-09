@@ -2342,13 +2342,15 @@ EOD
   def hero_fullness_decrease
     old = @hero.fullness
     if @hero.fullness > 0.0
-      @hero.fullness -= @hero.hunger_per_turn
-      if old >= 20.0 && @hero.fullness <= 20.0
-        @log.add("おなかが 減ってきた。")
-      elsif old >= 10.0 && @hero.fullness <= 10.0
-        @log.add("空腹で ふらふらしてきた。")
-      elsif @hero.fullness <= 0.0
-        @log.add("早く何か食べないと死んでしまう！ ")
+      unless @dungeon.on_return_trip?(@hero)
+        @hero.fullness -= @hero.hunger_per_turn
+        if old >= 20.0 && @hero.fullness <= 20.0
+          @log.add("おなかが 減ってきた。")
+        elsif old >= 10.0 && @hero.fullness <= 10.0
+          @log.add("空腹で ふらふらしてきた。")
+        elsif @hero.fullness <= 0.0
+          @log.add("早く何か食べないと死んでしまう！ ")
+        end
       end
 
       # 自然回復
