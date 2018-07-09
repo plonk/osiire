@@ -1487,23 +1487,25 @@ EOD
       hero_teleport
       @log.add("#{@hero.name}は ワープした。")
     when "火炎草"
-      @log.add("#{@hero.name}は 口から火を はいた！ ")
-
       vec = ask_direction
       if vec.nil?
         return :nothing
       end
 
+      @log.add("#{@hero.name}は 口から火を はいた！ ")
+
       tx, ty = Vec.plus([@hero.x, @hero.y], vec)
       fail unless @level.in_dungeon?(tx, ty)
       cell = @level.cell(tx, ty)
-      if cell.monster
-        monster_take_damage(cell.monster, rand(65...75), cell)
-      end
+
       thing = cell.item || cell.gold
       if thing
         cell.remove_object(thing)
         @log.add("#{thing}は 燃え尽きた。")
+      end
+
+      if cell.monster
+        monster_take_damage(cell.monster, rand(65...75), cell)
       end
     when "混乱草"
       unless @hero.confused?
