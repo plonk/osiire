@@ -216,15 +216,31 @@ class Program
     Curses::KEY_RIGHT => [+1, 0],
     Curses::KEY_UP => [0, -1],
     Curses::KEY_DOWN => [0, +1],
+
+    Curses::KEY_HOME  => [-1, -1],
+    Curses::KEY_END   => [-1, +1],
+    Curses::KEY_PPAGE => [+1, -1],
+    Curses::KEY_NPAGE => [+1, +1],
+
+    '7' => [-1, -1],
+    '8' => [ 0, -1],
+    '9' => [+1, -1],
+    '4' => [-1,  0],
+    '6' => [+1,  0],
+    '1' => [-1, +1],
+    '2' => [ 0, +1],
+    '3' => [+1, +1],
   }
 
   # ヒーローの移動・攻撃。
   # String → :move
   def hero_move(c)
     vec = KEY_TO_DIRVEC[c]
-    fail ArgumentError unless vec
+    unless vec
+      fail ArgumentError, "unknown movement key #{c.inspect}"
+    end
 
-    picking = !%w[H J K L Y U B N].include?(c)
+    picking = !%w[H J K L Y U B N 7 8 9 4 6 1 2 3].include?(c)
 
     if @hero.confused?
       vec = DIRECTIONS.sample
@@ -532,7 +548,9 @@ class Program
       help
     when 'h','j','k','l','y','u','b','n',
          'H','J','K','L','Y','U','B','N',
-         Curses::KEY_LEFT, Curses::KEY_RIGHT, Curses::KEY_UP, Curses::KEY_DOWN
+         Curses::KEY_LEFT, Curses::KEY_RIGHT, Curses::KEY_UP, Curses::KEY_DOWN,
+         Curses::KEY_HOME, Curses::KEY_END, Curses::KEY_PPAGE, Curses::KEY_NPAGE,
+         '7', '8', '9', '4', '6', '1', '2', '3'
       hero_move(c)
     when 'i'
       open_inventory
