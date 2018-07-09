@@ -368,9 +368,17 @@ class Program
 
   # ヒーローがワープする。
   def hero_teleport
+    fov = @level.fov(@hero.x, @hero.y)
     x, y = @level.find_random_place { |cell, x, y|
-      cell.type == :FLOOR && !cell.monster
+      cell.type == :FLOOR && !cell.monster && !fov.include?(x, y)
     }
+    if x.nil?
+      # 視界内でも良い条件でもう一度検索。
+      x, y = @level.find_random_place { |cell, x, y|
+        cell.type == :FLOOR && !cell.monster
+      }
+    end
+
     hero_change_position(x, y)
   end
 
@@ -1195,9 +1203,15 @@ EOD
 
   # モンスターがワープする。
   def monster_teleport(monster, cell)
-    x, y = @level.get_random_place(:FLOOR)
-    until !@level.cell(x, y).monster && !(x==@hero.x && y==@hero.y)
-      x, y = @level.get_random_place(:FLOOR)
+    fov = @level.fov(@hero.x, @hero.y)
+    x, y = @level.find_random_place { |cell, x, y|
+      cell.type == :FLOOR && !cell.monster && !(x==@hero.x && y==@hero.y) && !fov.include?(x, y)
+    }
+    if x.nil?
+      # 視界内でも良い条件でもう一度検索。
+      x, y = @level.find_random_place { |cell, x, y|
+        cell.type == :FLOOR && !cell.monster && !(x==@hero.x && y==@hero.y)
+      }
     end
     cell.remove_object(monster)
     @level.put_object(monster, x, y)
