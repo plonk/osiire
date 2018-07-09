@@ -1254,6 +1254,9 @@ EOD
       when :WALL, :HORIZONTAL_WALL, :VERTICAL_WALL
         @log.add("魔法弾は壁に当たって消えた。")
         break
+      when :STATUE
+        @log.add("魔法弾は石像に当たって消えた。")
+        break
       when :FLOOR, :PASSAGE
         if cell.monster
           magic_bullet_hits_monster(staff, cell.monster, cell, x+dx, y+dy)
