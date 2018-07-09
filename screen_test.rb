@@ -1399,6 +1399,11 @@ EOD
     monster.status_effects.reject! { |e|
       e.type == :paralysis
     }
+    if monster.name == "動くモアイ像"
+      monster.status_effects.reject! { |e|
+        e.type == :held
+      }
+    end
   end
 
   # モンスターを起こす。
