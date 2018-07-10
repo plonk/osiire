@@ -128,6 +128,10 @@ class Item
         end
       when :projectile
         item.number = rand(5..15)
+      when :weapon
+        item.number = item.number + rand(-1..+3)
+      when :shield
+        item.number = item.number + rand(-1..+3)
       end
 
       return item
