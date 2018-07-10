@@ -602,6 +602,7 @@ class Program
       "巻物" => :scroll,
       "杖" => :staff,
       "指輪" => :ring,
+      "食べ物" => :food,
       "箱" => :box,
     }
 
@@ -882,7 +883,7 @@ EOD
 
 
   def describe_item(item)
-    message_window(item.desc, y: 1, x: 36)
+    message_window(item.desc, y: 1, x: 27)
   end
 
   # 投げられたアイテムが着地する。
