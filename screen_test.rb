@@ -2346,9 +2346,7 @@ EOD
 
     doers2.each do |m, action|
       unless m.hp < 1.0
-        dispatch_action(m, action)
         next if m.single_attack? && doers.any? { |n, _action| m.equal?(n) }
-
         dispatch_action(m, action)
       end
     end
