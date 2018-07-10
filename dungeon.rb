@@ -230,6 +230,13 @@ class Dungeon
         :HORIZONTAL_WALL => '􄅈􄅉',
         :VERTICAL_WALL   => '􄅊􄅋',
       }
+    when 27..99
+      {
+        :STATUE          => '􄄤􄄥',
+        :HORIZONTAL_WALL => '􄅸􄅹',
+        :VERTICAL_WALL   => '􄅺􄅻',
+        :WALL            => '􄅼􄅽',
+      }
     else
       {
         :STATUE          => '􄄤􄄥',
