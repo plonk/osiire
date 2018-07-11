@@ -159,6 +159,18 @@ class Monster
     end
   end
 
+  # state = :awake の操作は別。モンスターの特殊な状態を解除して動き出
+  # させる。
+  def on_party_room_intrusion
+    case @name
+    when "催眠術師", "どろぼう猫"
+      # 攻撃されると即反撃するモンスター
+      @status_effects.reject! { |e| e.type == :paralysis }
+    when "動くモアイ像"
+      @status_effects.reject! { |e| e.type == :held }
+    end
+  end
+
   def char
     if @name == "ミミック" && paralyzed?
       @impersonating

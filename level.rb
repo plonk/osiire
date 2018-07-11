@@ -64,7 +64,12 @@ class Cell
 
   def background_char(hero_sees_everything, tileset)
     case @type
-    when :STATUE          then tileset[:STATUE]
+    when :STATUE
+      if @lit || hero_sees_everything
+        tileset[:STATUE]
+      else
+        '􄀾􄀿'
+      end
     when :WALL            then tileset[:WALL]
     when :HORIZONTAL_WALL then tileset[:HORIZONTAL_WALL]
     when :VERTICAL_WALL   then tileset[:VERTICAL_WALL]
@@ -130,7 +135,7 @@ class Cell
     @objects.find { |x| x.is_a? Gold }
   end
 
-  def stair_case
+  def staircase
     @objects.find { |x| x.is_a? StairCase }
   end
 
@@ -275,9 +280,15 @@ class Hero < Struct.new(:x, :y, :hp, :max_hp, :strength, :max_strength, :gold, :
     }.map(&:first).group_by { |i| i.name }.values.flatten(1)
   end
 
+  def pos
+    [x, y]
+  end
+
 end
 
 class Rect < Struct.new(:top, :bottom, :left, :right)
+  include Enumerable
+
   def each_coords
     (top .. bottom).each do |y|
       (left .. right).each do |x|
@@ -285,6 +296,8 @@ class Rect < Struct.new(:top, :bottom, :left, :right)
       end
     end
   end
+
+  alias each each_coords
 
   def include?(x, y)
     (left .. right).include?(x) && (top .. bottom).include?(y)
@@ -450,7 +463,7 @@ class Level
     end
   end
 
-  def passable?(subject, x, y)
+  def passable?(x, y)
     unless x.between?(0, width - 1) && y.between?(0, height - 1)
       # 画面外
       return false
@@ -460,7 +473,7 @@ class Level
   end
 
   # ナナメ移動を阻害しないタイル。
-  def uncornered?(subject, x, y)
+  def uncornered?(x, y)
     unless x.between?(0, width - 1) && y.between?(0, height - 1)
       # 画面外
       return false
@@ -578,18 +591,18 @@ class Level
   def can_move_to?(m, mx, my, tx, ty)
     return !@dungeon[ty][tx].monster &&
       Vec.chess_distance([mx, my], [tx, ty]) == 1 &&
-      passable?(m, tx, ty) &&
-      uncornered?(m, tx, my) &&
-      uncornered?(m, mx, ty)
+      passable?(tx, ty) &&
+      uncornered?(tx, my) &&
+      uncornered?(mx, ty)
   end
 
   def can_attack?(m, mx, my, tx, ty)
     # m の特性によって場合分けすることもできる。
 
     return Vec.chess_distance([mx, my], [tx, ty]) == 1 &&
-           passable?(m, tx, ty) &&
-           uncornered?(m, tx, my) &&
-           uncornered?(m, mx, ty)
+           passable?(tx, ty) &&
+           uncornered?(tx, my) &&
+           uncornered?(mx, ty)
   end
 
   def get_random_character_placeable_place
@@ -638,5 +651,30 @@ class Level
     rect = fov(x, y)
     mark_explored(rect)
     light_up(rect)
+  end
+
+  def first_cells_in(room)
+    res = []
+    (room.left+1 .. room.right-1).each do |x|
+      if cell(x, room.top).type == :PASSAGE
+        res << [x, room.top+1]
+      end
+
+      if cell(x, room.bottom).type == :PASSAGE
+        res << [x, room.bottom-1]
+      end
+    end
+
+    (room.top+1 .. room.bottom-1).each do |y|
+      if cell(room.left, y).type == :PASSAGE
+        res << [room.left+1, y]
+      end
+
+      if cell(room.right, y).type == :PASSAGE
+        res << [room.right-1, y]
+      end
+    end
+
+    return res
   end
 end

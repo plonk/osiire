@@ -8,7 +8,7 @@ class Dungeon
   OBJECTIVE_NAME = "イェンダーの魔除け"
 
   # 階段を置く。
-  def place_stair_case(level)
+  def place_staircase(level)
     level.put_object(StairCase.new, *level.get_random_place(:FLOOR))
   end
 
@@ -268,7 +268,7 @@ class Dungeon
 
     place_statues(level, level_number)
 
-    place_stair_case(level)
+    place_staircase(level)
     unless on_return_trip?(hero)
       place_items(level, level_number)
     end
