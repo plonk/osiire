@@ -216,12 +216,12 @@ class Dungeon
         :VERTICAL_WALL   => '􄅴􄅵',
         :WALL            => '􄅶􄅷',
       }
-    when 25..26
+    when 16..18
       {
         :STATUE          => '􄄤􄄥',
-        :WALL            => '􄅒􄅓',
-        :HORIZONTAL_WALL => '􄅐􄅑',
-        :VERTICAL_WALL   => '􄅎􄅏',
+        :WALL            => '􄈪􄈫',
+        :HORIZONTAL_WALL => '􄈦􄈧',
+        :VERTICAL_WALL   => '􄈨􄈩',
       }
     when 19..21
       {
@@ -229,6 +229,20 @@ class Dungeon
         :WALL            => '􄅌􄅍',
         :HORIZONTAL_WALL => '􄅈􄅉',
         :VERTICAL_WALL   => '􄅊􄅋',
+      }
+    when 25..26
+      {
+        :STATUE          => '􄄤􄄥',
+        :WALL            => '􄅒􄅓',
+        :HORIZONTAL_WALL => '􄅐􄅑',
+        :VERTICAL_WALL   => '􄅎􄅏',
+      }
+    when 22..24
+      {
+        :STATUE          => '􄄤􄄥',
+        :HORIZONTAL_WALL => '􄈠􄈡',
+        :VERTICAL_WALL   => '􄈢􄈣',
+        :WALL            => '􄈤􄈥',
       }
     when 27..99
       {
