@@ -940,28 +940,30 @@ EOD
     log("#{item}は消えてしまった。")
   end
 
+  def use_health_item(character, amount, amount_maxhp)
+    if character.hp_maxed?
+      increase_max_hp(character, amount_maxhp)
+    else
+      increase_hp(character, amount)
+    end
+  end
+
   # 草がモンスターに当たった時の効果。
   def herb_hits_monster(item, monster, cell)
     on_monster_attacked(monster)
 
     case item.name
-    when "火炎草"
-      monster_take_damage(monster, rand(30...40), cell)
-    when "睡眠草"
-      monster_fall_asleep(monster)
-    when "ワープ草"
-      monster_teleport(monster, cell)
     when "薬草"
       if monster.undead?
         monster_take_damage(monster, 25, cell)
       else
-        log("しかし 何も 起こらなかった。")
+        use_health_item(monster, 25, 2)
       end
     when "高級薬草"
       if monster.undead?
         monster_take_damage(monster, 100, cell)
       else
-        log("しかし 何も 起こらなかった。")
+        use_health_item(monster, 100, 4)
       end
     when "毒けし草"
       if monster.poisonous?
@@ -969,6 +971,30 @@ EOD
       else
         log("しかし 何も 起こらなかった。")
       end
+    when "ちからの種"
+      monster.strength += 1
+      log("#{monster.name}の ちからが 1 上がった。")
+    # when "幸せの種"
+    # when "すばやさの種"
+    when "毒草"
+      if monster.strength > 0
+        monster.strength -= 1
+        log("#{monster.name}の ちからが 1 下がった。")
+      else
+        log("しかし 何も起こらなかった。")
+      end
+    # when "目つぶし草"
+    # when "まどわし草"
+    when "混乱草"
+      unless monster.confused?
+        monster.status_effects << StatusEffect.new(:confused, 10)
+      end
+    when "睡眠草"
+      monster_fall_asleep(monster)
+    when "ワープ草"
+      monster_teleport(monster, cell)
+    when "火炎草"
+      monster_take_damage(monster, rand(30...40), cell)
     else
       log("しかし 何も 起こらなかった。")
     end
@@ -1319,23 +1345,23 @@ EOD
     end
   end
 
-  # ヒーローの最大HPが増える。
-  def increase_max_hp(amount)
-    if @hero.max_hp >= 999
+  # 最大HPが増える。
+  def increase_max_hp(character, amount)
+    if character.max_hp >= 999
       log("これ以上 HP は増えない！ ")
     else
-      increment = [amount, 999 - @hero.max_hp].min
-      @hero.max_hp += amount
-      @hero.hp = @hero.max_hp
+      increment = [amount, 999 - character.max_hp].min
+      character.max_hp += amount
+      character.hp = character.max_hp
       log("最大HPが #{increment}ポイント 増えた。")
     end
   end
 
-  # ヒーローのHPが回復する。
-  def increase_hp(amount)
-    increment = [@hero.max_hp - @hero.hp, amount].min
-    @hero.hp += increment
-    log("HPが #{increment.floor}ポイント 回復した。")
+  # HPが回復する。
+  def increase_hp(character, amount)
+    increment = [character.max_hp - character.hp, amount].min
+    character.hp += increment
+    log("HPが #{increment.ceil}ポイント 回復した。")
   end
 
   # ヒーローのちからが回復する。
@@ -1464,17 +1490,9 @@ EOD
     log("#{item}を 薬にして 飲んだ。")
     case item.name
     when "薬草"
-      if @hero.hp_maxed?
-        increase_max_hp(2)
-      else
-        increase_hp(25)
-      end
+      use_health_item(@hero, 25, 2)
     when "高級薬草"
-      if @hero.hp_maxed?
-        increase_max_hp(4)
-      else
-        increase_hp(100)
-      end
+      use_health_item(@hero, 100, 4)
     when "毒けし草"
       unless @hero.strength_maxed?
         recover_strength()
@@ -2132,6 +2150,30 @@ EOD
     end
   end
 
+  def monster_confused_action(m, mx, my)
+    candidates = []
+    rect = @level.surroundings(mx, my)
+    rect.each_coords do |x, y|
+      next unless @level.in_dungeon?(x, y) &&
+                  (@level.cell(x, y).type == :FLOOR ||
+                   @level.cell(x, y).type == :PASSAGE)
+      if @level.can_move_to_terrain?(m, mx, my, x, y) &&
+         @level.cell(x, y).item&.name != "結界の巻物"
+        candidates << [x, y]
+      end
+    end
+    if candidates.any?
+      x, y = candidates.sample
+      if [x,y] == @hero.pos || @level.cell(x,y).monster
+        return Action.new(:attack, [x-mx, y-my])
+      else
+        return Action.new(:move, [x - mx, y - my])
+      end
+    else
+      return Action.new(:rest, nil)
+    end
+  end
+
   def adjacent?(v1, v2)
     return Vec.chess_distance(v1, v2) == 1
   end
@@ -2158,6 +2200,8 @@ EOD
         # ちどり足。
         if m.tipsy? && rand() < 0.5
           return monster_tipsy_move_action(m, mx, my)
+        elsif m.confused?
+          return monster_confused_action(m, mx, my)
         elsif m.hallucinating? # まどわし状態では攻撃しない。
           return monster_move_action(m, mx, my)
         elsif adjacent?([mx, my], [@hero.x, @hero.y]) &&
@@ -2185,8 +2229,7 @@ EOD
     return ( ( attack * (15.0/16.0)**get_hero_defense ) * (112 + rand(32))/128.0 ).to_i
   end
 
-  # モンスターが攻撃する。
-  def monster_attack(m, dir)
+  def monster_attacks_hero(m)
     attack = get_monster_attack(m)
 
     if attack == 0
@@ -2199,6 +2242,29 @@ EOD
         damage = attack_to_hero_damage(attack)
         take_damage(damage)
       end
+    end
+  end
+
+  # モンスターが攻撃する。
+  def monster_attack(assailant, dir)
+    mx, my = @level.coordinates_of(assailant)
+    target = Vec.plus([mx, my], dir)
+    defender = @level.cell(*target).monster
+    if @hero.pos == target
+      monster_attacks_hero(assailant)
+    elsif defender
+      attack = get_monster_attack(assailant)
+      damage = ( ( attack * (15.0/16.0)**defender.defense ) * (112 + rand(32))/128.0 ).to_i
+
+      if attack == 0
+        log("#{assailant.name}は 様子を見ている。")
+      else
+        log("#{assailant.name}の こうげき！ ")
+        on_monster_attacked(defender)
+        monster_take_damage(defender, damage, @level.cell(*target))
+      end
+    else
+      # 誰もいない
     end
   end
 

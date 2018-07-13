@@ -253,7 +253,7 @@ class Hero < Struct.new(:x, :y, :hp, :max_hp, :strength, :max_strength, :gold, :
   end
 
   def hp_maxed?
-    hp > max_hp - 1.0
+    hp >= max_hp
   end
 
   def hunger_per_turn
@@ -594,6 +594,13 @@ class Level
       passable?(tx, ty) &&
       uncornered?(tx, my) &&
       uncornered?(mx, ty)
+  end
+
+  def can_move_to_terrain?(m, mx, my, tx, ty)
+    return Vec.chess_distance([mx, my], [tx, ty]) == 1 &&
+           passable?(tx, ty) &&
+           uncornered?(tx, my) &&
+           uncornered?(mx, ty)
   end
 
   def can_attack?(m, mx, my, tx, ty)

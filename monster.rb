@@ -101,8 +101,8 @@ class Monster
     end
   end
 
-  attr :max_hp, :strength, :defense, :exp, :drop_rate
-  attr_accessor :hp
+  attr :defense, :exp, :drop_rate
+  attr_accessor :hp, :max_hp, :strength
   attr_accessor :state, :facing, :goal
   attr_accessor :item
   attr :trick_range
@@ -261,6 +261,10 @@ class Monster
     else
       false
     end
+  end
+
+  def hp_maxed?
+    @hp == @max_hp
   end
 
 end
