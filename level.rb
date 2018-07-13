@@ -182,55 +182,65 @@ class Level
   attr_accessor :turn
   attr_accessor :party_room
   attr_reader :rooms
+  attr :tileset
 
   def initialize(tileset)
     @dungeon = Array.new(24) { Array.new(80) { Cell.new(:WALL) } }
 
-    # 0 1 2
-    # 3 4 5
-    # 6 7 8
 
-    @rooms = []
-    @rooms << Room.new(0, 7, 0, 24)
-    @rooms << Room.new(0, 7, 26, 51)
-    @rooms << Room.new(0, 7, 53, 79)
-    @rooms << Room.new(9, 15, 0, 24)
-    @rooms << Room.new(9, 15, 26, 51)
-    @rooms << Room.new(9, 15, 53, 79)
-    @rooms << Room.new(17, 23, 0, 24)
-    @rooms << Room.new(17, 23, 26, 51)
-    @rooms << Room.new(17, 23, 53, 79)
+    if true
+      # @rooms = [
+      #   Room.new(0, 23, 0, 79)
+      # ]
+      # render_room(@dungeon, @rooms[0])
+      @rooms = []
+      make_maze(Room.new(0, 23, 0, 79))
+    else
+      # 0 1 2
+      # 3 4 5
+      # 6 7 8
+      @rooms = []
+      @rooms << Room.new(0, 7, 0, 24)
+      @rooms << Room.new(0, 7, 26, 51)
+      @rooms << Room.new(0, 7, 53, 79)
+      @rooms << Room.new(9, 15, 0, 24)
+      @rooms << Room.new(9, 15, 26, 51)
+      @rooms << Room.new(9, 15, 53, 79)
+      @rooms << Room.new(17, 23, 0, 24)
+      @rooms << Room.new(17, 23, 26, 51)
+      @rooms << Room.new(17, 23, 53, 79)
 
-    @connections = []
+      @connections = []
 
-    add_connection(@rooms[0], @rooms[1], :horizontal)
-    add_connection(@rooms[0], @rooms[3], :vertical)
-    add_connection(@rooms[1], @rooms[2], :horizontal)
-    add_connection(@rooms[1], @rooms[4], :vertical)
-    add_connection(@rooms[2], @rooms[5], :vertical)
-    add_connection(@rooms[3], @rooms[4], :horizontal)
-    add_connection(@rooms[3], @rooms[6], :vertical)
-    add_connection(@rooms[4], @rooms[5], :horizontal)
-    add_connection(@rooms[4], @rooms[7], :vertical)
-    add_connection(@rooms[5], @rooms[8], :vertical)
-    add_connection(@rooms[6], @rooms[7], :horizontal)
-    add_connection(@rooms[7], @rooms[8], :horizontal)
+      add_connection(@rooms[0], @rooms[1], :horizontal)
+      add_connection(@rooms[0], @rooms[3], :vertical)
+      add_connection(@rooms[1], @rooms[2], :horizontal)
+      add_connection(@rooms[1], @rooms[4], :vertical)
+      add_connection(@rooms[2], @rooms[5], :vertical)
+      add_connection(@rooms[3], @rooms[4], :horizontal)
+      add_connection(@rooms[3], @rooms[6], :vertical)
+      add_connection(@rooms[4], @rooms[5], :horizontal)
+      add_connection(@rooms[4], @rooms[7], :vertical)
+      add_connection(@rooms[5], @rooms[8], :vertical)
+      add_connection(@rooms[6], @rooms[7], :horizontal)
+      add_connection(@rooms[7], @rooms[8], :horizontal)
 
-    until all_connected?(@rooms)
-      conn = @connections.sample
-      conn.realized = true
-    end
+      until all_connected?(@rooms)
+        conn = @connections.sample
+        conn.realized = true
+      end
 
-    @rooms.each do |room|
-      room.distort!
-    end
+      @rooms.each do |room|
+        room.distort!
+      end
 
-    @rooms.each do |room|
-      render_room(@dungeon, room)
-    end
-    @connections.each do |conn|
-      if conn.realized
-        conn.draw(@dungeon)
+      @rooms.each do |room|
+        render_room(@dungeon, room)
+      end
+      @connections.each do |conn|
+        if conn.realized
+          conn.draw(@dungeon)
+        end
       end
     end
 
@@ -239,6 +249,23 @@ class Level
     @turn = 0
 
     @tileset = tileset
+  end
+
+  def make_maze(room)
+    visited = {}
+
+    f = proc do |x, y|
+      @dungeon[y][x].type = :FLOOR
+      visited[[x,y]] = true
+      [[-2,0], [0,-2], [+2,0], [0,+2]].shuffle.each do |dx, dy|
+        unless !room.properly_in?(x+dx, y+dy) || visited[[x+dx,y+dy]]
+          @dungeon[y+dy/2][x+dx/2].type = :FLOOR
+          f.(x+dx, y+dy)
+        end
+      end
+    end
+
+    f.(room.left + 1, room.top + 1)
   end
 
   def dungeon_char(x, y)
@@ -273,6 +300,16 @@ class Level
       end
     end
     return candidates.sample
+  end
+
+  def all_cells_and_positions
+    res = []
+    (0 ... height).each do |y|
+      (0 ... width).each do |x|
+        res << [@dungeon[y][x], x, y]
+      end
+    end
+    return res
   end
 
   def each_coords

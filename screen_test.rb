@@ -1581,6 +1581,28 @@ EOD
     when "爆発の巻物"
       log("空中で 爆発が 起こった！ ")
       attack_monsters_in_room(5..35)
+    when "ワナの巻物"
+      log("実装してないよ。")
+    when "ワナけしの巻物"
+      @level.all_cells_and_positions.each do |cell, x, y|
+        if cell.trap
+          cell.remove_object(cell.trap)
+        end
+      end
+      log("このフロアから ワナが消えた。")
+    when "大部屋の巻物"
+      @level.all_cells_and_positions.each do |cell, x, y|
+        if x == 0 || x == 79
+          cell.type = :VERTICAL_WALL
+        elsif  y == 0 || y == 23
+          cell.type = :HORIZONTAL_WALL
+        else
+          cell.type = :FLOOR
+        end
+      end
+      @level.rooms.replace([Room.new(0, 23, 0, 79)])
+      @level.update_lighting(@hero.x, @hero.y)
+      log("ダンジョンの壁がくずれた！ ")
     else
       log("実装してないよ。")
     end
@@ -2023,7 +2045,11 @@ EOD
            x1 >= 0 && x1 < @level.width
           Curses.addstr(dungeon_char(x1, y1))
         else
-          Curses.addstr('　')
+          if @level.whole_level_lit
+            Curses.addstr(@level.tileset[:WALL])
+          else
+            Curses.addstr("　")
+          end
         end
       end
     end

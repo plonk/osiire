@@ -9,7 +9,14 @@ class Dungeon
 
   # 階段を置く。
   def place_staircase(level)
-    level.put_object(StairCase.new, *level.get_random_place(:FLOOR))
+    x, y = level.get_random_place(:FLOOR)
+    if x
+      level.put_object(StairCase.new, x, y)
+    else
+      x, y = level.get_random_place(:PASSAGE)
+      fail unless x
+      level.put_object(StairCase.new, x, y)
+    end
   end
 
   def make_item(level_number)
@@ -77,16 +84,20 @@ class Dungeon
   # ターン経過でモンスターが湧く時。
   # rect: 避けるべきヒーローの視界。
   def place_monster(level, level_number, rect)
-    # FIXME: 大部屋を実装すると無限ループになる。
-    while true
-      x, y = level.get_random_place(:FLOOR)
-      cell = level.cell(x, y)
-      if !rect.include?(x, y) && !cell.monster
-        m = make_monster(level_number)
-        spawn_monster(m, cell, level)
-        break
-      end
+    list = level.all_cells_and_positions
+    possibles = list.select { |cell, x, y|
+      cell.type == :FLOOR && !cell.monster
+    }
+    if possibles.empty?
+      fail "nowhere to put monster"
     end
+    preferred = possibles.select { |cell, x, y| !rect.include?(x, y) }
+    if preferred.empty?
+      cell, = possibles.sample
+    else
+      cell, = preferred.sample
+    end
+    spawn_monster(make_monster(level_number), cell)
   end
 
   def spawn_other_three(m, cell, level)
@@ -156,10 +167,13 @@ class Dungeon
 
     until num == 0
       x, y = level.get_random_place(:FLOOR)
+      if x.nil? # 部屋がない
+        return
+      end
       if surrounded_by_empty_floor_tiles?(level, x, y)
         level.cell(x, y).type = :STATUE
-        num -= 1
       end
+      num -= 1
     end
   end
 
@@ -343,7 +357,7 @@ class Dungeon
       place_objective(level, level_number)
     end
 
-    if rand() < 0.3
+    if level.rooms.any? && rand() < 0.3
       r = level.rooms.sample
       level.party_room = r
 

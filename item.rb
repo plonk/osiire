@@ -63,6 +63,8 @@ class Item
     [:scroll, "時の砂の巻物", nil, nil],
     [:scroll, "ワナの巻物", nil, nil],
     [:scroll, "パルプンテの巻物", nil, nil],
+    [:scroll, "ワナけしの巻物", nil, nil],
+    [:scroll, "大部屋の巻物", nil, nil],
     [:staff, "いかずちの杖", nil, "敵にダメージを与える。"],
     [:staff, "鈍足の杖", nil, nil],
     [:staff, "睡眠の杖", nil, "敵を眠らせる。"],
