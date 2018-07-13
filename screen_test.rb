@@ -311,7 +311,7 @@ class Program
       if picking
         pick(cell, item)
       else
-        log("#{item.name}の上に乗った。")
+        log("#{item}の上に乗った。")
         stop_dashing
       end
     end
