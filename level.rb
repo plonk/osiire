@@ -161,6 +161,7 @@ class Hero < Struct.new(:x, :y, :hp, :max_hp, :strength, :max_strength, :gold, :
   attr_accessor :inventory
   attr_accessor :weapon, :shield, :ring, :projectile
   attr_accessor :name
+  attr_accessor :action_point
 
   include StatusEffectPredicates
 
@@ -169,6 +170,19 @@ class Hero < Struct.new(:x, :y, :hp, :max_hp, :strength, :max_strength, :gold, :
     @inventory = []
     @status_effects = []
     @name = "名無しさん"
+    @action_point = 0
+  end
+
+  def action_point_recovery_rate
+    if quick?
+      4
+    else
+      2
+    end
+  end
+
+  def state
+    :awake
   end
 
   def char

@@ -3,12 +3,6 @@
 class StatusEffect < Struct.new(:type, :remaining_duration)
   attr_accessor :caster
 
-  # def on_start
-  # end
-
-  # def on_end
-  # end
-
   def name
     case type
     when :sleep
@@ -21,6 +15,8 @@ class StatusEffect < Struct.new(:type, :remaining_duration)
       "混乱"
     when :hallucination
       "まどわし"
+    when :quick
+      "倍速"
     else
       type.to_s
     end
@@ -48,6 +44,10 @@ module StatusEffectPredicates
 
   def hallucinating?
     @status_effects.any? { |e| e.type == :hallucination }
+  end
+
+  def quick?
+    @status_effects.any? { |e| e.type == :quick }
   end
 
 end
@@ -107,6 +107,7 @@ class Monster
   attr_accessor :item
   attr :trick_range
   attr_accessor :invisible
+  attr_accessor :action_point, :action_point_recovery_rate
 
   include StatusEffectPredicates
 
@@ -157,6 +158,9 @@ class Monster
     when "ミミック"
       @impersonating = (Item::CHARS.values + ['􄀨􄀩']).sample
     end
+
+    @action_point = 0
+    @action_point_recovery_rate = double_speed? ? 4 : 2
   end
 
   # state = :awake の操作は別。モンスターの特殊な状態を解除して動き出
@@ -218,21 +222,12 @@ class Monster
     end
   end
 
-  def double_speed?
-    case @name
-    when "デビルモンキー", "ツバメ", "四人トリオ", "メタルヨテイチ"
-      true
-    else
-      false
-    end
-  end
-
   def single_attack?
     case @name
-    when "デビルモンキー", "四人トリオ", "メタルヨテイチ"
-      false
-    else
+    when "ツバメ"
       true
+    else
+      false
     end
   end
 
@@ -265,6 +260,17 @@ class Monster
 
   def hp_maxed?
     @hp == @max_hp
+  end
+
+private
+
+  def double_speed?
+    case @name
+    when "デビルモンキー", "ツバメ", "四人トリオ", "メタルヨテイチ"
+      true
+    else
+      false
+    end
   end
 
 end

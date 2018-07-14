@@ -10,6 +10,9 @@ require_relative 'curses_ext'
 require_relative 'result_screen'
 require_relative 'naming_screen'
 
+class HeroDied < Exception
+end
+
 class MessageLog
   attr_reader :lines, :last_message
   attr_accessor :last_message_shown_at
@@ -21,11 +24,11 @@ class MessageLog
   end
 
   def add(msg)
-    if @lines.size > 0 && @lines[-1].size + msg.size < 40
-      @lines[-1].concat(msg)
-    else
+    # if @lines.size > 0 && @lines[-1].size + msg.size < 40
+    #   @lines[-1].concat(msg)
+    # else
       @lines << msg
-    end
+    # end
     @last_message = @lines[-1]
   end
 
@@ -44,11 +47,17 @@ class Program
   DIRECTIONS = [[0,-1], [1,-1], [1,0], [1,1], [0,1], [-1,1], [-1,0], [-1,-1]]
   RANKING_FILE_NAME = "ranking.json"
 
+  HEALTH_BAR_COLOR_PAIR = 1
+
   def initialize
     @debug = ARGV.include?("-d")
     @default_name = nil
 
     Curses.init_screen
+    Curses.start_color
+
+    Curses.init_pair(HEALTH_BAR_COLOR_PAIR, Curses::COLOR_GREEN, Curses::COLOR_RED)
+
     Curses.noecho
     Curses.crmode
     Curses.stdscr.keypad(true)
@@ -64,7 +73,7 @@ class Program
     @hero = Hero.new(nil, nil, 15, 15, 8, 8, 0, 0, 100.0, 100.0, 1)
     @hero.inventory << Item.make_item("大きなパン")
     if debug?
-      @hero.inventory << Item.make_item("エクスカリバー")
+      @hero.inventory << Item.make_item("エンドゲーム")
       @hero.inventory << Item.make_item("メタルヨテイチの盾")
       @hero.inventory << Item.make_item("目薬草")
       @hero.inventory << Item.make_item("薬草")
@@ -188,6 +197,7 @@ class Program
       @hero.exp += monster.exp
       log("#{monster.name}を たおして #{monster.exp} ポイントの経験値を得た。")
       check_level_up
+      render
 
       @hero.status_effects.reject! { |e|
         if e.caster.equal?(monster)
@@ -343,6 +353,10 @@ class Program
     @hero.x, @hero.y = x1, y1
     @hero.status_effects.reject! { |e| e.type == :held }
     @level.update_lighting(x1, y1)
+    if @last_room != current_room
+      walk_in_or_out_of_room
+      @last_room = current_room
+    end
   end
 
   # 盾が錆びる。
@@ -491,6 +505,7 @@ class Program
     if trap && !trap.visible
       trap.visible = true
       log("#{trap.name}を 見つけた。")
+      render
     end
   end
 
@@ -512,6 +527,12 @@ class Program
       return go_downstairs()
     elsif cell.item
       pick(cell, cell.item)
+      return :action
+    elsif cell.gold
+      gold = cell.gold
+      cell.remove_object(gold)
+      @hero.gold += gold.amount
+      log("#{gold.amount}G を拾った。")
       return :action
     elsif cell.trap
       trap_activate(cell.trap)
@@ -975,13 +996,40 @@ EOD
       monster.strength += 1
       log("#{monster.name}の ちからが 1 上がった。")
     # when "幸せの種"
-    # when "すばやさの種"
+    when "すばやさの種"
+      case  monster.action_point_recovery_rate
+      when 1
+        monster.action_point_recovery_rate = 2
+        monster.action_point = 2
+        log("#{monster.name}の 足はもう遅くない。")
+      when 2
+        monster.action_point_recovery_rate = 4
+        monster.action_point = 4
+        log("#{monster.name}の 足が速くなった。")
+      when 4
+        log("しかし 何も起こらなかった。")
+      else fail
+      end
     when "毒草"
       if monster.strength > 0
         monster.strength -= 1
         log("#{monster.name}の ちからが 1 下がった。")
       else
-        log("しかし 何も起こらなかった。")
+        # log("しかし 何も起こらなかった。")
+      end
+
+      case  monster.action_point_recovery_rate
+      when 1
+        # log("しかし 何も起こらなかった。")
+      when 2
+        monster.action_point_recovery_rate = 1
+        monster.action_point = 1
+        log("#{monster.name}の 足が遅くなった。")
+      when 4
+        monster.action_point_recovery_rate = 2
+        monster.action_point = 2
+        log("#{monster.name}の 足はもう速くない。")
+      else fail
       end
     # when "目つぶし草"
     # when "まどわし草"
@@ -1121,7 +1169,11 @@ EOD
         break
       when :FLOOR, :PASSAGE
         if [x+dx, y+dy] == [@hero.x, @hero.y]
-          take_damage(rand(17..23))
+          damage = rand(17..23)
+          if @hero.shield&.name == "ドラゴンシールド"
+            damage /= 2
+          end
+          take_damage(damage)
           break
         elsif cell.monster
           # FIXME: これだと主人公に経験値が入ってしまうな
@@ -1258,6 +1310,7 @@ EOD
     end
     cell.remove_object(monster)
     @level.put_object(monster, x, y)
+    monster.goal = nil
   end
 
   # モンスターが変化す。
@@ -1312,6 +1365,20 @@ EOD
       monster.hp = 1
       @hero.hp = @hero.hp - (@hero.hp / 2.0).ceil
       log("#{monster.name}の HP が 1 になった。")
+    when "鈍足の杖"
+      case  monster.action_point_recovery_rate
+      when 1
+        log("しかし 何も起こらなかった。")
+      when 2
+        monster.action_point_recovery_rate = 1
+        monster.action_point = 1
+        log("#{monster.name}の 足が遅くなった。")
+      when 4
+        monster.action_point_recovery_rate = 2
+        monster.action_point = 2
+        log("#{monster.name}の 足はもう速くない。")
+      else fail
+      end
     else
       fail "case not covered"
     end
@@ -1509,7 +1576,14 @@ EOD
     when "幸せの種"
       hero_levels_up
     when "すばやさの種"
-      log("実装してないよ。")
+      case @hero.quick?
+      when true
+        log("しかし 何も起こらなかった。")
+      when false
+        @hero.status_effects.push(StatusEffect.new(:quick, 3))
+        log("#{@hero.name}の 足が速くなった。")
+        @hero.action_point = 2
+      end
     when "目薬草"
       @level.each_coords do |x, y|
         trap = @level.cell(x, y).trap
@@ -1686,10 +1760,12 @@ EOD
 
   # ヒーローがダメージを受ける。
   def take_damage(amount)
+    render
     log("%.0f ポイントの ダメージを受けた。" % [amount])
     @hero.hp -= amount
-    if @hero.hp < 0
+    if @hero.hp < 1.0
       @hero.hp = 0.0
+      raise HeroDied
     end
   end
 
@@ -1799,6 +1875,7 @@ EOD
       @level.update_lighting(@hero.x, @hero.y)
 
       update_stairs_direction
+      recover_monster_action_point
     end
   end
 
@@ -1876,6 +1953,27 @@ EOD
     Curses.refresh
   end
 
+  FRACTIONS = {
+    1 => "▏",
+    2 => "▎",
+    3 => "▍",
+    4 => "▌",
+    5 => "▋",
+    6 => "▊",
+    7 => "▉",
+  }
+  # () -> String
+  def render_health_bar
+    eighths = ((@hero.hp/@hero.max_hp) * 80).round
+    ones = eighths / 8
+    fraction = eighths % 8
+    if fraction == 0
+      "█" * ones +  " " * (10-ones)
+    else
+      "█" * ones + FRACTIONS[fraction] + " " * (10-ones-1)
+    end
+  end
+
   # 画面最上部、ステータス行の表示。
   def render_status
     low_hp   = @hero.hp.floor <= (@hero.max_hp / 10.0).ceil
@@ -1888,8 +1986,11 @@ EOD
     Curses.attron(Curses::A_BLINK) if low_hp
     Curses.addstr("HP ")
     Curses.attroff(Curses::A_BLINK) if low_hp
-    Curses.addstr("%d/%d  " % [@hero.hp, @hero.max_hp])
-    Curses.addstr("%dG  "   % [@hero.gold])
+    Curses.addstr("%3d/%d  " % [@hero.hp, @hero.max_hp])
+    Curses.attron(Curses::color_pair(HEALTH_BAR_COLOR_PAIR))
+    Curses.addstr(render_health_bar)
+    Curses.attroff(Curses::color_pair(HEALTH_BAR_COLOR_PAIR))
+    Curses.addstr("  %dG  "   % [@hero.gold])
     Curses.attron(Curses::A_BLINK) if starving
     Curses.addstr("満腹度 ")
     Curses.attroff(Curses::A_BLINK) if starving
@@ -1902,23 +2003,24 @@ EOD
   def render_message
     case @log.lines.size
     when 0
-      Curses.setpos(Curses.lines-1, 0)
-      if Time.now - @log.last_message_shown_at < 1.0
-        Curses.addstr(@log.last_message)
-      end
-      Curses.clrtoeol
-    when 1
-      Curses.setpos(Curses.lines-1, 0)
-      Curses.addstr(@log.lines.shift)
-      Curses.clrtoeol
-      @log.last_message_shown_at = Time.now
+    # when 0
+    #   Curses.setpos(Curses.lines-1, 0)
+    #   if Time.now - @log.last_message_shown_at < 1.0
+    #     Curses.addstr(@log.last_message)
+    #   end
+    #   Curses.clrtoeol
+    # when 1
+    #   Curses.setpos(Curses.lines-1, 0)
+    #   Curses.addstr(@log.lines.shift)
+    #   Curses.clrtoeol
+    #   @log.last_message_shown_at = Time.now
     else
       Curses.setpos(Curses.lines-1, 0)
       Curses.addstr(@log.lines.shift)
       Curses.clrtoeol
 
       Curses.refresh
-      sleep 0.75
+      sleep 0.5
       render_message
     end
   end
@@ -2200,6 +2302,8 @@ EOD
         # ちどり足。
         if m.tipsy? && rand() < 0.5
           return monster_tipsy_move_action(m, mx, my)
+        elsif m.paralyzed?
+          return Action.new(:rest, nil)
         elsif m.confused?
           return monster_confused_action(m, mx, my)
         elsif m.hallucinating? # まどわし状態では攻撃しない。
@@ -2395,52 +2499,6 @@ EOD
     m.facing = dir
   end
 
-  # モンスターの移動・行動フェーズ。
-  def monster_phase
-    doers = []
-    @level.all_monsters_with_position.each do |m, mx, my|
-      next if m.paralyzed?
-      next if m.asleep?
-
-      action = monster_action(m, mx, my)
-      if action.type == :move
-        # その場で動かす。
-        monster_move(m, mx, my, action.direction)
-      else
-        doers << [m, action]
-      end
-    end
-
-    doers.each do |m, action|
-      unless m.hp < 1.0
-        dispatch_action(m, action)
-      end
-    end
-
-    # 2倍速モンスター行動
-    doers2 = []
-    @level.all_monsters_with_position.each do |m, mx, my|
-      next unless m.double_speed?
-      next if m.paralyzed?
-      next if m.asleep?
-
-      action = monster_action(m, mx, my)
-      if action.type == :move
-        # その場で動かす。
-        monster_move(m, mx, my, action.direction)
-      else
-        doers2 << [m, action]
-      end
-    end
-
-    doers2.each do |m, action|
-      unless m.hp < 1.0
-        next if m.single_attack? && doers.any? { |n, _action| m.equal?(n) }
-        dispatch_action(m, action)
-      end
-    end
-  end
-
   # :move 以外のアクションを実行。
   def dispatch_action(m, action)
     case action.type
@@ -2520,6 +2578,8 @@ EOD
       log("#{character.name}の 足が抜けた。")
     when :confused
       log("#{character.name}の 混乱がとけた。")
+    when :quick
+      log("#{character.name}の 足はもう速くない。")
     else
       log("#{character.name}の #{effect.type}状態がとけた。")
     end
@@ -2838,48 +2898,84 @@ EOD
     end
   end
 
+  def recover_monster_action_point
+    @level.all_monsters_with_position.each do |m, pos|
+      m.action_point += m.action_point_recovery_rate
+    end
+  end
+
+  def next_turn
+    @level.turn += 1
+    @hero.action_point += @hero.action_point_recovery_rate
+    recover_monster_action_point
+    status_effects_wear_out
+    hero_fullness_decrease
+    if @level.turn % 64 == 0
+      spawn_monster
+    end
+  end
+
+  def all_monsters_moved?
+    @level.all_monsters_with_position.all? { |m, pos|
+      m.action_point < 2
+    }
+  end
+
+  # モンスターの移動・行動フェーズ。
+  def monster_phase
+    doers = []
+    @level.all_monsters_with_position.each do |m, mx, my|
+      next if m.action_point < 2
+      action = monster_action(m, mx, my)
+      if action.type == :move
+        # その場で動かす。
+        monster_move(m, mx, my, action.direction)
+        m.action_point -= 2
+      else
+        doers << [m, action]
+      end
+    end
+
+    doers.each do |m, action|
+      next if m.hp < 1.0
+
+      dispatch_action(m, action)
+      if m.single_attack?
+        # 攻撃するとAPを使いはたす。
+        m.action_point = 0
+      else
+        m.action_point -= 2
+      end
+    end
+  end
+
   # ダンジョンのプレイ。
   def play
     @start_time = Time.now
 
     new_level
+    render
 
-    @quitting = false
-
-    # メインループ
-    until @quitting
-      if @hero.hp < 1.0
-        log("#{@hero.name}は ちからつきた。")
-        render
-        sleep 1
-        gameover_message
-        break
-      end
-
-      if @last_room != current_room
-        walk_in_or_out_of_room
-        @last_room = current_room
-      end
-
-      sym = hero_phase
-
-      case sym
-      when :action, :move
-        monster_phase
-        if @hero.hp >= 1.0 # 死んでなかった場合だけ？
-          hero_fullness_decrease
+    begin
+      loop do
+        if @hero.action_point >= 2
+          old = @hero.action_point
+          @hero.action_point -= 2
+          case hero_phase
+          when :move, :action
+          when :nothing
+            @hero.action_point = old
+          end
+        elsif all_monsters_moved?
+          next_turn
+        else
+          monster_phase
         end
-
-        status_effects_wear_out()
-
-        @level.turn += 1
-
-        if @level.turn % 64 == 0
-          spawn_monster
-        end
-      when :nothing
-      else fail
       end
+    rescue HeroDied
+      log("#{@hero.name}は ちからつきた。")
+      render
+      gameover_message
     end
   end
 end

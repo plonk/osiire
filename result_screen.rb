@@ -49,7 +49,7 @@ module ResultScreen
       win.addstr("最大HP    %3d  最大満腹度 %3d％" % [data['max_hp'], data['max_fullness']])
 
       win.setpos(6, 1)
-      win.addstr("ちから %6s  経験値    %6d" % ["#{data['strength']}/#{data['max_strength']}", data['exp']])
+      win.addstr("ちから %6s  経験値 %9d" % ["#{data['strength']}/#{data['max_strength']}", data['exp']])
 
       win.setpos(7, 1)
       if data['weapon']
