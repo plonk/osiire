@@ -2299,15 +2299,16 @@ EOD
       when :awake
         # ジェネリックな行動パターン。
 
-        # ちどり足。
-        if m.tipsy? && rand() < 0.5
-          return monster_tipsy_move_action(m, mx, my)
-        elsif m.paralyzed?
+        if m.paralyzed?
+          return Action.new(:rest, nil)
+        elsif m.asleep?
           return Action.new(:rest, nil)
         elsif m.confused?
           return monster_confused_action(m, mx, my)
         elsif m.hallucinating? # まどわし状態では攻撃しない。
           return monster_move_action(m, mx, my)
+        elsif m.tipsy? && rand() < 0.5 # ちどり足。
+          return monster_tipsy_move_action(m, mx, my)
         elsif adjacent?([mx, my], [@hero.x, @hero.y]) &&
               @level.cell(@hero.x, @hero.y).item&.name == "結界の巻物"
           return monster_move_action(m, mx, my) # Action.new(:rest, nil)
