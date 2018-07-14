@@ -2020,7 +2020,7 @@ EOD
       Curses.clrtoeol
 
       Curses.refresh
-      sleep 0.5
+      sleep 0.40
       render_message
     end
   end
