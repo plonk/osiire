@@ -395,6 +395,9 @@ class Program
       if @level.in_dungeon?(x, y) &&
          @level.cell(x, y).can_place?
         item = candidates.shift
+        if item.name == "結界の巻物"
+          item.stuck = true
+        end
         @level.put_object(item, x, y)
         @hero.remove_from_inventory(item)
         count += 1
