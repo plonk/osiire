@@ -2820,7 +2820,10 @@ EOD
         ((room.left+1)..(room.right-1)).each do |x|
 
           monster = @level.cell(x, y).monster
-          monster&.on_party_room_intrusion
+          if monster
+            monster.on_party_room_intrusion
+            monster.action_point = 0
+          end
         end
       end
 
