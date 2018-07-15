@@ -2425,6 +2425,7 @@ EOD
       end
 
     when "パペット"
+      log("#{m.name}は おどりをおどった。")
       hero_levels_down
 
     when "土偶"
