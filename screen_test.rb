@@ -160,10 +160,10 @@ class Program
 
   # ヒーローがモンスターを攻撃する。
   def hero_attack(cell, monster)
-    log("#{@hero.name} の攻撃！ ")
+    log("#{@hero.name}の攻撃！ ")
     on_monster_attacked(monster)
     if rand() < 0.125
-      log("#{@hero.name}の 攻撃は外れた。")
+      log("#{@hero.name}の攻撃は 外れた。")
     else
       attack = get_hero_attack
       damage = ( ( attack * (15.0/16.0)**monster.defense ) * (112 + rand(32))/128.0 ).to_i
