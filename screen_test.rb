@@ -427,8 +427,9 @@ class Program
   def trap_activate(trap)
     case trap.name
     when "ワープゾーン"
-      hero_teleport
       log("ワープゾーンだ！ ")
+      render
+      hero_teleport
     when "硫酸"
       log("足元から酸がわき出ている！ ")
       take_damage_shield
@@ -455,6 +456,7 @@ class Program
       mine_activate(trap)
     when "落とし穴"
       log("落とし穴だ！ ")
+      render
       new_level(+1)
       return # ワナ破損処理をスキップする
     else fail
@@ -2464,6 +2466,7 @@ EOD
 
     when "ソーサラー"
       log("#{m.name}は ワープの杖を振った。")
+      render
       hero_teleport
 
     else
