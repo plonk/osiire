@@ -2563,6 +2563,7 @@ EOD
           if monster.state == :asleep
             if rand() < probability
               monster.state = :awake
+              monster.action_point = 0
             end
           end
         end
