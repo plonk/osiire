@@ -1861,9 +1861,9 @@ EOD
       @hero.status_effects.clear
 
       # 主人公を配置する。
-      @hero.x, @hero.y = @level.get_random_character_placeable_place
+      x, y = @level.get_random_character_placeable_place
+      hero_change_position(x, y)
 
-      x, y = [@hero.x, @hero.y]
       if @level.has_type_at?(Item, x, y) ||
          @level.has_type_at?(StairCase, x, y) ||
          @level.has_type_at?(Trap, x, y)
