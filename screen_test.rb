@@ -615,7 +615,8 @@ class Program
     when 'Q'
       if confirm_give_up?
         give_up_message
-        set_quitting
+        @quitting = true
+        :nothing
       else
         :nothing
       end
@@ -681,12 +682,6 @@ class Program
     ensure
       menu.close
     end
-  end
-
-  # () → :nothing
-  def set_quitting
-    @quitting = true
-    :nothing
   end
 
   # 取扱説明。
@@ -2953,12 +2948,13 @@ EOD
   # ダンジョンのプレイ。
   def play
     @start_time = Time.now
+    @quitting = false
 
     new_level
     render
 
     begin
-      loop do
+      until @quitting
         if @hero.action_point >= 2
           old = @hero.action_point
           @hero.action_point -= 2
