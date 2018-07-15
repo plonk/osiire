@@ -176,10 +176,14 @@ class Monster
   end
 
   def char
-    if @name == "ミミック" && paralyzed?
-      @impersonating
+    if hp < 1.0
+      "\u{104238}\u{104239}" # puff of smoke
     else
-      @char
+      if @name == "ミミック" && paralyzed?
+        @impersonating
+      else
+        @char
+      end
     end
   end
 

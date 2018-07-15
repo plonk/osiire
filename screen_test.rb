@@ -177,6 +177,8 @@ class Program
   # モンスターが死んでいたら、その場合の処理を行う。
   def check_monster_dead(cell, monster)
     if monster.hp < 1.0
+      render
+
       monster.invisible = false
 
       cell.remove_object(monster)
