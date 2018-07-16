@@ -1966,7 +1966,7 @@ EOD
   }
   # () -> String
   def render_health_bar
-    eighths = ((@hero.hp/@hero.max_hp) * 80).round
+    eighths = ((@hero.hp.fdiv(@hero.max_hp)) * 80).round
     ones = eighths / 8
     fraction = eighths % 8
     if fraction == 0
