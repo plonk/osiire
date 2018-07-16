@@ -1888,6 +1888,10 @@ EOD
       @level.update_lighting(@hero.x, @hero.y)
 
       update_stairs_direction
+
+      # 行動ポイントの回復。上の階で階段を降りる時にあまったポイントに
+      # 影響されたくないので下の代入文で当ってる。
+      @hero.action_point = @hero.action_point_recovery_rate
       recover_monster_action_point
     end
   end
