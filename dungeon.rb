@@ -111,11 +111,13 @@ class Dungeon
     end
   end
 
-  def place_objective(level)
+  def place_objective(level, level_number)
     loop do
       cell = level.cell(*level.get_random_place(:FLOOR))
       if cell.can_place?
-        cell.put_object(Item.make_item(OBJECTIVE_NAME))
+        objective = Item.make_item(OBJECTIVE_NAME)
+        objective.number = level_number
+        cell.put_object(objective)
         return
       end
     end
@@ -279,7 +281,7 @@ class Dungeon
     place_traps(level, level_number)
     place_monsters(level, level_number)
     if level_number >= 27 && !on_return_trip?(hero)
-      place_objective(level)
+      place_objective(level, level_number)
     end
 
     if rand() < 0.3

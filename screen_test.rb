@@ -741,10 +741,12 @@ EOD
 
   # ダンジョンをクリアしたリザルト画面。
   def clear_message
+    item = @hero.inventory.find { |item| item.name == Dungeon::OBJECTIVE_NAME }
+    message = "#{item&.number || '??'}階から魔除けを持って無事帰る！"
     data = ResultScreen.to_data(@hero)
            .merge({"screen_shot" => take_screen_shot(),
                    "time" => (Time.now - @start_time).to_i,
-                   "message" => "魔除けを持って無事帰る！",
+                   "message" => message,
                    "level" => @level_number,
                    "return_trip" => @dungeon.on_return_trip?(@hero),
                    "timestamp" => Time.now.to_i,
@@ -2039,9 +2041,9 @@ EOD
   # 死んだ時のリザルト画面。
   def gameover_message
     if @dungeon.on_return_trip?(@hero)
-      message = "魔除けを持って#{@level_number}Fで力尽きる。"
+      message = "魔除けを持って#{@level_number}階で力尽きる。"
     else
-      message = "#{@level_number}Fで力尽きる。"
+      message = "#{@level_number}階で力尽きる。"
     end
     data = ResultScreen.to_data(@hero)
            .merge({"screen_shot" => take_screen_shot(),
@@ -2712,7 +2714,7 @@ EOD
 
   # ランキングでの登録日時フォーマット。
   def format_timestamp(unix_time)
-    Time.at(unix_time).strftime("%Y-%m-%d")
+    Time.at(unix_time).strftime("%y-%m-%d")
   end
 
   # ランキングをソートする。

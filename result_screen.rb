@@ -10,6 +10,17 @@ module ResultScreen
     m = (seconds % 3600) / 60
     s = seconds % 60
     "%2d時間%02d分%02d秒" % [h, m, s]
+    nonzero_seen = false
+    [[h, "%2d時間", "      "],
+     [m, "%2d分", "    "],
+     [s, "%2d秒", "    "]].map { |n, fmt, blank|
+      (if !nonzero_seen && n == 0 then blank else fmt % [n] end)
+        .tap do
+        if n != 0
+          nonzero_seen = true
+        end
+      end
+    }.join
   end
 
   def to_data(hero)
