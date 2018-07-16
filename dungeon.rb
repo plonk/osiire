@@ -53,7 +53,11 @@ class Dungeon
   def make_monster(level_number)
     distribution = MONSTER_TABLE.assoc(level_number)[1..-1]
     selected_monster = select(distribution)
-    return Monster.make_monster(selected_monster)
+    m = Monster.make_monster(selected_monster)
+    if m.name == "どろぼう猫"
+      m.item = make_item(level_number)
+    end
+    return m
   end
 
   # rect: 避けるべきヒーローの視界。
