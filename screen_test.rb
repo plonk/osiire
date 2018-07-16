@@ -112,6 +112,7 @@ class Program
   def check_level_up
     while @hero.lv < exp_to_lv(@hero.exp)
       log("#{@hero.name}の レベルが 上がった。")
+      render
       @hero.lv += 1
       hp_increase = 5
       @hero.max_hp = [@hero.max_hp + 5, 999].min
@@ -142,6 +143,17 @@ class Program
     m.strength
   end
 
+  def on_monster_taking_damage(monster, cell)
+    if monster.divide? && rand() < 0.5
+      x, y = @level.coordinates_of(monster)
+      monster_split(monster, cell, x, y)
+    elsif monster.name == "メタルヨテイチ"
+      log("#{monster.name}は ワープした。")
+      render
+      monster_teleport(monster, cell)
+    end
+  end
+
   # モンスターにダメージを与える。
   def monster_take_damage(monster, damage, cell)
     if monster.name == "メタルヨテイチ"
@@ -149,11 +161,8 @@ class Program
     end
     monster.hp -= damage
     log("#{monster.name}に #{damage} のダメージを与えた。")
-    if monster.hp >= 1.0 && # 生きている
-       monster.divide? &&
-       rand() < 0.5
-      x, y = @level.coordinates_of(monster)
-      monster_split(monster, cell, x, y)
+    if monster.hp >= 1.0 # 生きている
+      on_monster_taking_damage(monster, cell)
     end
     check_monster_dead(cell, monster)
   end
