@@ -185,7 +185,7 @@ class Program
 
       if monster.item
         thing = monster.item
-      elsif rand() < monster.drop_rate && cell.can_place?
+      elsif rand() < monster.drop_rate
         thing = @dungeon.make_random_item_or_gold(@level_number)
       else
         thing = nil
