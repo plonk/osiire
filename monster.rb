@@ -140,8 +140,6 @@ class Monster
     when "メタルヨテイチ"
       @status_effects << StatusEffect.new(:hallucination, Float::INFINITY)
       @item = Item::make_item("幸せの種")
-    when "ミミック"
-      @status_effects << StatusEffect.new(:paralysis, Float::INFINITY)
     end
 
     @trick_range = trick_range
@@ -151,12 +149,6 @@ class Monster
       @invisible = true
     else
       @invisible = false
-    end
-
-    @impersonating = nil
-    case @name
-    when "ミミック"
-      @impersonating = (Item::CHARS.values + ['􄀨􄀩']).sample
     end
 
     @action_point = 0
@@ -179,11 +171,7 @@ class Monster
     if hp < 1.0
       "\u{104238}\u{104239}" # puff of smoke
     else
-      if @name == "ミミック" && paralyzed?
-        @impersonating
-      else
-        @char
-      end
+      @char
     end
   end
 

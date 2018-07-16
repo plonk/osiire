@@ -312,6 +312,18 @@ class Program
   end
 
   def hero_walk(x1, y1, picking)
+    if @level.cell(x1, y1).item&.mimic
+      item = @level.cell(x1, y1).item
+      log("#{item}は ミミックだった!")
+      m = Monster.make_monster("ミミック")
+      m.state = :awake
+      m.action_point = m.action_point_recovery_rate # このターンに攻撃させる
+      @level.cell(x1, y1).remove_object(item)
+      @level.cell(x1, y1).put_object(m)
+      stop_dashing
+      return
+    end
+
     hero_change_position(x1, y1)
     cell = @level.cell(x1, y1)
 

@@ -142,6 +142,7 @@ class Item
   attr_accessor :number
   attr_accessor :gold_plated
   attr_accessor :stuck
+  attr_accessor :mimic
 
   def initialize(type, name, number, desc)
     @type   = type
@@ -158,6 +159,7 @@ class Item
       @rustproof = nil
     end
     @stuck = false
+    @mimic = false
   end
 
   def original_number

@@ -53,13 +53,19 @@ class Dungeon
   def make_monster(level_number)
     distribution = MONSTER_TABLE.assoc(level_number)[1..-1]
     selected_monster = select(distribution)
-    m = Monster.make_monster(selected_monster)
-    if m.name == "どろぼう猫"
-      m.item = make_item(level_number)
+    if selected_monster == "ミミック"
+      m = make_item(level_number)
+      m.mimic = true
+    else
+      m = Monster.make_monster(selected_monster)
+      if m.name == "どろぼう猫"
+        m.item = make_item(level_number)
+      end
     end
     return m
   end
 
+  # ターン経過でモンスターが湧く時。
   # rect: 避けるべきヒーローの視界。
   def place_monster(level, level_number, rect)
     # FIXME: 大部屋を実装すると無限ループになる。
@@ -75,17 +81,23 @@ class Dungeon
   end
 
   def spawn_monster(m, cell)
-    cell.put_object(m)
+    if m.is_a?(Item) && cell.can_place? # ミミック
+      cell.put_object(m)
+      return true
+    elsif m.is_a?(Monster) && !cell.monster
+      cell.put_object(m)
+      return true
+    else
+      return false
+    end
   end
 
-  # モンスターを配置する。
+  # モンスターを配置する。通常配置。
   def place_monsters(level, level_number)
     5.times do
       cell = level.cell(*level.get_random_place(:FLOOR))
-      if cell.objects.none? { |obj| obj.is_a? Monster }
-        m = make_monster(level_number)
-        spawn_monster(m, cell)
-      end
+      m = make_monster(level_number)
+      spawn_monster(m, cell)
     end
   end
 
@@ -177,10 +189,17 @@ class Dungeon
       }
     }
     points.sample(nmonsters).each do |x, y|
-      unless level.cell(x, y).monster
-        m = make_monster(level_number)
-        m.state = :asleep
-        level.cell(x, y).put_object(m)
+      m = make_monster(level_number)
+      case m
+      when Monster
+        unless level.cell(x, y).monster
+          m.state = :asleep
+          level.cell(x, y).put_object(m)
+        end
+      when Item
+        if level.cell(x, y).can_place?
+          level.cell(x, y).put_object(m)
+        end
       end
     end
   end
