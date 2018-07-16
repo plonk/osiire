@@ -17,6 +17,8 @@ class StatusEffect < Struct.new(:type, :remaining_duration)
       "まどわし"
     when :quick
       "倍速"
+    when :bomb
+      "爆弾"
     else
       type.to_s
     end
@@ -50,6 +52,10 @@ module StatusEffectPredicates
     @status_effects.any? { |e| e.type == :quick }
   end
 
+  def bomb?
+    @status_effects.any? { |e| e.type == :bomb }
+  end
+
 end
 
 class Monster
@@ -76,7 +82,7 @@ class Monster
     ['􄁨􄁩', '四人トリオ', 60, 10, 11, 3, 0.0, 1.0, :none],        # 4人で固まって出現する
     ['􄁪􄁫', '白い手', 72, 40, 7, 23, 0.0, 0.0, :reach],           # つかまると倒すまで動けない
     ['􄁬􄁭', 'ゴーレム', 52, 180, 32, 27, 0.33, 0.5, :none],       # 巨大な泥人形
-    ['􄁮􄁯', 'ボンプキン', 70, 30, 12, 23, 0.01, 0.5, :none],      # 爆発する
+    ['􄈬􄈭', 'ボンプキン', 70, 30, 12, 23, 0.01, 0.5, :none],      # 爆発する
     ['􄁰􄁱', 'パペット', 36, 40, 13, 23, 0.16, 0.5, :reach],       # レベルを下げる
     ['􄁲􄁳', 'ゆうれい', 60, 150, 17, 27, 0.0, 0.5, :none],        # 見えない。ふらふら
     ['􄁴􄁵', 'ミミック', 50, 30, 24, 24, 0.0, 0.0, :none],         # アイテム・階段に化ける
@@ -108,6 +114,8 @@ class Monster
   attr :trick_range
   attr_accessor :invisible
   attr_accessor :action_point, :action_point_recovery_rate
+  attr_accessor :group
+  attr_accessor :impersonating_name, :impersonating_char
 
   include StatusEffectPredicates
 
@@ -130,8 +138,8 @@ class Monster
     @status_effects = []
     @item = nil
     case @name
-    when "催眠術師", "どろぼう猫"
-      # 攻撃されると即反撃するモンスター
+    when "催眠術師", "どろぼう猫", "四人トリオ"
+      # 攻撃されるまで動き出さないモンスター
       @status_effects << StatusEffect.new(:paralysis, Float::INFINITY)
     when "ノーム"
       @item = Gold.new(rand(250..1500))
@@ -140,6 +148,11 @@ class Monster
     when "メタルヨテイチ"
       @status_effects << StatusEffect.new(:hallucination, Float::INFINITY)
       @item = Item::make_item("幸せの種")
+    when "化け狸"
+      @impersonating_name = @name
+      @impersonating_char = @char
+    when "ボンプキン"
+      @status_effects << StatusEffect.new(:bomb, Float::INFINITY)
     end
 
     @trick_range = trick_range
@@ -159,8 +172,8 @@ class Monster
   # させる。
   def on_party_room_intrusion
     case @name
-    when "催眠術師", "どろぼう猫"
-      # 攻撃されると即反撃するモンスター
+    when "催眠術師", "どろぼう猫", "四人トリオ"
+      # 攻撃されるまで動き出さないモンスター
       @status_effects.reject! { |e| e.type == :paralysis }
     when "動くモアイ像"
       @status_effects.reject! { |e| e.type == :held }
@@ -168,15 +181,47 @@ class Monster
   end
 
   def char
-    if hp < 1.0
-      "\u{104238}\u{104239}" # puff of smoke
+    case @name
+    when "ボンプキン"
+      if hp < 1.0
+        "\u{104238}\u{104239}" # puff of smoke
+      elsif bomb? && hp <= max_hp/2
+        '􄁮􄁯'
+      else
+        @char
+      end
+    when "化け狸"
+      if hp < 1.0
+        @char
+      else
+        @impersonating_char
+      end
     else
-      @char
+      if hp < 1.0
+        "\u{104238}\u{104239}" # puff of smoke
+      else
+        @char
+      end
+    end
+  end
+
+  def reveal_self!
+    if @name == "化け狸"
+      @impersonating_name = @name
+      @impersonating_char = @char
     end
   end
 
   def name
-    @invisible ? "見えない敵" : @name
+    if @invisible
+      "見えない敵"
+    else
+      if @name == "化け狸"
+        @impersonating_name
+      else
+        @name
+      end
+    end
   end
 
   def tipsy?
@@ -216,7 +261,7 @@ class Monster
 
   def single_attack?
     case @name
-    when "ツバメ"
+    when "ツバメ", "四人トリオ"
       true
     else
       false

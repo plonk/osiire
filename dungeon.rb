@@ -58,8 +58,17 @@ class Dungeon
       m.mimic = true
     else
       m = Monster.make_monster(selected_monster)
-      if m.name == "どろぼう猫"
+      case m.name
+      when "どろぼう猫"
         m.item = make_item(level_number)
+      when "化け狸"
+        while true
+          n = select(distribution)
+          break unless n == "化け狸"
+        end
+        impersonated = Monster.make_monster(n)
+        m.impersonating_name = impersonated.name
+        m.impersonating_char = impersonated.char
       end
     end
     return m
@@ -74,18 +83,49 @@ class Dungeon
       cell = level.cell(x, y)
       if !rect.include?(x, y) && !cell.monster
         m = make_monster(level_number)
-        spawn_monster(m, cell)
+        spawn_monster(m, cell, level)
         break
       end
     end
   end
 
-  def spawn_monster(m, cell)
+  def spawn_other_three(m, cell, level)
+    x, y = level.coordinates_of(m)
+    offsets = [
+      [[1,0],[0,1],[1,1]],     # 最初が左上
+      [[1,0],[0,-1],[1,-1]],   # 最初が左下
+      [[-1,0],[0,1],[-1,1]],   # 最初が右上
+      [[-1,0],[0,-1],[-1,-1]], # 最初が右上
+    ].sort_by { |offsets|
+      offsets.count { |dx, dy|
+        cell = level.cell(x+dx, y+dy)
+        (cell.type == :FLOOR || cell.type == :PASSAGE) && cell.monster.nil?
+      }
+    }.reverse.first
+
+    group = Array.new
+    group << m
+    offsets.each do |dx, dy|
+      cell = level.cell(x+dx, y+dy)
+      if (cell.type == :FLOOR || cell.type == :PASSAGE) && cell.monster.nil?
+        friend = Monster.make_monster("四人トリオ")
+        group << friend
+        friend.group = group
+        cell.put_object(friend)
+      end
+    end
+    m.group = group
+  end
+
+  def spawn_monster(m, cell, level)
     if m.is_a?(Item) && cell.can_place? # ミミック
       cell.put_object(m)
       return true
     elsif m.is_a?(Monster) && !cell.monster
       cell.put_object(m)
+      if cell.monster.name == "四人トリオ"
+        spawn_other_three(m, cell, level)
+      end
       return true
     else
       return false
@@ -97,7 +137,7 @@ class Dungeon
     5.times do
       cell = level.cell(*level.get_random_place(:FLOOR))
       m = make_monster(level_number)
-      spawn_monster(m, cell)
+      spawn_monster(m, cell, level)
     end
   end
 

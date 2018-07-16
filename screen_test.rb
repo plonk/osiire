@@ -154,14 +154,44 @@ class Program
     end
   end
 
+  def monster_explode(monster, ground_zero_cell)
+    log("#{monster.name}は 爆発した！")
+
+    mx, my = @level.coordinates_of(monster)
+
+    if Vec.chess_distance([mx,my], @hero.pos) <= 1
+      take_damage((@hero.hp / 2.0).ceil)
+    end
+
+    rect = @level.surroundings(mx, my)
+    rect.each_coords do |x, y|
+      if @level.in_dungeon?(x, y)
+        cell = @level.cell(x, y)
+        if cell.monster
+          cell.remove_object(cell.monster)
+        end
+        if cell.item
+          cell.remove_object(cell.item)
+        end
+      end
+    end
+  end
+
   # モンスターにダメージを与える。
   def monster_take_damage(monster, damage, cell)
     if monster.name == "メタルヨテイチ"
       damage = [damage, 1].min
     end
+    set_to_explode = monster.bomb? && monster.hp < monster.max_hp/2
+
     monster.hp -= damage
     log("#{monster.name}に #{damage} のダメージを与えた。")
     if monster.hp >= 1.0 # 生きている
+      if set_to_explode
+        monster_explode(monster, cell)
+        return
+      end
+
       on_monster_taking_damage(monster, cell)
     end
     check_monster_dead(cell, monster)
@@ -186,9 +216,10 @@ class Program
   # モンスターが死んでいたら、その場合の処理を行う。
   def check_monster_dead(cell, monster)
     if monster.hp < 1.0
-      render
-
       monster.invisible = false
+      monster.reveal_self! # 化けの皮を剥ぐ。
+
+      render
 
       cell.remove_object(monster)
 
@@ -1541,10 +1572,24 @@ EOD
     monster.status_effects.reject! { |e|
       e.type == :paralysis
     }
-    if monster.name == "動くモアイ像"
+
+    case monster.name
+    when "動くモアイ像"
       monster.status_effects.reject! { |e|
         e.type == :held
       }
+    when "四人トリオ"
+      if monster.group # 単独湧きの場合は無い。
+        monster.group.each do |friend|
+          next if friend.equal?(monster) # 自分は処理しなくていい。
+
+          wake_monster(friend)
+          # かなしばり状態も解ける。
+          friend.status_effects.reject! { |e|
+            e.type == :paralysis
+          }
+        end
+      end
     end
   end
 
@@ -2331,6 +2376,8 @@ EOD
         if m.paralyzed?
           return Action.new(:rest, nil)
         elsif m.asleep?
+          return Action.new(:rest, nil)
+        elsif m.bomb? && m.hp <= m.max_hp/2
           return Action.new(:rest, nil)
         elsif m.confused?
           return monster_confused_action(m, mx, my)
