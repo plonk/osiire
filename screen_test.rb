@@ -2380,6 +2380,7 @@ EOD
     case m.name
     when '催眠術師'
       log("#{m.name}は 手に持っている物を 揺り動かした。")
+      render
       hero_fall_asleep
     when 'ファンガス'
       log("#{m.name}は 毒のこなを 撒き散らした。")
@@ -2391,6 +2392,8 @@ EOD
         log("#{@hero.name}は お金を持っていない！ ")
       else
         log("#{m.name}は #{actual}ゴールドを盗んでワープした！ ")
+        render
+
         @hero.gold -= actual
         m.item = Gold.new(m.item.amount + actual)
 
