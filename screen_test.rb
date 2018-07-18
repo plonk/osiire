@@ -1934,6 +1934,9 @@ EOD
       clear_message
       @quitting = true
     else
+      if @level_number == 100
+        @level_number = 99
+      end
       @level = @dungeon.make_level(@level_number, @hero)
 
       # 状態異常のクリア
