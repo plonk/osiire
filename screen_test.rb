@@ -272,6 +272,7 @@ class Program
     'B' => [-1, +1],
     'N' => [+1, +1],
 
+    # テンキー。
     Curses::KEY_LEFT => [-1, 0],
     Curses::KEY_RIGHT => [+1, 0],
     Curses::KEY_UP => [0, -1],
@@ -290,6 +291,12 @@ class Program
     '1' => [-1, +1],
     '2' => [ 0, +1],
     '3' => [+1, +1],
+
+    # nav cluster のカーソルキーをシフトすると以下になる。
+    Curses::KEY_SLEFT => [-1, 0],
+    Curses::KEY_SRIGHT => [+1, 0],
+    Curses::KEY_SR => [0, -1], # scroll back
+    Curses::KEY_SF => [0, +1], # scroll forward
   }
 
   def hero_can_move_to?(target)
@@ -313,7 +320,7 @@ class Program
       fail ArgumentError, "unknown movement key #{c.inspect}"
     end
 
-    shifted = %w[H J K L Y U B N 7 8 9 4 6 1 2 3].include?(c)
+    shifted = (%w[H J K L Y U B N 7 8 9 4 6 1 2 3] + [Curses::KEY_SLEFT, Curses::KEY_SRIGHT, Curses::KEY_SR, Curses::KEY_SF]).include?(c)
 
     if @hero.confused?
       vec = DIRECTIONS.sample
@@ -662,7 +669,8 @@ class Program
          'H','J','K','L','Y','U','B','N',
          Curses::KEY_LEFT, Curses::KEY_RIGHT, Curses::KEY_UP, Curses::KEY_DOWN,
          Curses::KEY_HOME, Curses::KEY_END, Curses::KEY_PPAGE, Curses::KEY_NPAGE,
-         '7', '8', '9', '4', '6', '1', '2', '3'
+         '7', '8', '9', '4', '6', '1', '2', '3',
+         Curses::KEY_SLEFT, Curses::KEY_SRIGHT, Curses::KEY_SR, Curses::KEY_SF
       hero_move(c)
     when 'i'
       open_inventory
