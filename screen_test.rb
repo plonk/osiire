@@ -1980,7 +1980,10 @@ EOD
   def read_command
     Curses.flushinp
     Curses.timeout = 1000 # milliseconds
-    return Curses.getch
+    Curses.curs_set(0)
+    c = Curses.getch
+    Curses.curs_set(1)
+    return c
   end
 
   def dungeon_char(x, y)
@@ -2045,7 +2048,7 @@ EOD
 
     render_message()
 
-    move_cursor_to_hero()
+    #move_cursor_to_hero()
 
     Curses.refresh
   end
