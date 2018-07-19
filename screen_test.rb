@@ -2264,7 +2264,7 @@ EOD
       [i, *[i - 1, i + 1].shuffle, *[i - 2, i + 2].shuffle].map { |j|
         DIRECTIONS[j % 8]
       }.each do |dx, dy|
-        if @level.can_move_to?(m, mx, my, mx+dx, my+dy) && 
+        if @level.can_move_to?(m, mx, my, mx+dx, my+dy) &&
            [mx+dx, my+dy] != [@hero.x, @hero.y] &&
            @level.cell(mx+dx, my+dy).item&.name != "結界の巻物"
           return Action.new(:move, [dx, dy])
@@ -2526,13 +2526,27 @@ EOD
 
     when "パペット"
       log("#{m.name}は おどりをおどった。")
-      hero_levels_down
+      if @hero.puppet_resistent?
+        log("しかし #{@hero.name}は平気だった。")
+      else
+        hero_levels_down
+      end
 
     when "土偶"
       if rand() < 0.5
-        take_damage_max_strength(1)
+        log("#{m.name}が #{@hero.name}のちからを吸い取る！")
+        if @hero.puppet_resistent?
+          log("しかし #{@hero.name}は平気だった。")
+        else
+          take_damage_max_strength(1)
+        end
       else
-        take_damage_max_hp(5)
+        log("#{m.name}が #{@hero.name}の生命力を吸い取る！")
+        if @hero.puppet_resistent?
+          log("しかし #{@hero.name}は平気だった。")
+        else
+          take_damage_max_hp(5)
+        end
       end
 
     when "目玉"
