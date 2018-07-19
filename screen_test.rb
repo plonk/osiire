@@ -9,6 +9,7 @@ require_relative 'charlevel'
 require_relative 'curses_ext'
 require_relative 'result_screen'
 require_relative 'naming_screen'
+require_relative 'shop'
 
 class HeroDied < Exception
 end
@@ -1937,6 +1938,17 @@ EOD
       if @level_number == 100
         @level_number = 99
       end
+
+      if @level_number != 1 && dir == +1 && rand() < 0.1
+        Curses.stdscr.clear
+        Curses.stdscr.refresh
+        message_window("階段の途中に店を開いている者が居た。")
+        Curses.stdscr.clear
+        Curses.stdscr.refresh
+        shop = Shop.new(@hero)
+        shop.run
+      end
+
       @level = @dungeon.make_level(@level_number, @hero)
 
       # 状態異常のクリア

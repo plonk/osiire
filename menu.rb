@@ -1,6 +1,8 @@
 require_relative 'curses_ext'
 
 class Menu
+  attr_accessor :items
+
   def initialize(items, opts = {})
     @items = items
     @y = opts[:y] || 0
