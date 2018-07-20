@@ -204,7 +204,7 @@ class Shop
   end
 
   def run
-    update_message("いらっしゃい。")
+    update_message("何か買って行かないかい？")
     update_gold
 
     menu = Menu.new(["買い物をする", "持ち物を見る", "立ち去る"],

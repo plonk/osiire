@@ -1954,7 +1954,7 @@ EOD
       if @level_number != 1 && dir == +1 && rand() < 0.1
         Curses.stdscr.clear
         Curses.stdscr.refresh
-        message_window("階段の途中に店を開いている者が居た。")
+        message_window("階段の途中で行商人に出会った。")
         Curses.stdscr.clear
         Curses.stdscr.refresh
         shop = Shop.new(@hero)
