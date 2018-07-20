@@ -2246,7 +2246,7 @@ EOD
            when "白い手"
              !@hero.held?
            when "どろぼう猫"
-             m.item.nil?
+             !m.hallucinating?
            else
              true
            end
