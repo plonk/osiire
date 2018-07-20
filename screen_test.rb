@@ -145,13 +145,15 @@ class Program
   end
 
   def on_monster_taking_damage(monster, cell)
-    if monster.divide? && rand() < 0.5
-      x, y = @level.coordinates_of(monster)
-      monster_split(monster, cell, x, y)
-    elsif monster.name == "メタルヨテイチ"
-      log("#{monster.name}は ワープした。")
-      render
-      monster_teleport(monster, cell)
+    unless monster.nullified?
+      if monster.divide? && rand() < 0.5
+        x, y = @level.coordinates_of(monster)
+        monster_split(monster, cell, x, y)
+      elsif monster.name == "メタルヨテイチ"
+        log("#{monster.name}は ワープした。")
+        render
+        monster_teleport(monster, cell)
+      end
     end
   end
 
@@ -183,7 +185,7 @@ class Program
     if monster.name == "メタルヨテイチ"
       damage = [damage, 1].min
     end
-    set_to_explode = monster.bomb? && monster.hp < monster.max_hp/2
+    set_to_explode = !monster.nullified? && monster.bomb? && monster.hp < monster.max_hp/2
 
     monster.hp -= damage
     log("#{monster.name}に #{damage} のダメージを与えた。")
@@ -1444,6 +1446,16 @@ EOD
         log("#{monster.name}の 足はもう速くない。")
       else fail
       end
+    when "封印の杖"
+      unless monster.nullified?
+        monster.status_effects.push(StatusEffect.new(:nullification, Float::INFINITY))
+
+        # 通常速度に変更する。
+        monster.action_point = 2
+        monster.action_point_recovery_rate = 2
+
+        log("#{monster.name}の特技は 封印された。")
+      end
     else
       fail "case not covered"
     end
@@ -2248,7 +2260,7 @@ EOD
     end
 
     # * モンスターの視界内にヒーローが居れば目的地を再設定。
-    if !m.hallucinating? && @level.fov(mx, my).include?(@hero.x, @hero.y)
+    if !(!m.nullified? && m.hallucinating?) && @level.fov(mx, my).include?(@hero.x, @hero.y)
       m.goal = [@hero.x, @hero.y]
     end
 
@@ -2403,18 +2415,18 @@ EOD
           return Action.new(:rest, nil)
         elsif m.asleep?
           return Action.new(:rest, nil)
-        elsif m.bomb? && m.hp <= m.max_hp/2
+        elsif !m.nullified? && m.bomb? && m.hp <= m.max_hp/2
           return Action.new(:rest, nil)
         elsif m.confused?
           return monster_confused_action(m, mx, my)
-        elsif m.hallucinating? # まどわし状態では攻撃しない。
+        elsif !m.nullified? && m.hallucinating? # まどわし状態では攻撃しない。
           return monster_move_action(m, mx, my)
-        elsif m.tipsy? && rand() < 0.5 # ちどり足。
+        elsif !m.nullified? && m.tipsy? && rand() < 0.5 # ちどり足。
           return monster_tipsy_move_action(m, mx, my)
         elsif adjacent?([mx, my], [@hero.x, @hero.y]) &&
               @level.cell(@hero.x, @hero.y).item&.name == "結界の巻物"
           return monster_move_action(m, mx, my) # Action.new(:rest, nil)
-        elsif trick_applicable?(m) && rand() < m.trick_rate
+        elsif !m.nullified? && trick_applicable?(m) && rand() < m.trick_rate
           return Action.new(:trick, nil)
         elsif @level.can_attack?(m, mx, my, @hero.x, @hero.y)
           # * ヒーローに隣接していればヒーローに攻撃。

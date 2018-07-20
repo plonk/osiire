@@ -56,6 +56,10 @@ module StatusEffectPredicates
     @status_effects.any? { |e| e.type == :bomb }
   end
 
+  def nullified?
+    @status_effects.any? { |e| e.type == :nullification }
+  end
+
 end
 
 class Monster
@@ -185,7 +189,7 @@ class Monster
     when "ボンプキン"
       if hp < 1.0
         "\u{104238}\u{104239}" # puff of smoke
-      elsif bomb? && hp <= max_hp/2
+      elsif !nullified? && bomb? && hp <= max_hp/2
         '􄁮􄁯'
       else
         @char
