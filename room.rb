@@ -48,8 +48,8 @@ class Connection
   def draw(dungeon)
     case direction
     when :horizontal
-      y1 = ((room1.top+1) .. (room1.bottom-1)).to_a.sample
-      y2 = ((room2.top+1) .. (room2.bottom-1)).to_a.sample
+      y1 = ((room1.top+1) .. (room1.bottom-1)).select { |y| (y - room1.top).odd? }.sample
+      y2 = ((room2.top+1) .. (room2.bottom-1)).select { |y| (y - room2.top).odd? }.sample
       midway = (room1.right + room2.left).div(2)
       (room1.right .. midway).each do |x|
         dungeon[y1][x] = Cell.new :PASSAGE
@@ -61,8 +61,8 @@ class Connection
         dungeon[y2][x] = Cell.new :PASSAGE
       end
     when :vertical
-      x1 = ((room1.left+1) .. (room1.right-1)).to_a.sample
-      x2 = ((room2.left+1) .. (room2.right-1)).to_a.sample
+      x1 = ((room1.left+1) .. (room1.right-1)).select { |x| (x - room1.left).odd? }.sample
+      x2 = ((room2.left+1) .. (room2.right-1)).select { |x| (x - room2.left).odd? }.sample
       midway = (room1.bottom + room2.top).div(2)
       (room1.bottom .. midway).each do |y|
         dungeon[y][x1] = Cell.new :PASSAGE

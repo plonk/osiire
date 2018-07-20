@@ -1872,9 +1872,11 @@ EOD
   end
 
   # ヒーローがダメージを受ける。
-  def take_damage(amount)
+  def take_damage(amount, opts = {})
     render
-    log("%.0f ポイントの ダメージを受けた。" % [amount])
+    unless opts[:quiet]
+      log("%.0f ポイントの ダメージを受けた。" % [amount])
+    end
     @hero.hp -= amount
     if @hero.hp < 1.0
       @hero.hp = 0.0
@@ -2336,34 +2338,28 @@ EOD
           return Action.new(:rest, nil) # どうすりゃいいんだい
         end
       else
-        # * 部屋の外に居れば、向いている方向へ進もうとする。
+        # * 部屋の外に居れば
 
-        tx, ty = [mx + m.facing[0], my + m.facing[1]]
-        if @level.can_move_to?(m, mx, my, tx, ty) &&
-           [tx, ty] != [@hero.x, @hero.y] &&
-           @level.cell(tx, ty).item&.name != "結界の巻物"
-          return Action.new(:move, m.facing)
-        else
-          # * 進めなければ反対以外の方向に進もうとする。
-          #   通路を曲がるには ±90度で十分か。
-          dirs = [
-            Vec.rotate_clockwise_45(m.facing, +2),
-            Vec.rotate_clockwise_45(m.facing, -2),
-            Vec.rotate_clockwise_45(m.facing, +1),
-            Vec.rotate_clockwise_45(m.facing, -1),
-          ].shuffle
-          dirs.each do |dx, dy|
-            if @level.can_move_to?(m, mx, my, mx+dx, my+dy) &&
-               [mx+dx, my+dy] != [@hero.x, @hero.y] &&
-               @level.cell(mx+dx, my+dy).item&.name != "結界の巻物"
-              return Action.new(:move, [dx,dy])
-            end
+        # * 反対以外の方向に進もうとする。
+        dirs = [
+          Vec.rotate_clockwise_45(m.facing, +2),
+          Vec.rotate_clockwise_45(m.facing, -2),
+          Vec.rotate_clockwise_45(m.facing, +1),
+          Vec.rotate_clockwise_45(m.facing, -1),
+          Vec.rotate_clockwise_45(m.facing,  0),
+        ].shuffle
+        dirs.each do |dx, dy|
+          if @level.can_move_to?(m, mx, my, mx+dx, my+dy) &&
+             [mx+dx, my+dy] != [@hero.x, @hero.y] &&
+             @level.cell(mx+dx, my+dy).item&.name != "結界の巻物"
+            return Action.new(:move, [dx,dy])
           end
-
-          # * 進めなければその場で足踏み。反対を向く。
-          m.facing = Vec.negate(m.facing)
-          return Action.new(:rest, nil)
         end
+
+        # * 進めなければその場で足踏み。反対を向く。
+        m.facing = Vec.negate(m.facing)
+        return Action.new(:rest, nil)
+
       end
     end
   end
@@ -2690,7 +2686,7 @@ EOD
       # 自然回復
       @hero.hp = [@hero.hp + @hero.max_hp/150.0, @hero.max_hp].min
     else
-      take_damage(1)
+      take_damage(1, quiet: true)
     end
   end
 
@@ -3004,6 +3000,31 @@ EOD
     end
   end
 
+  # 十字路、T字路で止まる。
+  def fork?(point)
+    unless [[-1,-1],[+1,-1],[-1,+1],[+1,+1],[-1,0],[0,-1],[+1,0],[0,+1]].all? { |d|
+             @level.in_dungeon?(*Vec.plus(point,d))
+           }
+      return false
+    end
+
+    # ナナメ四隅が壁で…
+    unless [[-1,-1],[+1,-1],[-1,+1],[+1,+1]].all? { |d|
+             @level.cell(*Vec.plus(point,d)).wall?
+           }
+      return false
+    end
+
+    unless [[-1,0],[0,-1],[+1,0],[0,+1]].count { |d|
+             @level.cell(*Vec.plus(point,d)).type == :PASSAGE ||
+             @level.cell(*Vec.plus(point,d)).type == :FLOOR
+           } >= 3
+      return false
+    end
+
+    return true
+  end
+
   def should_keep_dashing?
     target = Vec.plus(@hero.pos, @dash_direction)
     index = DIRECTIONS.index(@dash_direction)
@@ -3026,6 +3047,8 @@ EOD
       return false
     elsif current_room.nil? && @level.room_at(*target) &&
           @level.first_cells_in(@level.room_at(*target)).include?(target)
+      return false
+    elsif fork?(@hero.pos)
       return false
     else
       return true

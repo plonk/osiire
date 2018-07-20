@@ -345,6 +345,14 @@ class Dungeon
 
     level = Level.new(tileset(level_number))
 
+    mazes = []
+    level.rooms.each do |r|
+      if (r.right - r.left + 1).odd? && (r.top - r.bottom + 1).odd?
+        level.make_maze(r)
+        mazes << r
+      end
+    end
+
     place_statues(level, level_number)
 
     place_staircase(level)
@@ -355,6 +363,11 @@ class Dungeon
     place_monsters(level, level_number)
     if level_number >= 27 && !on_return_trip?(hero)
       place_objective(level, level_number)
+    end
+
+    mazes.each do |r|
+      # level.replace_floor_to_passage(r)
+      level.rooms.delete(r)
     end
 
     if level.rooms.any? && rand() < 0.3

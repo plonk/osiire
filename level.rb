@@ -90,6 +90,15 @@ class Cell
     end
   end
 
+  def wall?
+    case @type
+    when :WALL, :HORIZONTAL_WALL, :VERTICAL_WALL
+      true
+    else
+      false
+    end
+  end
+
   def score(object)
     case object
     when Monster
@@ -188,7 +197,7 @@ class Level
     @dungeon = Array.new(24) { Array.new(80) { Cell.new(:WALL) } }
 
 
-    if true
+    if false
       # @rooms = [
       #   Room.new(0, 23, 0, 79)
       # ]
@@ -252,6 +261,16 @@ class Level
   end
 
   def make_maze(room)
+    ((room.top) .. (room.bottom)).each do |y|
+      ((room.left) .. (room.right)).each do |x|
+        case @dungeon[y][x].type
+        when :PASSAGE
+        else
+          @dungeon[y][x].type = :WALL
+        end
+      end
+    end
+
     visited = {}
 
     f = proc do |x, y|
@@ -266,6 +285,17 @@ class Level
     end
 
     f.(room.left + 1, room.top + 1)
+  end
+
+  def replace_floor_to_passage(room)
+    ((room.top) .. (room.bottom)).each do |y|
+      ((room.left) .. (room.right)).each do |x|
+        case @dungeon[y][x].type
+        when :FLOOR
+          @dungeon[y][x].type = :PASSAGE
+        end
+      end
+    end
   end
 
   def dungeon_char(x, y)
