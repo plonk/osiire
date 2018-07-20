@@ -97,7 +97,7 @@ class Dungeon
     else
       cell, = preferred.sample
     end
-    spawn_monster(make_monster(level_number), cell)
+    spawn_monster(make_monster(level_number), cell, level)
   end
 
   def spawn_other_three(m, cell, level)
