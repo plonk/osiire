@@ -15,22 +15,14 @@ class HeroDied < Exception
 end
 
 class MessageLog
-  attr_reader :lines, :last_message
-  attr_accessor :last_message_shown_at
+  attr_reader :lines
 
   def initialize
     @lines = []
-    @last_message = ""
-    @last_message_shown_at = Time.at(0)
   end
 
   def add(msg)
-    # if @lines.size > 0 && @lines[-1].size + msg.size < 40
-    #   @lines[-1].concat(msg)
-    # else
-      @lines << msg
-    # end
-    @last_message = @lines[-1]
+    @lines << msg
   end
 
   def clear
@@ -97,6 +89,11 @@ class Program
     @beat = false
 
     @dash_direction = nil
+
+    @last_rendered_at = Time.at(0)
+
+    @last_message = ""
+    @last_message_shown_at = Time.at(0)
   end
 
   # デバッグモードで動作中？
@@ -107,13 +104,13 @@ class Program
   def log(message)
     @log.add(message)
     stop_dashing
+    render
   end
 
   # 経験値が溜まっていればヒーローのレベルアップをする。
   def check_level_up
     while @hero.lv < exp_to_lv(@hero.exp)
       log("#{@hero.name}の レベルが 上がった。")
-      render
       @hero.lv += 1
       hp_increase = 5
       @hero.max_hp = [@hero.max_hp + 5, 999].min
@@ -151,7 +148,6 @@ class Program
         monster_split(monster, cell, x, y)
       elsif monster.name == "メタルヨテイチ"
         log("#{monster.name}は ワープした。")
-        render
         monster_teleport(monster, cell)
       end
     end
@@ -222,8 +218,6 @@ class Program
       monster.invisible = false
       monster.reveal_self! # 化けの皮を剥ぐ。
 
-      render
-
       cell.remove_object(monster)
 
       if monster.item
@@ -242,7 +236,6 @@ class Program
       @hero.exp += monster.exp
       log("#{monster.name}を たおして #{monster.exp} ポイントの経験値を得た。")
       check_level_up
-      render
 
       @hero.status_effects.reject! { |e|
         if e.caster.equal?(monster)
@@ -493,7 +486,7 @@ class Program
     case trap.name
     when "ワープゾーン"
       log("ワープゾーンだ！ ")
-      render
+      wait_delay
       hero_teleport
     when "硫酸"
       log("足元から酸がわき出ている！ ")
@@ -521,7 +514,7 @@ class Program
       mine_activate(trap)
     when "落とし穴"
       log("落とし穴だ！ ")
-      render
+      wait_delay
       new_level(+1)
       return # ワナ破損処理をスキップする
     else fail
@@ -574,7 +567,6 @@ class Program
     if trap && !trap.visible
       trap.visible = true
       log("#{trap.name}を 見つけた。")
-      render
     end
   end
 
@@ -1719,8 +1711,9 @@ EOD
     when "睡眠草"
       hero_fall_asleep
     when "ワープ草"
-      hero_teleport
       log("#{@hero.name}は ワープした。")
+      wait_delay
+      hero_teleport
     when "火炎草"
       vec = ask_direction
       if vec.nil?
@@ -1873,7 +1866,6 @@ EOD
 
   # ヒーローがダメージを受ける。
   def take_damage(amount, opts = {})
-    render
     unless opts[:quiet]
       log("%.0f ポイントの ダメージを受けた。" % [amount])
     end
@@ -2080,17 +2072,29 @@ EOD
     Curses.setpos(Curses.lines/2, Curses.cols/2)
   end
 
+  DELAY_SECONDS = 0.4
+
   # 画面の表示。
   def render
+    wait_delay
+
     render_map()
-
     render_status()
-
     render_message()
-
-    #move_cursor_to_hero()
-
     Curses.refresh
+
+    @last_rendered_at = Time.now
+  end
+
+  def wait_delay
+    t = Time.now
+    if t - @last_rendered_at < DELAY_SECONDS
+      sleep (@last_rendered_at + DELAY_SECONDS) - t
+    end
+  end
+
+  def cancel_delay
+    @last_rendered_at = Time.at(0)
   end
 
   FRACTIONS = {
@@ -2141,27 +2145,18 @@ EOD
 
   # メッセージの表示。
   def render_message
-    case @log.lines.size
-    when 0
-    # when 0
-    #   Curses.setpos(Curses.lines-1, 0)
-    #   if Time.now - @log.last_message_shown_at < 1.0
-    #     Curses.addstr(@log.last_message)
-    #   end
-    #   Curses.clrtoeol
-    # when 1
-    #   Curses.setpos(Curses.lines-1, 0)
-    #   Curses.addstr(@log.lines.shift)
-    #   Curses.clrtoeol
-    #   @log.last_message_shown_at = Time.now
-    else
+    if @log.lines.any?
       Curses.setpos(Curses.lines-1, 0)
-      Curses.addstr(@log.lines.shift)
+      msg = @log.lines.join
+      Curses.addstr(msg)
       Curses.clrtoeol
-
-      Curses.refresh
-      sleep 0.40
-      render_message
+      @log.lines.clear
+      @last_message = msg
+      @last_message_shown_at = Time.now
+    elsif Time.now - @last_message_shown_at < DELAY_SECONDS
+      Curses.setpos(Curses.lines-1, 0)
+      Curses.addstr(@last_message)
+      Curses.clrtoeol
     end
   end
 
@@ -2514,7 +2509,6 @@ EOD
     case m.name
     when '催眠術師'
       log("#{m.name}は 手に持っている物を 揺り動かした。")
-      render
       hero_fall_asleep
     when 'ファンガス'
       log("#{m.name}は 毒のこなを 撒き散らした。")
@@ -2526,7 +2520,6 @@ EOD
         log("#{@hero.name}は お金を持っていない！ ")
       else
         log("#{m.name}は #{actual}ゴールドを盗んでワープした！ ")
-        render
 
         @hero.gold -= actual
         m.item = Gold.new(m.item.amount + actual)
@@ -2621,7 +2614,7 @@ EOD
 
     when "ソーサラー"
       log("#{m.name}は ワープの杖を振った。")
-      render
+      wait_delay
       hero_teleport
 
     else
@@ -3075,9 +3068,12 @@ EOD
     else
       while true
         # 画面更新
+        cancel_delay
         render
+        cancel_delay
 
         c = read_command
+
         if c
           return dispatch_command(c)
         end
