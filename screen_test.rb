@@ -10,19 +10,28 @@ require_relative 'curses_ext'
 require_relative 'result_screen'
 require_relative 'naming_screen'
 require_relative 'shop'
+require_relative 'history_window'
 
 class HeroDied < Exception
 end
 
 class MessageLog
   attr_reader :lines
+  attr_reader :history
+
+  HISTORY_SIZE = 2000
 
   def initialize
     @lines = []
+    @history = []
   end
 
   def add(msg)
     @lines << msg
+    until @history.size < 2000
+      @history.shift
+    end
+    @history << msg
   end
 
   def clear
@@ -667,6 +676,8 @@ class Program
          '7', '8', '9', '4', '6', '1', '2', '3',
          Curses::KEY_SLEFT, Curses::KEY_SRIGHT, Curses::KEY_SR, Curses::KEY_SF
       hero_move(c)
+    when 16 # ^P
+      open_history_window
     when 'i'
       open_inventory
     when '>'
@@ -698,6 +709,11 @@ class Program
       log("[#{c}]なんて 知らない。[?]でヘルプ。")
       :nothing
     end
+  end
+
+  def open_history_window
+    win = HistoryWindow.new(@log.history)
+    win.run
   end
 
   def cheat_get_item

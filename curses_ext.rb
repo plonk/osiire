@@ -36,4 +36,22 @@ class Curses::Window
     addstr("\u{104237}" * (maxx - 2))
     addstr("\u{104236}")
   end
+
+  class << self
+    alias_method :new_orig, :new
+
+    def new(*args)
+      if block_given?
+        new_orig(*args).tap do |win|
+          begin
+            yield(win)
+          ensure
+            win.close
+          end
+        end
+      else
+        new_orig(*args)
+      end
+    end
+  end
 end
