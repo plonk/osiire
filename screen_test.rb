@@ -782,13 +782,14 @@ class Program
      ,       足元を調べる。
      .       周りを調べる。
      ?       このヘルプを表示。
+     Ctrl+P  メッセージ履歴。
      s       主人公のステータスを表示。
      t       装備している投げ物を使う。
      q       キャンセル。
      Q       冒険をあきらめる。
 EOD
 
-    win = Curses::Window.new(22, 50, 1, 4) # lines, cols, y, x
+    win = Curses::Window.new(23, 50, 1, 4) # lines, cols, y, x
     win.clear
     win.rounded_box
     text.each_line.with_index(1) do |line, y|
