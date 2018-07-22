@@ -524,7 +524,7 @@ class Program
     when "落とし穴"
       log("落とし穴だ！ ")
       wait_delay
-      new_level(+1)
+      new_level(+1, false)
       return # ワナ破損処理をスキップする
     else fail
     end
@@ -1585,7 +1585,7 @@ EOD
         log("しかし何も起こらなかった。")
       else
         log("不思議なちからで 1階 に引き戻された！ ")
-        new_level(1 - @level_number)
+        new_level(1 - @level_number, false)
       end
     when "爆発の巻物"
       log("空中で 爆発が 起こった！ ")
@@ -1942,7 +1942,7 @@ EOD
   # 下の階へ移動。
   def cheat_go_downstairs
     if @level_number < 99
-      new_level(+1)
+      new_level(+1, false)
     end
     return :nothing
   end
@@ -1950,7 +1950,7 @@ EOD
   # 上の階へ移動。
   def cheat_go_upstairs
     if @level_number > 1
-      new_level(-1)
+      new_level(-1, false)
     end
     return :nothing
   end
@@ -1960,7 +1960,7 @@ EOD
   def go_downstairs
     st = @level.cell(@hero.x, @hero.y).staircase
     if st
-      new_level(st.upwards ? -1 : +1)
+      new_level(st.upwards ? -1 : +1, true)
     else
       log("ここに 階段は ない。")
     end
@@ -1973,7 +1973,7 @@ EOD
   end
 
   # 新しいフロアに移動する。
-  def new_level(dir = +1)
+  def new_level(dir = +1, shop)
     @level_number += dir
     if @level_number == 0
       @beat = true
@@ -1984,7 +1984,7 @@ EOD
         @level_number = 99
       end
 
-      if @level_number != 1 && dir == +1 && rand() < 0.1
+      if shop && @level_number != 1 && dir == +1 && rand() < 0.1
         Curses.stdscr.clear
         Curses.stdscr.refresh
         message_window("階段の途中で行商人に出会った。")
@@ -3154,7 +3154,7 @@ EOD
     @start_time = Time.now
     @quitting = false
 
-    new_level
+    new_level(+1, false)
     render
 
     begin
