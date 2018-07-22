@@ -343,14 +343,34 @@ class Dungeon
   def make_level(level_number, hero)
     fail unless level_number.is_a? Integer and level_number >= 1
 
-    level = Level.new(tileset(level_number))
+    case level_number
+    when 40
+      type = :bigmaze
+    when 50, 60, 70, 80, 90, 99
+      type = :bigmaze
+    else
+      type = [*[:grid10, :grid9]*4, :grid4, :grid2].sample
+    end
+
+    case type
+    when :grid10, :grid9
+      party_room_prob = 0.15
+    when :grid4, :grid2
+      party_room_prob = 1.0
+    else
+      party_room_prob = 0.0
+    end
+
+    level = Level.new(tileset(level_number), type)
 
     mazes = []
-    level.rooms.each do |r|
-      if (r.right - r.left + 1).odd? && (r.top - r.bottom + 1).odd?
-        level.make_maze(r)
-        mazes << r
-      end
+    odd_rooms = level.rooms.select { |r|
+      (r.right - r.left + 1).odd? && (r.top - r.bottom + 1).odd?
+    }
+    if odd_rooms.any?
+      r = odd_rooms.sample
+      level.make_maze(r)
+      mazes << r
     end
 
     place_statues(level, level_number)
@@ -370,7 +390,7 @@ class Dungeon
       level.rooms.delete(r)
     end
 
-    if level.rooms.any? && rand() < 0.3
+    if level.rooms.any? && rand() < party_room_prob
       r = level.rooms.sample
       level.party_room = r
 

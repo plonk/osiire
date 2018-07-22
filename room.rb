@@ -15,11 +15,21 @@ class Room < Struct.new(:top, :bottom, :left, :right)
            y > top  && y < bottom
   end
 
-  def distort!
-    self.top    = rand(top .. (bottom-5))
-    self.bottom = rand((top+5) .. bottom)
-    self.left   = rand(left .. (right-5))
-    self.right  = rand((left+5) .. right)
+  def distort!(opts = {})
+    min_height = opts[:min_height] || 5
+    min_width = opts[:min_width] || 5
+
+    width = right - left + 1
+    height = bottom - top + 1
+    t = (height - min_height).fdiv(2).ceil
+    b = (height - min_height).fdiv(2).floor
+    l = (width - min_width).fdiv(2).ceil
+    r = (width - min_width).fdiv(2).floor
+
+    self.top    = rand(top .. (top+t))
+    self.bottom = rand((bottom-b) .. bottom)
+    self.left   = rand(left .. (left+l))
+    self.right  = rand((right-r) .. right)
   end
 end
 
