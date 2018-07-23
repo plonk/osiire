@@ -509,7 +509,7 @@ class Program
       log("足元から 霧が出ている！ ")
       hero_fall_asleep()
     when "石ころ"
-      log("石にけつまずいて 転んだ！ ")
+      log("石にけつまずいた！ ")
       strew_items
     when "矢"
       log("矢が飛んできた！ ")
