@@ -209,12 +209,16 @@ class Program
   def hero_attack(cell, monster)
     log("#{@hero.name}の攻撃！ ")
     on_monster_attacked(monster)
-    if rand() < 0.125
+    if !@hero.no_miss? && rand() < 0.125
       log("#{@hero.name}の攻撃は 外れた。")
     else
       attack = get_hero_attack
       damage = ( ( attack * (15.0/16.0)**monster.defense ) * (112 + rand(32))/128.0 ).to_i
       if monster.name == "竜" && @hero.weapon&.name == "ドラゴンキラー"
+        damage *= 2
+      end
+      if @hero.critical? && rand() < 0.25
+        log("会心の一撃！")
         damage *= 2
       end
       monster_take_damage(monster, damage, cell)
@@ -3173,6 +3177,16 @@ EOD
         elsif all_monsters_moved?
           next_turn
         else
+          if @hero.ring&.name == "退魔の指輪"
+            rect = @level.fov(@hero.x, @hero.y)
+            rect.each_coords do |x, y|
+              next unless @level.in_dungeon?(x, y)
+              m = @level.cell(x, y).monster
+              if m && !m.hallucinating?
+                m.status_effects << StatusEffect.new(:hallucination, Float::INFINITY)
+              end
+            end
+          end
           monster_phase
         end
       end

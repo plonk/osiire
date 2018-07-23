@@ -145,4 +145,12 @@ class Hero < Struct.new(:x, :y, :hp, :max_hp, :strength, :max_strength, :gold, :
     [x, y]
   end
 
+  def critical?
+    weapon&.name == "必中会心剣"
+  end
+
+  def no_miss?
+    weapon&.name == "必中会心剣"
+  end
+
 end

@@ -189,6 +189,16 @@ class Dungeon
     end
   end
 
+  def place_item(level, item)
+    loop do
+      cell = level.cell(*level.get_random_place(:FLOOR))
+      if cell.can_place?
+        cell.put_object(item)
+        return
+      end
+    end
+  end
+
   def place_traps(level, level_number)
     case level_number
     when 1..2
@@ -383,6 +393,15 @@ class Dungeon
     place_monsters(level, level_number)
     if level_number >= 27 && !on_return_trip?(hero)
       place_objective(level, level_number)
+    end
+    if level_number == 50 && !on_return_trip?(hero) && hero.inventory.none? { |item| item.name == "必中会心剣" }
+      sword = Item.make_item("必中会心剣")
+      sword.number = 20
+      place_item(level, sword)
+    end
+    if level_number == 99 && !on_return_trip?(hero) && hero.inventory.none? { |item| item.name == "退魔の指輪" }
+      ring = Item.make_item("退魔の指輪")
+      place_item(level, ring)
     end
 
     mazes.each do |r|
