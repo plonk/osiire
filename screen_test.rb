@@ -155,7 +155,7 @@ class Program
       if monster.divide? && rand() < 0.5
         x, y = @level.coordinates_of(monster)
         monster_split(monster, cell, x, y)
-      elsif monster.name == "メタルヨテイチ"
+      elsif monster.teleport_on_attack?
         log("#{monster.name}は ワープした。")
         monster_teleport(monster, cell)
       end
@@ -187,7 +187,7 @@ class Program
 
   # モンスターにダメージを与える。
   def monster_take_damage(monster, damage, cell)
-    if monster.name == "メタルヨテイチ"
+    if monster.damage_capped?
       damage = [damage, 1].min
     end
     set_to_explode = !monster.nullified? && monster.bomb? && monster.hp < monster.max_hp/2

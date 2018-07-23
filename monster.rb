@@ -303,6 +303,14 @@ class Monster
     @hp == @max_hp
   end
 
+  def damage_capped?
+    @name == "メタルヨテイチ"
+  end
+
+  def teleport_on_attack?
+    @name == "メタルヨテイチ"
+  end
+
 private
 
   def double_speed?
