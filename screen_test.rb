@@ -583,7 +583,9 @@ class Program
   def search
     x, y = @hero.x, @hero.y
     [[0,-1], [1,-1], [1,0], [1,1], [0,1], [-1,1], [-1,0], [-1,-1]].each do |xoff, yoff|
-      if @level.in_dungeon?(x, y)
+      # 敵の下のワナは発見されない。
+      if @level.in_dungeon?(x+xoff, y+yoff) &&
+         @level.cell(x+xoff, y+yoff).monster.nil?
         reveal_trap(x + xoff, y + yoff)
       end
     end
