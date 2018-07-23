@@ -1457,6 +1457,7 @@ EOD
       end
     when "封印の杖"
       unless monster.nullified?
+        monster.reveal_self!
         monster.status_effects.push(StatusEffect.new(:nullification, Float::INFINITY))
 
         # 通常速度に変更する。
