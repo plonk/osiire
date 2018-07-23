@@ -47,7 +47,8 @@ class Program
   include CharacterLevel
 
   DIRECTIONS = [[0,-1], [1,-1], [1,0], [1,1], [0,1], [-1,1], [-1,0], [-1,-1]]
-  RANKING_FILE_NAME = "ranking.json"
+  SPEED_RANKING_FILE_NAME = "ranking-speed.json"
+  DEPTH_RANKING_FILE_NAME = "ranking-depth.json"
 
   HEALTH_BAR_COLOR_PAIR = 1
 
@@ -823,18 +824,25 @@ EOD
 
     ResultScreen.run(data)
 
-    if add_to_ranking(data)
-      message_window("番付に載りました。")
+    add_to_rankings(data)
+  end
+
+  def add_to_rankings(data)
+    if add_to_ranking(data, SPEED_RANKING_FILE_NAME, method(:sort_ranking_by_speed))
+      message_window("はやさ番付に載りました。")
+    end
+    if add_to_ranking(data, DEPTH_RANKING_FILE_NAME, method(:sort_ranking_by_depth))
+      message_window("ふかみ番付に載りました。")
     end
   end
 
   # ランキングに追加。
-  def add_to_ranking(data)
+  def add_to_ranking(data, ranking_file_name, sort_ranking)
     begin
-      f = File.open(RANKING_FILE_NAME, "r+")
+      f = File.open(ranking_file_name, "r+")
       f.flock(File::LOCK_EX)
 
-      ranking = sort_ranking(JSON.parse(f.read) + [data])
+      ranking = sort_ranking.call(JSON.parse(f.read) + [data])
       ranking = ranking[0...20]
       ranked_in = ranking.any? { |item| item.equal?(data) }
       if ranked_in
@@ -848,11 +856,11 @@ EOD
     rescue Errno::ENOENT
       # この間に別のプロセスによってファイルが作成されないことを祈りま
       # しょう。
-      File.open(RANKING_FILE_NAME, "w") do |g|
+      File.open(ranking_file_name, "w") do |g|
         g.flock(File::LOCK_EX)
         g.write("[]")
       end
-      return add_to_ranking(data)
+      return add_to_ranking(data, ranking_file_name, sort_ranking)
     ensure
       f&.close
     end
@@ -2202,16 +2210,19 @@ EOD
 
     ResultScreen.run(data)
 
-    if add_to_ranking(data)
-      message_window("番付に載りました。")
-    end
+    add_to_rankings(data)
   end
 
   def give_up_message
+    if @dungeon.on_return_trip?(@hero)
+      message = "魔除けを持って#{@level_number}階で冒険をあきらめた。"
+    else
+      message = "#{@level_number}階で冒険をあきらめた。"
+    end
     data = ResultScreen.to_data(@hero)
            .merge({"screen_shot" => take_screen_shot(),
                    "time" => (Time.now - @start_time).to_i,
-                   "message" => "冒険をあきらめた。",
+                   "message" => message,
                    "level" => @level_number,
                    "return_trip" => @dungeon.on_return_trip?(@hero),
                    "timestamp" => Time.now.to_i,
@@ -2219,9 +2230,7 @@ EOD
 
     ResultScreen.run(data)
 
-    if add_to_ranking(data)
-      message_window("番付に載りました。")
-    end
+    add_to_rankings(data)
   end
 
   # 次のレベルまでに必要な経験値。
@@ -2871,8 +2880,8 @@ EOD
     Time.at(unix_time).strftime("%y-%m-%d")
   end
 
-  # ランキングをソートする。
-  def sort_ranking(ranking)
+  # ランキングをタイムでソートする。
+  def sort_ranking_by_speed(ranking)
     ranking.sort { |a,b|
       if a["return_trip"] == b["return_trip"]
         if a["return_trip"]
@@ -2898,13 +2907,35 @@ EOD
     }
   end
 
+  # ランキングを深さでソートする。
+  def sort_ranking_by_depth(ranking)
+    ranking.sort { |a,b|
+      if a["return_trip"] == b["return_trip"]
+        if a["return_trip"]
+          level = a["level"] <=> b["level"]
+        else
+          level = b["level"] <=> a["level"]
+        end
+        if level == 0
+          a["timestamp"] <=> b["timestamp"]
+        else
+          level
+        end
+      elsif a["return_trip"]
+        -1
+      else
+        1
+      end
+    }
+  end
+
   # ランキング表示画面。
-  def ranking_screen
+  def ranking_screen(title, ranking_file_name)
     Curses.stdscr.clear
     Curses.stdscr.refresh
 
     begin
-      f = File.open(RANKING_FILE_NAME, "r")
+      f = File.open(ranking_file_name, "r")
       f.flock(File::LOCK_SH)
       ranking = JSON.parse(f.read)
       unless validate_ranking(ranking)
@@ -2920,13 +2951,11 @@ EOD
     if ranking.empty?
       message_window("まだ記録がありません。")
     else
-      ranking = sort_ranking(ranking)
-
       dispfunc = proc do |data|
         name = data["hero_name"] + ('　'*(6-data["hero_name"].size))
         "#{name}  #{format_timestamp(data["timestamp"])}  #{data["message"]}"
       end
-      menu = Menu.new(ranking, y: 0, x: 5, cols: 60, dispfunc: dispfunc, title: "番付")
+      menu = Menu.new(ranking, y: 0, x: 5, cols: 60, dispfunc: dispfunc, title: title)
       while true
         Curses.stdscr.clear
         Curses.stdscr.refresh
@@ -2959,7 +2988,8 @@ EOD
 
     menu = Menu.new([
                       "冒険に出る",
-                      "番付",
+                      "はやさ番付",
+                      "ふかみ番付",
                       "終了",
                     ], y: 0, x: 0, cols: 14)
     cmd, *args = menu.choose
@@ -2971,8 +3001,10 @@ EOD
       case item
       when "冒険に出る"
         naming_screen
-      when "番付"
-        ranking_screen
+      when "はやさ番付"
+        ranking_screen("はやさ番付", SPEED_RANKING_FILE_NAME)
+      when "ふかみ番付"
+        ranking_screen("ふかみ番付", DEPTH_RANKING_FILE_NAME)
       when "終了"
         return
       else
