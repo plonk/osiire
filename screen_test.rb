@@ -1405,10 +1405,15 @@ EOD
 
   # モンスターが変化す。
   def monster_metamorphose(monster, cell, x, y)
-    m = Monster.make_monster(Monster::SPECIES.sample[1])
+    while true
+      m = @dungeon.make_monster_from_dungeon
+      break if m.name != monster.name
+      # 病的なケースで無限ループになる。
+    end
     m.state = :awake
     cell.remove_object(monster)
     @level.put_object(m, x, y)
+    m.action_point = m.action_point_recovery_rate
     log("#{monster.name}は #{m.name}に変わった！ ")
   end
 

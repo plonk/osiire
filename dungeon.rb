@@ -57,6 +57,19 @@ class Dungeon
     fail 'バグバグりん'
   end
 
+  def make_monster_from_dungeon
+    species = MONSTER_TABLE.flat_map { |row| row.drop(1) }.map(&:first).uniq
+
+    selected_monster = species.sample
+    m = Monster.make_monster(selected_monster)
+    # 化け狸、ミミックはそのまま出現。
+    case m.name
+    when "どろぼう猫"
+      m.item = make_item(1) # 1Fのアイテムテーブルから持たせる。
+    end
+    return m
+  end
+
   def make_monster(level_number)
     distribution = MONSTER_TABLE.assoc(level_number)[1..-1]
     selected_monster = select(distribution)
