@@ -222,14 +222,19 @@ class Dungeon
   end
 
   def place_traps_in_room(level, level_number, room)
+    cells = []
     ((room.top+1)..(room.bottom-1)).each do |y|
       ((room.left+1)..(room.right-1)).each do |x|
-        if rand() < 0.35
-          if level.cell(x, y).can_place?
-            level.cell(x, y).put_object(Trap.new(Trap::TRAPS.sample, false))
-          end
+        c = level.cell(x, y)
+        if c.can_place?
+          cells << c
         end
       end
+    end
+
+    n = [(cells.size * 0.3).round, 50].min
+    cells.sample(n).each do |cell|
+      cell.put_object(Trap.new(Trap::TRAPS.sample, false))
     end
   end
 
