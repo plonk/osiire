@@ -3154,7 +3154,7 @@ EOD
     recover_monster_action_point
     status_effects_wear_out
     hero_fullness_decrease
-    if @level.turn % 64 == 0
+    if @level.turn % 64 == 0 && @level.monster_count < 25
       spawn_monster
     end
   end

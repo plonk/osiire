@@ -634,6 +634,10 @@ class Level
     end
   end
 
+  def monster_count
+    all_monsters_with_position.size
+  end
+
   def can_move_to?(m, mx, my, tx, ty)
     return !@dungeon[ty][tx].monster &&
       Vec.chess_distance([mx, my], [tx, ty]) == 1 &&
