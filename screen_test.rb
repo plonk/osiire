@@ -820,6 +820,7 @@ EOD
                    "level" => @level_number,
                    "return_trip" => @dungeon.on_return_trip?(@hero),
                    "timestamp" => Time.now.to_i,
+                   "objective_number" => item&.number || -1,
                   })
 
     ResultScreen.run(data)
@@ -2220,7 +2221,7 @@ EOD
 
   def give_up_message
     if @dungeon.on_return_trip?(@hero)
-      message = "魔除けを持って#{@level_number}階で冒険をあきらめた。"
+      message = "魔除けを持って#{@level_number}階であきらめた。"
     else
       message = "#{@level_number}階で冒険をあきらめた。"
     end
@@ -2922,7 +2923,11 @@ EOD
           level = b["level"] <=> a["level"]
         end
         if level == 0
-          a["timestamp"] <=> b["timestamp"]
+          if a["objective_number"] == b["objective_number"]
+            a["timestamp"] <=> b["timestamp"]
+          else
+            b["objective_number"] <=> a["objective_number"]
+          end
         else
           level
         end
