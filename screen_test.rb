@@ -542,7 +542,7 @@ class Program
 
   # 地雷が発動する。
   def mine_activate(mine)
-    take_damage((@hero.hp / 2.0).ceil)
+    take_damage([(@hero.hp / 2.0).floor, 1.0].max)
 
     tx, ty = @level.coordinates_of(mine)
     rect = @level.surroundings(tx, ty)
