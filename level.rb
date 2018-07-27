@@ -670,8 +670,8 @@ class Level
   def coordinates_of_cell(cell)
     fail TypeError unless cell.is_a? Cell
 
-    (0 ... height).flat_map do |y|
-      (0 ... width).flat_map do |x|
+    (0 ... height).each do |y|
+      (0 ... width).each do |x|
         if @dungeon[y][x].equal?(cell)
           return [x, y]
         end
@@ -681,8 +681,8 @@ class Level
   end
 
   def coordinates_of(obj)
-    (0 ... height).flat_map do |y|
-      (0 ... width).flat_map do |x|
+    (0 ... height).each do |y|
+      (0 ... width).each do |x|
         if @dungeon[y][x].objects.any? { |z| z.equal?(obj) }
           return [x, y]
         end
