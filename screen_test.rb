@@ -3056,18 +3056,22 @@ EOD
 
   # 十字路、T字路で止まる。
   def fork?(point)
+    if @level.room_at(*point)
+      return false
+    end
+
     unless [[-1,-1],[+1,-1],[-1,+1],[+1,+1],[-1,0],[0,-1],[+1,0],[0,+1]].all? { |d|
              @level.in_dungeon?(*Vec.plus(point,d))
            }
       return false
     end
 
-    # ナナメ四隅が壁で…
-    unless [[-1,-1],[+1,-1],[-1,+1],[+1,+1]].all? { |d|
-             @level.cell(*Vec.plus(point,d)).wall?
-           }
-      return false
-    end
+    # # ナナメ四隅が壁で…
+    # unless [[-1,-1],[+1,-1],[-1,+1],[+1,+1]].all? { |d|
+    #          @level.cell(*Vec.plus(point,d)).wall?
+    #        }
+    #   return false
+    # end
 
     unless [[-1,0],[0,-1],[+1,0],[0,+1]].count { |d|
              @level.cell(*Vec.plus(point,d)).type == :PASSAGE ||
