@@ -2560,7 +2560,7 @@ EOD
         log("#{m.name}は #{actual}ゴールドを盗んでワープした！ ")
 
         @hero.gold -= actual
-        m.item = Gold.new(m.item.amount + actual)
+        m.item = Gold.new(actual)
 
         unless m.hallucinating?
           m.status_effects << StatusEffect.new(:hallucination, Float::INFINITY)
