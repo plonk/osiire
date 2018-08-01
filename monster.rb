@@ -111,7 +111,8 @@ class Monster
     end
   end
 
-  attr :defense, :exp, :drop_rate
+  attr :defense, :exp
+  attr_accessor :drop_rate
   attr_accessor :hp, :max_hp, :strength
   attr_accessor :state, :facing, :goal
   attr_accessor :item

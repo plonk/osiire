@@ -1441,6 +1441,19 @@ EOD
     end
   end
 
+  def monster_fall_over(monster, cell, x, y)
+    item = monster.item || (if monster.drop_rate > 0 then @dungeon.make_item(@level_number) else nil end)
+
+    monster.item = nil
+    monster.drop_rate = 0
+
+    if item
+      item_land(item, x, y)
+    end
+
+    monster_take_damage(monster, 5, cell)
+  end
+
   # 魔法弾がモンスターに当たる。
   def magic_bullet_hits_monster(staff, monster, cell, x, y)
     on_monster_attacked(monster)
@@ -1454,7 +1467,7 @@ EOD
     when "変化の杖"
       monster_metamorphose(monster, cell, x, y)
     when "転ばぬ先の杖"
-      log("しかし 何も起こらなかった。")
+      monster_fall_over(monster, cell, x, y)
     when "分裂の杖"
       monster_split(monster, cell, x, y)
     when "もろ刃の杖"
