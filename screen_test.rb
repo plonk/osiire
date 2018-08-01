@@ -40,7 +40,12 @@ class MessageLog
 
 end
 
-class Action < Struct.new(:type, :direction)
+class Action
+  attr :type, :direction
+  def initialize(type, direction)
+    @type = type
+    @direction = direction
+  end
 end
 
 class Program
@@ -685,6 +690,17 @@ class Program
       hero_move(c)
     when 16 # ^P
       open_history_window
+    when 12 # ^L
+      if debug?
+        Curses.close_screen
+        load(File.dirname(__FILE__) + "/screen_test.rb")
+        load(File.dirname(__FILE__) + "/dungeon.rb")
+        load(File.dirname(__FILE__) + "/monster.rb")
+        load(File.dirname(__FILE__) + "/item.rb")
+        load(File.dirname(__FILE__) + "/level.rb")
+      end
+      render
+      :nothing
     when 'i'
       open_inventory
     when '>'
@@ -3257,4 +3273,7 @@ EOD
   end
 end
 
-Program.new.initial_menu
+unless $started
+  $started = true
+  Program.new.initial_menu
+end

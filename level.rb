@@ -167,8 +167,16 @@ class StairCase
   end
 end
 
-class Rect < Struct.new(:top, :bottom, :left, :right)
+class Rect
+  attr_accessor :top, :bottom, :left, :right
   include Enumerable
+
+  def initialize(top, bottom, left, right)
+    @top = top
+    @bottom = bottom
+    @left = left
+    @right = right
+  end
 
   def each_coords
     (top .. bottom).each do |y|

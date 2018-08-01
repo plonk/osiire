@@ -1,7 +1,13 @@
 # どうして MonsterGenerator のようなものが必要なのだろう？
 
-class StatusEffect < Struct.new(:type, :remaining_duration)
+class StatusEffect
   attr_accessor :caster
+  attr_accessor :type, :remaining_duration
+
+  def initialize(type, remaining_duration)
+    @type = type
+    @remaining_duration = remaining_duration
+  end
 
   def name
     case type

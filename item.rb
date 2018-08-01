@@ -1,4 +1,10 @@
-class Gold < Struct.new(:amount)
+class Gold
+  attr_accessor :amount
+
+  def initialize(amount)
+    @amount = amount
+  end
+
   def char; '􄀲􄀳' end
 
   def name
