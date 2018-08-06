@@ -51,9 +51,10 @@ class Shop
   def merchandise_screen
     cols = 30
     menu = Menu.new(@merchandise, cols: cols, y: 3, x: 0,
-                    dispfunc: proc { |name, number, price|
+                    dispfunc: proc { |win, (name, number, price)|
                       namecols = name.size * 2 # 全角文字だけからなる
-                      "%s%s%5dG " % [name, ' ' * [cols - namecols - 5 - 5, 0].max, price]
+                      str = "%s%s%5dG " % [name, ' ' * [cols - namecols - 5 - 5, 0].max, price]
+                      win.addstr(str)
                     })
     begin
       cmd, arg = menu.choose
@@ -152,7 +153,7 @@ class Shop
   end
 
   def inventory_screen
-    dispfunc = proc { |item|
+    dispfunc = proc { |win, item|
       prefix = if @hero.weapon.equal?(item) ||
                   @hero.shield.equal?(item) ||
                   @hero.ring.equal?(item) ||
@@ -161,7 +162,7 @@ class Shop
                else
                  " "
                end
-      "#{prefix}#{item.char}#{item.to_s}"
+      win.addstr("#{prefix}#{item.char}#{item.to_s}")
     }
 
     menu = nil

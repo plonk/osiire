@@ -1,8 +1,10 @@
 class Gold
   attr_accessor :amount
+  attr_accessor :cursed
 
   def initialize(amount)
     @amount = amount
+    @cursed = false
   end
 
   def char; '􄀲􄀳' end
@@ -54,7 +56,7 @@ class Item
     [:scroll, "武器強化の巻物", nil, "武器が少し強くなる。"],
     [:scroll, "盾強化の巻物", nil, "盾が少し強くなる。"],
     [:scroll, "メッキの巻物", nil, "盾が錆びなくなる。"],
-    [:scroll, "シャナクの巻物", nil, nil],
+    [:scroll, "解呪の巻物", nil, "アイテムの呪いが解ける。"],
     [:scroll, "インパスの巻物", nil, nil],
     [:scroll, "あかりの巻物", nil, "フロア全体が見えるようになる。"],
     [:scroll, "かなしばりの巻物", nil, "隣接している敵をかなしばり状態にする。"],
@@ -139,9 +141,15 @@ class Item
       when :projectile
         item.number = rand(5..15)
       when :weapon
-        item.number = item.number + rand(-1..+3)
+        r = rand(-1..+3)
+        item.number = item.number + r
+        item.cursed = r == -1
       when :shield
-        item.number = item.number + rand(-1..+3)
+        r = rand(-1..+3)
+        item.number = item.number + r
+        item.cursed = r == -1
+      when :ring
+        item.cursed = rand(0..1) == 0
       end
 
       return item
@@ -153,6 +161,7 @@ class Item
   attr_accessor :gold_plated
   attr_accessor :stuck
   attr_accessor :mimic
+  attr_accessor :cursed
 
   def initialize(type, name, number, desc)
     @type   = type
@@ -170,6 +179,7 @@ class Item
     end
     @stuck = false
     @mimic = false
+    @cursed = false
   end
 
   def original_number
@@ -217,7 +227,13 @@ class Item
 
     case type
     when :weapon, :shield
-      star = @gold_plated ? "★" : ""
+      if @cursed
+        star = "\u{10423C}"
+      elsif @gold_plated
+        star = "★"
+      else
+        star = ""
+      end
       "#{star}#{name}#{ws_num_fmt.(relative_number)}"
     when :staff
       "#{name}[#{number}]"
@@ -233,7 +249,7 @@ class Item
   end
 
   def actions
-    basics = ["投げる", "置く", "説明"]
+    basics = ["投げる", "置く"]
     case type
     when :box
       [] + basics

@@ -11,6 +11,7 @@ require_relative 'result_screen'
 require_relative 'naming_screen'
 require_relative 'shop'
 require_relative 'history_window'
+require_relative 'naming_table'
 
 class HeroDied < Exception
 end
@@ -56,6 +57,9 @@ class Program
   DEPTH_RANKING_FILE_NAME = "ranking-depth.json"
 
   HEALTH_BAR_COLOR_PAIR = 1
+  UNIDENTIFIED_ITEM_COLOR_PAIR = 2
+  NICKNAMED_ITEM_COLOR_PAIR = 3
+  CURSED_ITEM_COLOR_PAIR = 4
 
   def initialize
     @debug = ARGV.include?("-d")
@@ -65,6 +69,9 @@ class Program
     Curses.start_color
 
     Curses.init_pair(HEALTH_BAR_COLOR_PAIR, Curses::COLOR_GREEN, Curses::COLOR_RED)
+    Curses.init_pair(UNIDENTIFIED_ITEM_COLOR_PAIR, Curses::COLOR_YELLOW, Curses::COLOR_BLACK)
+    Curses.init_pair(NICKNAMED_ITEM_COLOR_PAIR, Curses::COLOR_GREEN, Curses::COLOR_BLACK)
+    Curses.init_pair(CURSED_ITEM_COLOR_PAIR, Curses::COLOR_BLUE, Curses::COLOR_BLACK)
 
     Curses.noecho
     Curses.crmode
@@ -81,8 +88,9 @@ class Program
     @hero = Hero.new(nil, nil, 15, 15, 8, 8, 0, 0, 100.0, 100.0, 1)
     @hero.inventory << Item.make_item("大きなパン")
     if debug?
-      @hero.inventory << Item.make_item("エンドゲーム")
-      @hero.inventory << Item.make_item("メタルヨテイチの盾")
+      @hero.inventory << Item.make_item("エンドゲーム").tap { |i| i.number = 9; i.cursed = true }
+      @hero.inventory << Item.make_item("メタルヨテイチの盾").tap { |i| i.number = 9; i.cursed = true }
+      @hero.inventory << Item.make_item("人形よけの指輪").tap { |i| i.cursed = true }
       @hero.inventory << Item.make_item("目薬草")
       @hero.inventory << Item.make_item("薬草")
       @hero.inventory << Item.make_item("薬草")
@@ -92,6 +100,7 @@ class Program
       @hero.inventory << Item.make_item("あかりの巻物")
       @hero.inventory << Item.make_item("あかりの巻物")
       @hero.inventory << Item.make_item("結界の巻物")
+      @hero.inventory << Item.make_item("解呪の巻物")
     end
     @level_number = 0
     @dungeon = Dungeon.new
@@ -109,6 +118,94 @@ class Program
 
     @last_message = ""
     @last_message_shown_at = Time.at(0)
+
+    @naming_table = create_naming_table()
+  end
+
+  def addstr_ml(win = Curses, ml)
+    case ml
+    when String
+      win.addstr(ml)
+    when []
+      fail
+    when Array
+      # ml.size >= 1
+      tag, *rest = ml
+      if rest.first.is_a?(Hash)
+        attrs, rest = rest.first, rest.drop(1)
+      else
+        attrs, rest = {}, rest
+      end
+      tag_start(win, tag)
+      rest.each do |child|
+        addstr_ml(win, child)
+      end
+      tag_end(win, tag)
+    else
+      addstr_ml(win, ml.to_s)
+    end
+  end
+
+  def tag_start(win, tag)
+    case tag.downcase
+    when "span"
+    when "b"
+      win.attron(Curses::A_BOLD)
+    when "unidentified"
+      win.attron(Curses::color_pair(UNIDENTIFIED_ITEM_COLOR_PAIR))
+    when "nicknamed"
+      win.attron(Curses::color_pair(NICKNAMED_ITEM_COLOR_PAIR))
+    when "cursed"
+      win.attron(Curses::color_pair(CURSED_ITEM_COLOR_PAIR))
+    end
+  end
+
+  def tag_end(win, tag)
+    case tag.downcase
+    when "span"
+    when "b"
+      win.attroff(Curses::A_BOLD)
+    when "unidentified"
+      win.attroff(Curses::color_pair(UNIDENTIFIED_ITEM_COLOR_PAIR))
+    when "nicknamed"
+      win.attroff(Curses::color_pair(NICKNAMED_ITEM_COLOR_PAIR))
+    when "cursed"
+      win.attroff(Curses::color_pair(CURSED_ITEM_COLOR_PAIR))
+    end
+  end
+
+  def create_naming_table()
+    get_item_names_by_kind = proc { |specified|
+      Item::ITEMS.select { |kind, name, number, desc| kind == specified }.map { |_, name, _, _| name }
+    }
+    take_strict = proc { |n, arr|
+      fail "list too short" if arr.size < n
+      arr.take(n)
+    }
+    herbs_false = ["黒い草", "白い草", "赤い草", "青い草", "黄色い草", "緑色の草",
+                   "まだらの草", "スベスベの草", "チクチクの草", "空色の草", "しおれた草",
+                   "くさい草", "茶色い草", "ピンクの草"]
+    scrolls_false = ["巻物I", "巻物II", "巻物III", "巻物IV", "巻物V", "巻物VI", "巻物VII", "巻物VIII",
+                     "巻物IX", "巻物X", "巻物XI", "巻物XII", "巻物XIII", "巻物XIV", "巻物XV", "巻物XVI",
+                     "巻物XVII", "巻物XVIII", "巻物XIX", "巻物XX", "巻物XXI", "巻物XXII"]
+    staves_false = ["鉄の杖", "銅の杖", "鉛の杖", "銀の杖", "金の杖", "アルミの杖", "真鍮の杖",
+                    "ヒノキの杖", "杉の杖", "桜の杖", "松の杖", "キリの杖", "ナラの杖", "ビワの杖"]
+    rings_false = ["金剛石の指輪", "翡翠の指輪", "猫目石の指輪", "水晶の指輪", # "タイガーアイの指輪",
+                   "瑪瑙の指輪", "天河石の指輪","琥珀の指輪","孔雀石の指輪","珊瑚の指輪","電気石の指輪",
+                   "真珠の指輪","葡萄石の指輪","蛍石の指輪","紅玉の指輪","フォーダイトの指輪", "黒曜石の指輪"]
+
+    herbs_true = get_item_names_by_kind.(:herb).shuffle
+    scrolls_true = get_item_names_by_kind.(:scroll).shuffle
+    staves_true = get_item_names_by_kind.(:staff).shuffle
+    rings_true = get_item_names_by_kind.(:ring).shuffle
+
+    herbs_false   = take_strict.(herbs_true.size, herbs_false)
+    scrolls_false = take_strict.(scrolls_true.size, scrolls_false)
+    staves_false  = take_strict.(staves_true.size, staves_false)
+    rings_false   = take_strict.(rings_true.size, rings_false)
+
+    NamingTable.new(herbs_false + scrolls_false + staves_false + rings_false,
+                    herbs_true + scrolls_true + staves_true + rings_true)
   end
 
   # デバッグモードで動作中？
@@ -116,8 +213,8 @@ class Program
     @debug
   end
 
-  def log(message)
-    @log.add(message)
+  def log(*args)
+    @log.add(["span", *args])
     stop_dashing
     render
   end
@@ -367,7 +464,7 @@ class Program
   def hero_walk(x1, y1, picking)
     if @level.cell(x1, y1).item&.mimic
       item = @level.cell(x1, y1).item
-      log("#{item}は ミミックだった!")
+      log(display_item(item), "は ミミックだった!")
       m = Monster.make_monster("ミミック")
       m.state = :awake
       m.action_point = m.action_point_recovery_rate # このターンに攻撃させる
@@ -397,7 +494,7 @@ class Program
       if picking
         pick(cell, item)
       else
-        log("#{item}の上に乗った。")
+        log(display_item(item), "の上に乗った。")
         stop_dashing
       end
     end
@@ -567,14 +664,14 @@ class Program
   # ヒーロー @hero が配列 objects の要素 item を拾おうとする。
   def pick(cell, item)
     if item.stuck
-      log("#{item.name}は 床にはりついて 拾えない。")
+      log(display_item(item), "は 床にはりついて 拾えない。")
     else
       if @hero.add_to_inventory(item)
         cell.remove_object(item)
         update_stairs_direction
-        log("#{@hero.name}は #{item.to_s}を 拾った。")
+        log(@hero.name, "は ", display_item(item), "を 拾った。")
       else
-        log("持ち物が いっぱいで #{item.name}が 拾えない。")
+        log("持ち物が いっぱいで ", display_item(item), "が 拾えない。")
       end
     end
   end
@@ -636,7 +733,7 @@ class Program
       log("足元には 階段がある。「>」で昇降。")
       return :nothing
     elsif cell.item
-      log("足元には #{cell.item}が ある。")
+      log("足元には ", display_item(cell.item), "が ある。")
       return :nothing
     else
       log("足元には なにもない。")
@@ -735,7 +832,7 @@ class Program
   end
 
   def open_history_window
-    win = HistoryWindow.new(@log.history)
+    win = HistoryWindow.new(@log.history, proc { |win, msg| addstr_ml(win, msg) })
     win.run
   end
 
@@ -766,7 +863,7 @@ class Program
           when :chosen
             item = Item::make_item(arg2)
             if @hero.add_to_inventory(item)
-              log("#{item}を 手に入れた。")
+              log(display_item(item), "を 手に入れた。")
               return
             else
               item_land(item, @hero.x, @hero.y)
@@ -885,28 +982,66 @@ EOD
 
   # アイテムに適用可能な行動
   def actions_for_item(item)
-    item.actions
+    actions = item.actions
+    if !@naming_table.include?(item.name) || @naming_table.identified?(item.name)
+    else
+      actions += ["名前"]
+    end
+    actions += ["説明"]
   end
 
   # 足元にアイテムを置く。
   def try_place_item(item)
     if @level.cell(@hero.x, @hero.y).can_place?
+      if (@hero.weapon.equal?(item) || @hero.shield.equal?(item) || @hero.ring.equal?(item)) &&
+         item.cursed
+        log(display_item(item), "は 呪われていて 外れない！")
+        return
+      end
+
       @hero.remove_from_inventory(item)
       if item.name == "結界の巻物"
         item.stuck = true
       end
       @level.put_object(item, @hero.x, @hero.y)
       update_stairs_direction
-      log("#{item}を 置いた。")
+      log(display_item(item), "を 置いた。")
     else
       log("ここには 置けない。")
+    end
+  end
+
+  def display_item(item)
+    if @naming_table.include?(item.name)
+      case @naming_table.state(item.name)
+      when :identified
+        item.to_s
+      when :nicknamed
+        kind_label = case item.type
+                     when :herb then "草"
+                     when :scroll then "巻物"
+                     when :ring then "指輪"
+                     when :staff then "杖"
+                     else "？"
+                     end
+        ["nicknamed", kind_label, ":", @naming_table.nickname(item.name)]
+      when :unidentified
+        ["unidentified", @naming_table.false_name(item.name)]
+      else fail
+      end
+    else
+      if item.cursed
+        ["cursed", item.to_s]
+      else
+        item.to_s
+      end
     end
   end
 
   # 持ち物メニューを開く。
   # () → :action | :nothing
   def open_inventory
-    dispfunc = proc { |item|
+    dispfunc = proc { |win, item|
       prefix = if @hero.weapon.equal?(item) ||
                 @hero.shield.equal?(item) ||
                 @hero.ring.equal?(item) ||
@@ -915,7 +1050,7 @@ EOD
              else
                " "
              end
-      "#{prefix}#{item.char}#{item.to_s}"
+      addstr_ml(win, ["span", prefix, item.char, display_item(item)])
     }
 
     menu = nil
@@ -924,10 +1059,11 @@ EOD
     loop do
       item = c = nil
       menu = Menu.new(@hero.inventory,
-                      y: 1, x: 0, cols: 27,
+                      y: 1, x: 0, cols: 28,
                       dispfunc: dispfunc,
                       title: "持ち物 [s]ソート",
                       sortable: true)
+      render
       command, *args = menu.choose
 
       case command
@@ -983,6 +1119,16 @@ EOD
         if c == "説明"
           describe_item(item)
           return nil
+        elsif c == "名前"
+          render
+          if @naming_table.state(item.name) == :nicknamed
+            nickname = @naming_table.nickname(item.name)
+          else
+            nickname = nil
+          end
+          nickname = NamingScreen.run(nickname)
+          @naming_table.set_nickname(item.name, nickname)
+          return nil
         else
           return c
         end
@@ -1034,7 +1180,12 @@ EOD
 
 
   def describe_item(item)
-    message_window(item.desc, y: 1, x: 27)
+    if @naming_table.include?(item.name) && !@naming_table.identified?(item.name)
+      desc = "識別されていないので、よくわからない。"
+    else
+      desc = item.desc
+    end
+    message_window(desc, y: 1, x: 27)
   end
 
   # 投げられたアイテムが着地する。
@@ -1061,11 +1212,11 @@ EOD
         if item.name == "結界の巻物"
           item.stuck = true
         end
-        log("#{item}は 床に落ちた。")
+        log(display_item(item), "は 床に落ちた。")
         return
       end
     end
-    log("#{item}は消えてしまった。")
+    log(display_item(item), "は消えてしまった。")
   end
 
   def use_health_item(character, amount, amount_maxhp)
@@ -1192,7 +1343,7 @@ EOD
 
   # アイテムがモンスターに当たる。
   def item_hits_monster(item, monster, cell)
-    log("#{item}は #{monster.name}に当たった。")
+    log(display_item(item), "は ", monster.name, "に当たった。")
     case item.type
     when :box, :food, :scroll, :ring
       on_monster_attacked(monster)
@@ -1215,7 +1366,7 @@ EOD
 
   # アイテムがヒーローに当たる。(今のところ矢しか当たらない？)
   def item_hits_hero(item, monster)
-    log("#{item.name}が #{@hero.name}に当たった。")
+    log(display_item(item), "が #{@hero.name}に当たった。")
     if item.type == :projectile
       take_damage(attack_to_hero_damage(item.projectile_strength))
     elsif item.type == :weapon || item.type == :shield
@@ -1357,6 +1508,12 @@ EOD
   # アイテムを投げるコマンド。
   # Item -> :action | :nothing
   def throw_item(item)
+    if (@hero.weapon.equal?(item) || @hero.shield.equal?(item) || @hero.ring.equal?(item)) &&
+       item.cursed
+      log(display_item(item), "は 呪われていて 外れない！")
+      return :action
+    end
+
     dir = ask_direction()
     if dir.nil?
       return :nothing
@@ -1578,7 +1735,11 @@ EOD
     fail "not a scroll" unless item.type == :scroll
 
     @hero.remove_from_inventory(item)
-    log("#{item}を 読んだ。")
+    log(display_item(item), "を 読んだ。")
+    unless @naming_table.identified?(item.name)
+      @naming_table.identify!(item.name)
+      log("なんと！ #{item.name}だった！")
+    end
 
     case item.name
     when "あかりの巻物"
@@ -1588,6 +1749,10 @@ EOD
       if @hero.weapon
         @hero.weapon.number += 1
         log("#{@hero.weapon.name}が 少し強くなった。")
+        if @hero.weapon.cursed
+          @hero.weapon.cursed = false
+          log("剣の呪いが 解けた。")
+        end
       else
         log("しかし 何も起こらなかった。")
       end
@@ -1595,6 +1760,10 @@ EOD
       if @hero.shield
         @hero.shield.number += 1
         log("#{@hero.shield.name}が 少し強くなった。")
+        if @hero.shield.cursed
+          @hero.shield.cursed = false
+          log("盾の呪いが 解けた。")
+        end
       else
         log("しかし 何も起こらなかった。")
       end
@@ -1603,7 +1772,11 @@ EOD
         log("#{@hero.shield}に メッキがほどこされた！ ")
         @hero.shield.gold_plated = true
       else
-        log("しかし 何も起こらなかった。")
+        log("しかし 盾はすでにメッキされている。")
+      end
+      if @hero.shield&.cursed
+        @hero.shield.cursed = false
+        log("盾の呪いが 解けた。")
       end
     when "シャナクの巻物"
       log("呪いなんて信じてるの？")
@@ -1662,6 +1835,11 @@ EOD
       @level.rooms.replace([Room.new(0, 23, 0, 79)])
       @level.update_lighting(@hero.x, @hero.y)
       log("ダンジョンの壁がくずれた！ ")
+    when "解呪の巻物"
+      @hero.inventory.each do |item|
+        item.cursed = false
+      end
+      log("アイテムの呪いが すべて解けた。")
     else
       log("実装してないよ。")
     end
@@ -1726,7 +1904,7 @@ EOD
     @hero.increase_fullness(5.0)
 
     @hero.remove_from_inventory(item)
-    log("#{item}を 薬にして 飲んだ。")
+    log(display_item(item), "を 薬にして 飲んだ。")
     case item.name
     when "薬草"
       use_health_item(@hero, 25, 2)
@@ -1871,22 +2049,30 @@ EOD
   # 武器を装備する。
   def equip_weapon(item)
     if @hero.weapon.equal?(item) # coreferential?
-      @hero.weapon = nil
-      log("武器を 外した。")
+      if @hero.weapon.cursed
+        log(display_item(@hero.weapon), "は 呪われていて 外れない！")
+      else
+        @hero.weapon = nil
+        log("武器を 外した。")
+      end
     else
       @hero.weapon = item
-      log("#{item}を 装備した。")
+      log(display_item(item), "を 装備した。")
     end
   end
 
   # 盾を装備する。
   def equip_shield(item)
     if @hero.shield.equal?(item)
-      @hero.shield = nil
-      log("盾を 外した。")
+      if @hero.shield.cursed
+        log(display_item(@hero.shield), "は 呪われていて 外れない！")
+      else
+        @hero.shield = nil
+        log("盾を 外した。")
+      end
     else
       @hero.shield = item
-      log("#{item}を 装備した。")
+      log(display_item(item), "を 装備した。")
     end
   end
 
@@ -1894,10 +2080,10 @@ EOD
   def equip_ring(item)
     if @hero.ring.equal?(item)
       @hero.ring = nil
-      log("#{item.name}を 外した。")
+      log(display_item(item), "を 外した。")
     else
       @hero.ring = item
-      log("#{item.name}を 装備した。")
+      log(display_item(item), "を 装備した。")
     end
   end
 
@@ -1905,10 +2091,10 @@ EOD
   def equip_projectile(item)
     if @hero.projectile.equal?(item)
       @hero.projectile = nil
-      log("#{item.name}を 外した。")
+      log(display_item(item), "を 外した。")
     else
       @hero.projectile = item
-      log("#{item.name}を 装備した。")
+      log(display_item(item), "を 装備した。")
     end
   end
 
@@ -2214,15 +2400,15 @@ EOD
   def render_message
     if @log.lines.any?
       Curses.setpos(Curses.lines-1, 0)
-      msg = @log.lines.join
-      Curses.addstr(msg)
+      msg = ["span", *@log.lines]
+      addstr_ml(Curses, msg)
       Curses.clrtoeol
       @log.lines.clear
       @last_message = msg
       @last_message_shown_at = Time.now
     elsif Time.now - @last_message_shown_at < DELAY_SECONDS
       Curses.setpos(Curses.lines-1, 0)
-      Curses.addstr(@last_message)
+      addstr_ml(Curses, @last_message)
       Curses.clrtoeol
     end
   end
@@ -2660,7 +2846,7 @@ EOD
         item = candidates.sample
         @hero.remove_from_inventory(item)
         m.item = item
-        log("#{m.name}は #{item.name}を盗んでワープした。")
+        log("#{m.name}は ", display_item(item), "を盗んでワープした。")
 
         unless m.hallucinating?
           m.status_effects << StatusEffect.new(:hallucination, Float::INFINITY)
@@ -2990,9 +3176,9 @@ EOD
     if ranking.empty?
       message_window("まだ記録がありません。")
     else
-      dispfunc = proc do |data|
+      dispfunc = proc do |win, data|
         name = data["hero_name"] + ('　'*(6-data["hero_name"].size))
-        "#{name}  #{format_timestamp(data["timestamp"])}  #{data["message"]}"
+        win.addster("#{name}  #{format_timestamp(data["timestamp"])}  #{data["message"]}")
       end
       menu = Menu.new(ranking, y: 0, x: 5, cols: 60, dispfunc: dispfunc, title: title)
       while true

@@ -12,7 +12,7 @@ class Menu
     winheight = [3, @items.size + 2].max
     @win = Curses::Window.new(winheight, @cols, @y, @x) # lines, cols, y, x
     @win.keypad(true)
-    @dispfunc = opts[:dispfunc] || :to_s.to_proc
+    @dispfunc = opts[:dispfunc] || proc { |win,data| win.addstr(data.to_s) }
     @title = opts[:title] || ""
     @sortable = opts[:sortable] || false
   end
@@ -47,7 +47,8 @@ class Menu
           if i == @index
             @win.attron(Curses::A_BOLD)
           end
-          @win.addstr(" " + @dispfunc.call(@items[i]))
+          @win.addstr(" ")
+          @dispfunc.call(@win, @items[i])
           if i == @index
             @win.attroff(Curses::A_BOLD)
           end

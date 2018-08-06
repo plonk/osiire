@@ -2,9 +2,10 @@ require 'curses'
 require_relative 'curses_ext'
 
 class HistoryWindow
-  def initialize(history)
+  def initialize(history, disp_func)
     @history = history
     @top = [@history.size - 22, 0].max
+    @disp_func = disp_func
   end
 
   def run
@@ -21,7 +22,7 @@ class HistoryWindow
             break
           end
           win.setpos(y, 1)
-          win.addstr(@history[i])
+          @disp_func.(win, @history[i])
         end
 
         c = win.getch

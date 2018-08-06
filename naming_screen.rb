@@ -107,7 +107,7 @@ module NamingScreen
     name = default_name || ""
     layer_index = 0
     y, x = 0, 0
-    tm = 1 # (Curses.lines - 13)/2 # top margin
+    tm = 3 # (Curses.lines - 13)/2 # top margin
 
     next_omakase = proc do
       i = OMAKASE_NAMES.index(name)
