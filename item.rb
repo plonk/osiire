@@ -57,7 +57,7 @@ class Item
     [:scroll, "盾強化の巻物", nil, "盾が少し強くなる。"],
     [:scroll, "メッキの巻物", nil, "盾が錆びなくなる。"],
     [:scroll, "解呪の巻物", nil, "アイテムの呪いが解ける。"],
-    [:scroll, "インパスの巻物", nil, nil],
+    [:scroll, "同定の巻物", nil, nil],
     [:scroll, "あかりの巻物", nil, "フロア全体が見えるようになる。"],
     [:scroll, "かなしばりの巻物", nil, "隣接している敵をかなしばり状態にする。"],
     [:scroll, "結界の巻物", nil, "床に置くと敵に攻撃されなくなる。"],
@@ -162,6 +162,7 @@ class Item
   attr_accessor :stuck
   attr_accessor :mimic
   attr_accessor :cursed
+  attr_accessor :inspected
 
   def initialize(type, name, number, desc)
     @type   = type
@@ -180,6 +181,7 @@ class Item
     @stuck = false
     @mimic = false
     @cursed = false
+    @inspected = false
   end
 
   def original_number
@@ -226,15 +228,20 @@ class Item
     end
 
     case type
+    when :ring
+      if @cursed
+        prefix = "\u{10423C}"
+      end
+      "#{prefix}#{name}"
     when :weapon, :shield
       if @cursed
-        star = "\u{10423C}"
+        prefix = "\u{10423C}"
       elsif @gold_plated
-        star = "★"
+        prefix = "★"
       else
-        star = ""
+        prefix = ""
       end
-      "#{star}#{name}#{ws_num_fmt.(relative_number)}"
+      "#{prefix}#{name}#{ws_num_fmt.(relative_number)}"
     when :staff
       "#{name}[#{number}]"
     when :projectile
@@ -319,6 +326,17 @@ class Item
              else
                "(なし)"
              end
+  end
+
+  def targeted_scroll?
+    return false unless @type == :scroll
+
+    case @name
+    when "同定の巻物"
+      true
+    else
+      false
+    end
   end
 
 end

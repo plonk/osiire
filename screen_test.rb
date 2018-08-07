@@ -60,6 +60,7 @@ class Program
   UNIDENTIFIED_ITEM_COLOR_PAIR = 2
   NICKNAMED_ITEM_COLOR_PAIR = 3
   CURSED_ITEM_COLOR_PAIR = 4
+  SPECIAL_DUNGEON_COLOR_PAIR = 5
 
   def initialize
     @debug = ARGV.include?("-d")
@@ -72,6 +73,7 @@ class Program
     Curses.init_pair(UNIDENTIFIED_ITEM_COLOR_PAIR, Curses::COLOR_YELLOW, Curses::COLOR_BLACK)
     Curses.init_pair(NICKNAMED_ITEM_COLOR_PAIR, Curses::COLOR_GREEN, Curses::COLOR_BLACK)
     Curses.init_pair(CURSED_ITEM_COLOR_PAIR, Curses::COLOR_BLUE, Curses::COLOR_BLACK)
+    Curses.init_pair(SPECIAL_DUNGEON_COLOR_PAIR, Curses::COLOR_MAGENTA, Curses::COLOR_BLACK)
 
     Curses.noecho
     Curses.crmode
@@ -101,6 +103,7 @@ class Program
       @hero.inventory << Item.make_item("あかりの巻物")
       @hero.inventory << Item.make_item("結界の巻物")
       @hero.inventory << Item.make_item("解呪の巻物")
+      @hero.inventory << Item.make_item("同定の巻物")
     end
     @level_number = 0
     @dungeon = Dungeon.new
@@ -157,6 +160,8 @@ class Program
       win.attron(Curses::color_pair(NICKNAMED_ITEM_COLOR_PAIR))
     when "cursed"
       win.attron(Curses::color_pair(CURSED_ITEM_COLOR_PAIR))
+    when "special"
+      win.attron(Curses::color_pair(SPECIAL_DUNGEON_COLOR_PAIR))
     end
   end
 
@@ -171,6 +176,8 @@ class Program
       win.attroff(Curses::color_pair(NICKNAMED_ITEM_COLOR_PAIR))
     when "cursed"
       win.attroff(Curses::color_pair(CURSED_ITEM_COLOR_PAIR))
+    when "special"
+      win.attroff(Curses::color_pair(SPECIAL_DUNGEON_COLOR_PAIR))
     end
   end
 
@@ -185,24 +192,27 @@ class Program
     herbs_false = ["黒い草", "白い草", "赤い草", "青い草", "黄色い草", "緑色の草",
                    "まだらの草", "スベスベの草", "チクチクの草", "空色の草", "しおれた草",
                    "くさい草", "茶色い草", "ピンクの草"]
-    scrolls_false = ["巻物I", "巻物II", "巻物III", "巻物IV", "巻物V", "巻物VI", "巻物VII", "巻物VIII",
-                     "巻物IX", "巻物X", "巻物XI", "巻物XII", "巻物XIII", "巻物XIV", "巻物XV", "巻物XVI",
-                     "巻物XVII", "巻物XVIII", "巻物XIX", "巻物XX", "巻物XXI", "巻物XXII"]
+    scrolls_false = ["αの巻物", "βの巻物", "γの巻物", "δの巻物", "εの巻物", "ζの巻物", "ηの巻物", "θの巻物",
+                     "ιの巻物", "κの巻物", "λの巻物", "μの巻物", "νの巻物", "ξの巻物", "οの巻物", "πの巻物",
+                     "ρの巻物", "σの巻物", "τの巻物", "υの巻物", "φの巻物", "χの巻物", "ψの巻物", "ωの巻物"]
+    # scrolls_false = ["巻物I", "巻物II", "巻物III", "巻物IV", "巻物V", "巻物VI", "巻物VII", "巻物VIII",
+    #                  "巻物IX", "巻物X", "巻物XI", "巻物XII", "巻物XIII", "巻物XIV", "巻物XV", "巻物XVI",
+    #                  "巻物XVII", "巻物XVIII", "巻物XIX", "巻物XX", "巻物XXI", "巻物XXII"]
     staves_false = ["鉄の杖", "銅の杖", "鉛の杖", "銀の杖", "金の杖", "アルミの杖", "真鍮の杖",
                     "ヒノキの杖", "杉の杖", "桜の杖", "松の杖", "キリの杖", "ナラの杖", "ビワの杖"]
     rings_false = ["金剛石の指輪", "翡翠の指輪", "猫目石の指輪", "水晶の指輪", # "タイガーアイの指輪",
                    "瑪瑙の指輪", "天河石の指輪","琥珀の指輪","孔雀石の指輪","珊瑚の指輪","電気石の指輪",
                    "真珠の指輪","葡萄石の指輪","蛍石の指輪","紅玉の指輪","フォーダイトの指輪", "黒曜石の指輪"]
 
-    herbs_true = get_item_names_by_kind.(:herb).shuffle
-    scrolls_true = get_item_names_by_kind.(:scroll).shuffle
-    staves_true = get_item_names_by_kind.(:staff).shuffle
-    rings_true = get_item_names_by_kind.(:ring).shuffle
+    herbs_true = get_item_names_by_kind.(:herb)
+    scrolls_true = get_item_names_by_kind.(:scroll)
+    staves_true = get_item_names_by_kind.(:staff)
+    rings_true = get_item_names_by_kind.(:ring)
 
-    herbs_false   = take_strict.(herbs_true.size, herbs_false)
-    scrolls_false = take_strict.(scrolls_true.size, scrolls_false)
-    staves_false  = take_strict.(staves_true.size, staves_false)
-    rings_false   = take_strict.(rings_true.size, rings_false)
+    herbs_false   = take_strict.(herbs_true.size, herbs_false.shuffle)
+    scrolls_false = take_strict.(scrolls_true.size, scrolls_false.shuffle)
+    staves_false  = take_strict.(staves_true.size, staves_false.shuffle)
+    rings_false   = take_strict.(rings_true.size, rings_false.shuffle)
 
     NamingTable.new(herbs_false + scrolls_false + staves_false + rings_false,
                     herbs_true + scrolls_true + staves_true + rings_true)
@@ -1012,30 +1022,71 @@ EOD
   end
 
   def display_item(item)
+    if item.is_a?(Gold)
+      return item.to_s
+    end
+
+    case item.type
+    when :weapon, :shield
+      if item.inspected
+        display_inspected_item(item)
+      else
+        ["unidentified", item.name]
+      end
+    when :ring
+      if item.inspected
+        display_inspected_item(item)
+      else
+        display_uninspected_item(item)
+      end
+    when :staff
+      if item.inspected
+        display_inspected_item(item)
+      else
+        display_uninspected_item(item)
+      end
+    else
+      display_uninspected_item(item)
+    end
+  end
+
+  def display_inspected_item(item)
+    if item.cursed
+      ["cursed", item.to_s]
+    else
+      item.to_s
+    end
+  end
+
+  def display_uninspected_item(item)
     if @naming_table.include?(item.name)
       case @naming_table.state(item.name)
       when :identified
-        item.to_s
+        if item.type == :staff # 杖の種類は判別しているが回数がわからない状態。
+          ["unidentified", item.name]
+        else
+          item.to_s
+        end
       when :nicknamed
-        kind_label = case item.type
-                     when :herb then "草"
-                     when :scroll then "巻物"
-                     when :ring then "指輪"
-                     when :staff then "杖"
-                     else "？"
-                     end
-        ["nicknamed", kind_label, ":", @naming_table.nickname(item.name)]
+        display_item_by_nickname(item)
       when :unidentified
         ["unidentified", @naming_table.false_name(item.name)]
       else fail
       end
     else
-      if item.cursed
-        ["cursed", item.to_s]
-      else
-        item.to_s
-      end
+      item.to_s
     end
+  end
+
+  def display_item_by_nickname(item)
+    kind_label = case item.type
+                 when :herb then "草"
+                 when :scroll then "巻物"
+                 when :ring then "指輪"
+                 when :staff then "杖"
+                 else "？"
+                 end
+    ["nicknamed", kind_label, ":", @naming_table.nickname(item.name)]
   end
 
   # 持ち物メニューを開く。
@@ -1096,7 +1147,7 @@ EOD
     when "装備"
       equip(item)
     when "読む"
-      read_scroll(item)
+      return read_scroll(item)
     when "ふる"
       return zap_staff(item)
     else
@@ -1104,7 +1155,7 @@ EOD
     end
     return :action
   ensure
-    menu.close
+    menu&.close
   end
 
   def item_action_menu(item)
@@ -1731,9 +1782,95 @@ EOD
   end
 
   # 巻物を読む。
+  # Item -> :nothing | :action
   def read_scroll(item)
     fail "not a scroll" unless item.type == :scroll
 
+    if item.targeted_scroll?
+      return read_targeted_scroll(item)
+    else
+      return read_nontargeted_scroll(item)
+    end
+  end
+
+  def read_targeted_scroll(scroll)
+    target = choose_target
+    return :nothing unless target
+
+    @hero.remove_from_inventory(scroll)
+    log(display_item(scroll), "を 読んだ。")
+    unless @naming_table.identified?(scroll.name)
+      @naming_table.identify!(scroll.name)
+      log("なんと！ #{scroll.name}だった！")
+    end
+
+    case scroll.name
+    when "同定の巻物"
+      prevdesc = display_item(target)
+
+      if @naming_table.include?(target.name) && !@naming_table.identified?(target.name)
+        @naming_table.identify!(target.name)
+        did_identify = true
+      else
+        did_identify = false
+      end
+
+      if [:ring, :weapon, :shield, :staff].include?(target.type) && !target.inspected
+        target.inspected = true
+        did_inspect = true
+      else
+        did_inspect = false
+      end
+
+      if did_identify || did_inspect
+        log(prevdesc, "は ", display_item(target), "だった。")
+      else
+        log("これは ", display_item(target), "に 間違いない！")
+      end
+    else
+      log("実装してない「どれを」巻物だよ。")
+    end
+    return :action
+  end
+
+  # () -> Item
+  def choose_target
+    dispfunc = proc { |win, item|
+      prefix = if @hero.weapon.equal?(item) ||
+                @hero.shield.equal?(item) ||
+                @hero.ring.equal?(item) ||
+                @hero.projectile.equal?(item)
+               "E"
+             else
+               " "
+             end
+      addstr_ml(win, ["span", prefix, item.char, display_item(item)])
+    }
+
+    menu = nil
+
+    loop do
+      menu = Menu.new(@hero.inventory,
+                      y: 1, x: 0, cols: 28,
+                      dispfunc: dispfunc,
+                      title: "どれを？",
+                      sortable: false)
+      render
+      command, *args = menu.choose
+
+      case command
+      when :cancel
+        return nil
+      when :chosen
+        item, = args
+        return item
+      end
+    end
+  ensure
+    menu&.close
+  end
+
+  def read_nontargeted_scroll(item)
     @hero.remove_from_inventory(item)
     log(display_item(item), "を 読んだ。")
     unless @naming_table.identified?(item.name)
@@ -1843,6 +1980,7 @@ EOD
     else
       log("実装してないよ。")
     end
+    return :action
   end
 
   # モンスターが攻撃された時の処理。起きる。
@@ -2048,42 +2186,55 @@ EOD
 
   # 武器を装備する。
   def equip_weapon(item)
-    if @hero.weapon.equal?(item) # coreferential?
-      if @hero.weapon.cursed
-        log(display_item(@hero.weapon), "は 呪われていて 外れない！")
-      else
-        @hero.weapon = nil
-        log("武器を 外した。")
-      end
+    if @hero.weapon.cursed
+      log(display_item(@hero.weapon), "は 呪われていて 外れない！")
+    elsif @hero.weapon.equal?(item) # coreferential?
+      @hero.weapon = nil
+      log("武器を 外した。")
     else
       @hero.weapon = item
       log(display_item(item), "を 装備した。")
+      unless item.inspected
+        item.inspected = true
+        if item.cursed
+          log("なんと！ 武器は呪われていた！")
+        end
+      end
     end
   end
 
   # 盾を装備する。
   def equip_shield(item)
-    if @hero.shield.equal?(item)
-      if @hero.shield.cursed
-        log(display_item(@hero.shield), "は 呪われていて 外れない！")
-      else
-        @hero.shield = nil
-        log("盾を 外した。")
-      end
+    if @hero.shield.cursed
+      log(display_item(@hero.shield), "は 呪われていて 外れない！")
+    elsif @hero.shield.equal?(item)
+      @hero.shield = nil
+      log("盾を 外した。")
     else
       @hero.shield = item
       log(display_item(item), "を 装備した。")
+      unless item.inspected
+        item.inspected = true
+        if item.cursed
+          log("なんと！ 盾は呪われていた！")
+        end
+      end
     end
   end
 
   # 指輪を装備する。
   def equip_ring(item)
-    if @hero.ring.equal?(item)
+    if @hero.ring.cursed
+      log(display_item(@hero.ring), "は 呪われていて 外れない！")
+    elsif @hero.ring.equal?(item)
       @hero.ring = nil
       log(display_item(item), "を 外した。")
     else
       @hero.ring = item
       log(display_item(item), "を 装備した。")
+      if item.cursed
+        log("なんと！ 指輪は呪われていた！")
+      end
     end
   end
 
@@ -2375,25 +2526,32 @@ EOD
   def render_status
     low_hp   = @hero.hp.floor <= (@hero.max_hp / 10.0).ceil
     starving = @hero.fullness <= 0.0
+    dungeon = "special"
 
     Curses.setpos(0, 0)
     Curses.clrtoeol
-    Curses.addstr("%dF  "   % [@level_number])
-    Curses.addstr("Lv %d  " % [@hero.lv])
+    addstr_ml(Curses, ["span", "%d" % [@level_number], ["special", "F"], "  "])
+    addstr_ml(Curses, ["span", [dungeon, "Lv"], " %d  " % [@hero.lv]])
     Curses.attron(Curses::A_BLINK) if low_hp
-    Curses.addstr("HP ")
+    addstr_ml(Curses, [dungeon, "HP "])
     Curses.attroff(Curses::A_BLINK) if low_hp
-    Curses.addstr("%3d/%d  " % [@hero.hp, @hero.max_hp])
+    Curses.addstr("%3d" % [@hero.hp])
+    addstr_ml(Curses, ["special", "/"])
+    Curses.addstr("%d  " % [@hero.max_hp])
     Curses.attron(Curses::color_pair(HEALTH_BAR_COLOR_PAIR))
     Curses.addstr(render_health_bar)
     Curses.attroff(Curses::color_pair(HEALTH_BAR_COLOR_PAIR))
-    Curses.addstr("  %dG  "   % [@hero.gold])
+    Curses.addstr("  %d" % [@hero.gold])
+    addstr_ml(["span", ["special", "G"], "  "])
     Curses.attron(Curses::A_BLINK) if starving
-    Curses.addstr("満腹度 ")
+    addstr_ml(Curses, ["special", "満 "])
     Curses.attroff(Curses::A_BLINK) if starving
-    Curses.addstr("%d%% "   % [@hero.fullness.ceil])
+    Curses.addstr("%d"   % [@hero.fullness.ceil])
+    addstr_ml(["special", "% "])
     Curses.addstr("%s "     % [@hero.status_effects.map(&:name).join(' ')])
-    Curses.addstr("[%04d]"  % [@level.turn])
+    addstr_ml(["special", "["])
+    Curses.addstr("%04d"  % [@level.turn])
+    addstr_ml(["special", "]"])
   end
 
   # メッセージの表示。
