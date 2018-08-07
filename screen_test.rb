@@ -2043,6 +2043,12 @@ EOD
 
     @hero.remove_from_inventory(item)
     log(display_item(item), "を 薬にして 飲んだ。")
+
+    unless @naming_table.identified?(item.name)
+      @naming_table.identify!(item.name)
+      log("なんと！ #{item.name}だった！")
+    end
+
     case item.name
     when "薬草"
       use_health_item(@hero, 25, 2)
