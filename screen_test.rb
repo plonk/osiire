@@ -2192,7 +2192,7 @@ EOD
 
   # 武器を装備する。
   def equip_weapon(item)
-    if @hero.weapon.cursed
+    if @hero.weapon&.cursed
       log(display_item(@hero.weapon), "は 呪われていて 外れない！")
     elsif @hero.weapon.equal?(item) # coreferential?
       @hero.weapon = nil
@@ -2211,7 +2211,7 @@ EOD
 
   # 盾を装備する。
   def equip_shield(item)
-    if @hero.shield.cursed
+    if @hero.shield&.cursed
       log(display_item(@hero.shield), "は 呪われていて 外れない！")
     elsif @hero.shield.equal?(item)
       @hero.shield = nil
@@ -2230,7 +2230,7 @@ EOD
 
   # 指輪を装備する。
   def equip_ring(item)
-    if @hero.ring.cursed
+    if @hero.ring&.cursed
       log(display_item(@hero.ring), "は 呪われていて 外れない！")
     elsif @hero.ring.equal?(item)
       @hero.ring = nil
