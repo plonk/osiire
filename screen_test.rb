@@ -2383,7 +2383,7 @@ EOD
         message_window("階段の途中で行商人に出会った。")
         Curses.stdscr.clear
         Curses.stdscr.refresh
-        shop = Shop.new(@hero)
+        shop = Shop.new(@hero, method(:display_item), method(:addstr_ml))
         shop.run
       end
 

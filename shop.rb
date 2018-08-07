@@ -24,10 +24,16 @@ class Shop
     ["ちからの種", nil, 3000],
     ["メッキの巻物", nil, 4_000],
     ["木の矢", 25, 2500],
+    ["同定の巻物", nil, 500],
   ]
 
-  def initialize(hero)
+  def initialize(hero, display_item, addstr_ml)
     @hero = hero
+
+    # 関数
+    @display_item = display_item
+    @addstr_ml = addstr_ml
+
     @msgwin = Curses::Window.new(3, 40, 0, 0)
     @merchandise = MERCHANDISE.sample(6).sort_by(&:last)
     @goldwin = Curses::Window.new(3, 17, 0, 40)
@@ -52,9 +58,11 @@ class Shop
     cols = 30
     menu = Menu.new(@merchandise, cols: cols, y: 3, x: 0,
                     dispfunc: proc { |win, (name, number, price)|
-                      namecols = name.size * 2 # 全角文字だけからなる
-                      str = "%s%s%5dG " % [name, ' ' * [cols - namecols - 5 - 5, 0].max, price]
-                      win.addstr(str)
+                      item = Item.make_item(name)
+                      if number
+                        item.number = number
+                      end
+                      @addstr_ml.(win, ["span", @display_item.(item), " ", price.to_s, "G"])
                     })
     begin
       cmd, arg = menu.choose
@@ -103,7 +111,7 @@ class Shop
   end
 
   def actions_for_item(item)
-    ["すてる", "説明"]
+    ["すてる"]
   end
 
   # メッセージボックス。
@@ -126,10 +134,6 @@ class Shop
     win.close
   end
 
-  def describe_item(item)
-    message_window(item.desc, y: 3, x: 0)
-  end
-
   def item_action_menu(item)
     action_menu = Menu.new(actions_for_item(item), y: 3, x: 27, cols: 9)
     begin
@@ -139,12 +143,7 @@ class Shop
         return nil
       when :chosen
         c, = args
-        if c == "説明"
-          describe_item(item)
-          return nil
-        else
-          return c
-        end
+        return c
       else fail
       end
     ensure
@@ -155,14 +154,14 @@ class Shop
   def inventory_screen
     dispfunc = proc { |win, item|
       prefix = if @hero.weapon.equal?(item) ||
-                  @hero.shield.equal?(item) ||
-                  @hero.ring.equal?(item) ||
-                  @hero.projectile.equal?(item)
-                 "E"
-               else
-                 " "
-               end
-      win.addstr("#{prefix}#{item.char}#{item.to_s}")
+                @hero.shield.equal?(item) ||
+                @hero.ring.equal?(item) ||
+                @hero.projectile.equal?(item)
+               "E"
+             else
+               " "
+             end
+      @addstr_ml.(win, ["span", prefix, item.char, @display_item.(item)])
     }
 
     menu = nil
