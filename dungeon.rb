@@ -290,77 +290,66 @@ class Dungeon
     case level_number
     when 1..2
       {
-        :STATUE          => '􄄤􄄥',
         :WALL            => '􄅦􄅧',
         :HORIZONTAL_WALL => '􄅠􄅡',
         :VERTICAL_WALL   => '􄅢􄅣',
       }
     when 3..4
       {
-        :STATUE          => '􄄤􄄥',
         :WALL            => '􄅘􄅙',
         :HORIZONTAL_WALL => '􄅔􄅕',
         :VERTICAL_WALL   => '􄅖􄅗',
       }
     when 5..6
       {
-        :STATUE          => '􄄤􄄥',
         :WALL            => '􄅞􄅟',
         :HORIZONTAL_WALL => '􄅚􄅛',
         :VERTICAL_WALL   => '􄅜􄅝',
       }
     when 7..9
       {
-        :STATUE          => '􄄤􄄥',
         :WALL            => '􄅰􄅱',
         :HORIZONTAL_WALL => '􄅬􄅭',
         :VERTICAL_WALL   => '􄅮􄅯',
       }
     when 10..12
       {
-        :STATUE          => '􄄤􄄥',
         :HORIZONTAL_WALL => '􄅲􄅳',
         :VERTICAL_WALL   => '􄅴􄅵',
         :WALL            => '􄅶􄅷',
       }
     when 16..18
       {
-        :STATUE          => '􄄤􄄥',
         :WALL            => '􄈪􄈫',
         :HORIZONTAL_WALL => '􄈦􄈧',
         :VERTICAL_WALL   => '􄈨􄈩',
       }
     when 19..21
       {
-        :STATUE          => '􄄤􄄥',
         :WALL            => '􄅌􄅍',
         :HORIZONTAL_WALL => '􄅈􄅉',
         :VERTICAL_WALL   => '􄅊􄅋',
       }
     when 25..26
       {
-        :STATUE          => '􄄤􄄥',
         :WALL            => '􄅒􄅓',
         :HORIZONTAL_WALL => '􄅐􄅑',
         :VERTICAL_WALL   => '􄅎􄅏',
       }
     when 22..24
       {
-        :STATUE          => '􄄤􄄥',
         :HORIZONTAL_WALL => '􄈠􄈡',
         :VERTICAL_WALL   => '􄈢􄈣',
         :WALL            => '􄈤􄈥',
       }
     when 27..99
       {
-        :STATUE          => '􄄤􄄥',
         :HORIZONTAL_WALL => '􄅸􄅹',
         :VERTICAL_WALL   => '􄅺􄅻',
         :WALL            => '􄅼􄅽',
       }
     else
       {
-        :STATUE          => '􄄤􄄥',
         :WALL            => '􄁀􄁁',
         :HORIZONTAL_WALL => '􄀢􄀣',
         :VERTICAL_WALL   => '􄀼􄀽',

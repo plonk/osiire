@@ -15,7 +15,7 @@ class Cell
     @objects = [].freeze
   end
 
-  def char(hero_sees_everything, tileset)
+  def first_visible_object(hero_sees_everything, tileset)
     if hero_sees_everything
       visible_objects = @objects.select { |obj|
         case obj
@@ -26,10 +26,10 @@ class Cell
         end
       }
 
-      if !visible_objects.empty?
-        return visible_objects.first.char
+      if visible_objects.any?
+        return visible_objects.first
       else
-        return background_char(hero_sees_everything, tileset)
+        return nil
       end
     else
       visible_objects = @objects.select { |obj|
@@ -52,39 +52,59 @@ class Cell
       }
 
       if !@explored
-        return '　'
+        return nil
+      elsif visible_objects.any?
+        return visible_objects.first
+      else
+        return nil
       end
-
-      if !visible_objects.empty?
-        return visible_objects.first.char
-      end
-
-      background_char(hero_sees_everything, tileset)
     end
   end
 
   def background_char(hero_sees_everything, tileset)
+    lit = @lit || hero_sees_everything
     case @type
     when :STATUE
-      if @lit || hero_sees_everything
-        tileset[:STATUE]
+      if lit
+        '􄄤􄄥' # モアイ像
+      elsif @explored
+        '􄀾􄀿' # 薄闇
       else
-        '􄀾􄀿'
+        '　'
       end
-    when :WALL            then tileset[:WALL]
-    when :HORIZONTAL_WALL then tileset[:HORIZONTAL_WALL]
-    when :VERTICAL_WALL   then tileset[:VERTICAL_WALL]
-    when :FLOOR
-      if @lit || hero_sees_everything
-        '􄀪􄀫'
+    when :WALL
+      if lit || @explored
+        tileset[:WALL]
       else
-        '􄀾􄀿'
+        '　'
+      end
+    when :HORIZONTAL_WALL
+      if lit || @explored
+        tileset[:HORIZONTAL_WALL]
+      else
+        '　'
+      end
+    when :VERTICAL_WALL
+      if lit || @explored
+        tileset[:VERTICAL_WALL]
+      else
+        '　'
+      end
+    when :FLOOR
+      if lit
+        '􄀪􄀫' # 部屋の床
+      elsif @explored
+        '􄀾􄀿' # 薄闇
+      else
+        '　'
       end
     when :PASSAGE
-      if @lit || hero_sees_everything
-        '􄀤􄀥'
+      if lit
+        '􄀤􄀥' # 通路
+      elsif @explored
+        '􄀾􄀿' # 薄闇
       else
-        '􄀾􄀿'
+        '　'
       end
     else '？'
     end
@@ -413,8 +433,12 @@ class Level
     end
   end
 
-  def dungeon_char(x, y)
-    @dungeon[y][x].char(@whole_level_lit, @tileset)
+  def first_visible_object(x, y)
+    @dungeon[y][x].first_visible_object(@whole_level_lit, @tileset)
+  end
+
+  def background_char(x, y)
+    @dungeon[y][x].background_char(@whole_level_lit, @tileset)
   end
 
   def width

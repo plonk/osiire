@@ -2377,7 +2377,7 @@ EOD
         @level_number = 99
       end
 
-      if shop && @level_number != 1 && dir == +1 && rand() < 0.1
+      if shop && @level_number != 1 && dir == +1 && rand() < 1.0 #0.1
         Curses.stdscr.clear
         Curses.stdscr.refresh
         message_window("階段の途中で行商人に出会った。")
@@ -2428,10 +2428,31 @@ EOD
     if @hero.x == x && @hero.y == y
       @hero.char
     else
-      if @hero.hallucinating?
-        "􄅨􄅩"
+      obj = @level.first_visible_object(x, y)
+      if obj
+        if @hero.hallucinating?
+          case obj
+          when Monster
+            "\u{10417e}\u{10417f}" # 色違いの主人公
+          when Trap, StairCase, Gold, Item
+            "\u{10416a}\u{10416b}" # 花
+          else
+            '??'
+          end
+        else
+          obj.char
+        end
       else
-        @level.dungeon_char(x, y)
+        tile = @level.background_char(x, y) 
+        if @hero.hallucinating?
+          if tile == '􄄤􄄥'
+            "\u{104168}\u{104169}"
+          else
+            tile
+          end
+        else
+          tile
+        end
       end
     end
   end
