@@ -8,8 +8,15 @@ class NamingTable
     if false_names.size != true_names.size
       fail "list length mismatch"
     end
-    @false_names = false_names
-    @true_names = true_names
+    unless false_names.uniq.size == false_names.size
+      fail "duplicate items in false_names"
+    end
+    unless true_names.uniq.size == true_names.size
+      fail "duplicate items in true_names"
+    end
+
+    @false_names = false_names.map { |name| name.dup.freeze }.freeze
+    @true_names  = true_names.map { |name| name.dup.freeze }.freeze
     n = true_names.size
     @nicknames = [nil] * n
     @identified = [false] * n
@@ -81,16 +88,4 @@ class NamingTable
 end
 
 if __FILE__ == $0
-  false_names = ["黒い草", "白い草", "赤い草", "青い草", "黄色い草", "緑色の草",
-                 "まだらの草", "ツルツルの草", "チクチクの草", "空色の草", "フニャフニャの草",
-                 "臭い草", "茶色い草", "ピンクの草"]
-  true_names = ["薬草", "高級薬草", "毒けし草", "ちからの種", "幸せの種", "すばやさの種",
-                "目薬草", "毒草", "目つぶし草", "まどわし草", "混乱草", "睡眠草", "ワープ草", "火炎草"]
-
-  tbl = NamingTable.new(false_names, true_names)
-  p tbl.display_name("薬草")
-  p tbl.set_nickname("薬草", "草：や")
-  p tbl.display_name("薬草")
-  tbl.identify!("薬草")
-  p tbl.display_name("薬草")
 end
