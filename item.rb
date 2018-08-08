@@ -150,7 +150,7 @@ class Item
         item.number = item.number + r
         item.cursed = r == -1
       when :ring
-        item.cursed = rand(0..1) == 0
+        item.cursed = rand(5) == 0
       end
 
       return item
