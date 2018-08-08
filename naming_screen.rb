@@ -106,6 +106,7 @@ module NamingScreen
   def run(default_name = nil)
     name = default_name || ""
     layer_index = 0
+    old_layer = nil
     y, x = 0, 0
     tm = 3 # (Curses.lines - 13)/2 # top margin
 
@@ -205,14 +206,18 @@ module NamingScreen
       while true
         update_name.()
 
-        keyboard.clear
-        keyboard.rounded_box
-        keyboard.setpos(1, 1)
-        keyboard.addstr("  " + COMMAND_ROW.join("　"))
+        if old_layer != layer_index
+          old_layer = layer_index
 
-        LAYERS[layer_index].each.with_index(+2) do |row, ypos|
-          keyboard.setpos(ypos, 3)
-          keyboard.addstr(row.chars.join("　"))
+          keyboard.clear
+          keyboard.rounded_box
+          keyboard.setpos(1, 1)
+          keyboard.addstr("  " + COMMAND_ROW.join("　"))
+
+          LAYERS[layer_index].each.with_index(+2) do |row, ypos|
+            keyboard.setpos(ypos, 3)
+            keyboard.addstr(row.chars.join("　"))
+          end
         end
 
         if y == 0
