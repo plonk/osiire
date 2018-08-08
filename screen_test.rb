@@ -2262,12 +2262,12 @@ EOD
       log("武器を 外した。")
     else
       @hero.weapon = item
-      log(display_item(item), "を 装備した。")
       unless item.inspected
         item.inspected = true
-        if item.cursed
-          log("なんと！ 武器は呪われていた！")
-        end
+      end
+      log(display_item(item), "を 装備した。")
+      if item.cursed
+        log("なんと！ ", display_item(item), "は呪われていた！")
       end
     end
   end
@@ -2281,12 +2281,12 @@ EOD
       log("盾を 外した。")
     else
       @hero.shield = item
-      log(display_item(item), "を 装備した。")
       unless item.inspected
         item.inspected = true
-        if item.cursed
-          log("なんと！ 盾は呪われていた！")
-        end
+      end
+      log(display_item(item), "を 装備した。")
+      if item.cursed
+        log("なんと！ ", display_item(item), "は呪われていた！")
       end
     end
   end
@@ -2302,7 +2302,7 @@ EOD
       @hero.ring = item
       log(display_item(item), "を 装備した。")
       if item.cursed
-        log("なんと！ 指輪は呪われていた！")
+        log("なんと！ ", display_item(item), "は呪われていた！")
       end
     end
   end
