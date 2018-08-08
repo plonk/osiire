@@ -804,6 +804,11 @@ class Program
         cheat_get_item()
       end
       :nothing
+    when '`'
+      if debug?
+        shop_interaction
+      end
+      :nothing
     when '?'
       help
     when 'h','j','k','l','y','u','b','n',
@@ -824,6 +829,7 @@ class Program
         load(File.dirname(__FILE__) + "/monster.rb")
         load(File.dirname(__FILE__) + "/item.rb")
         load(File.dirname(__FILE__) + "/level.rb")
+        load(File.dirname(__FILE__) + "/shop.rb")
       end
       render
       :nothing
@@ -2437,6 +2443,16 @@ EOD
     @level.stairs_going_up = @dungeon.on_return_trip?(@hero)
   end
 
+  def shop_interaction
+    Curses.stdscr.clear
+    Curses.stdscr.refresh
+    message_window("階段の途中で行商人に出会った。")
+    Curses.stdscr.clear
+    Curses.stdscr.refresh
+    shop = Shop.new(@hero, method(:display_item), method(:addstr_ml))
+    shop.run
+  end
+
   # 新しいフロアに移動する。
   def new_level(dir = +1, shop)
     @level_number += dir
@@ -2450,13 +2466,7 @@ EOD
       end
 
       if shop && @level_number != 1 && dir == +1 && rand() < 0.1
-        Curses.stdscr.clear
-        Curses.stdscr.refresh
-        message_window("階段の途中で行商人に出会った。")
-        Curses.stdscr.clear
-        Curses.stdscr.refresh
-        shop = Shop.new(@hero, method(:display_item), method(:addstr_ml))
-        shop.run
+        shop_interaction
       end
 
       @level = @dungeon.make_level(@level_number, @hero)
