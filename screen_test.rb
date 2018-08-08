@@ -2179,8 +2179,6 @@ EOD
         @hero.status_effects << StatusEffect.new(:hallucination, 50)
         log("ウェーイ！")
       end
-    when "メダパニ草"
-      log("実装してないよ。")
     when "睡眠草"
       hero_fall_asleep
     when "ワープ草"
