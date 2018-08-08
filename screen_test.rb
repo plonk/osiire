@@ -3241,7 +3241,7 @@ EOD
     when :quick
       log("#{character.name}の 足はもう速くない。")
     else
-      log("#{character.name}の #{effect.type}状態がとけた。")
+      log("#{character.name}の #{effect.name}状態がとけた。")
     end
   end
 
