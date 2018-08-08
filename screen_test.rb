@@ -53,8 +53,9 @@ class Program
   include CharacterLevel
 
   DIRECTIONS = [[0,-1], [1,-1], [1,0], [1,1], [0,1], [-1,1], [-1,0], [-1,-1]]
-  SPEED_RANKING_FILE_NAME = "ranking-speed.json"
-  DEPTH_RANKING_FILE_NAME = "ranking-depth.json"
+  SCORE_RANKING_FILE_NAME = "ranking-score.json"
+  TIME_RANKING_FILE_NAME = "ranking-time.json"
+  RECENT_GAMES_FILE_NAME = "ranking-recent.json"
 
   HEALTH_BAR_COLOR_PAIR = 1
   UNIDENTIFIED_ITEM_COLOR_PAIR = 2
@@ -90,9 +91,9 @@ class Program
     @hero = Hero.new(nil, nil, 15, 15, 8, 8, 0, 0, 100.0, 100.0, 1)
     @hero.inventory << Item.make_item("大きなパン")
     if debug?
-      @hero.inventory << Item.make_item("エンドゲーム").tap { |i| i.number = 9; i.cursed = true }
-      @hero.inventory << Item.make_item("メタルヨテイチの盾").tap { |i| i.number = 9; i.cursed = true }
-      @hero.inventory << Item.make_item("人形よけの指輪").tap { |i| i.cursed = true }
+      @hero.inventory << Item.make_item("エンドゲーム")
+      @hero.inventory << Item.make_item("メタルヨテイチの盾")
+      @hero.inventory << Item.make_item("人形よけの指輪")
       @hero.inventory << Item.make_item("目薬草")
       @hero.inventory << Item.make_item("薬草")
       @hero.inventory << Item.make_item("薬草")
@@ -960,13 +961,20 @@ EOD
     add_to_rankings(data)
   end
 
+  def cleared?(data)
+    data["return_trip"] && data["level"] == 0
+  end
+
   def add_to_rankings(data)
-    if add_to_ranking(data, SPEED_RANKING_FILE_NAME, method(:sort_ranking_by_speed))
-      message_window("はやさ番付に載りました。")
+    if add_to_ranking(data, SCORE_RANKING_FILE_NAME, method(:sort_ranking_by_score))
+      message_window("スコア番付に載りました。")
     end
-    if add_to_ranking(data, DEPTH_RANKING_FILE_NAME, method(:sort_ranking_by_depth))
-      message_window("ふかみ番付に載りました。")
+
+    if cleared?(data) && add_to_ranking(data, TIME_RANKING_FILE_NAME, method(:sort_ranking_by_time))
+      message_window("タイム番付に載りました。")
     end
+
+    add_to_ranking(data, RECENT_GAMES_FILE_NAME, method(:sort_ranking_by_timestamp))
   end
 
   # ランキングに追加。
@@ -2432,7 +2440,7 @@ EOD
         @level_number = 99
       end
 
-      if shop && @level_number != 1 && dir == +1 && rand() < 1.0 #0.1
+      if shop && @level_number != 1 && dir == +1 && rand() < 0.1
         Curses.stdscr.clear
         Curses.stdscr.refresh
         message_window("階段の途中で行商人に出会った。")
@@ -3349,61 +3357,26 @@ EOD
     Time.at(unix_time).strftime("%y-%m-%d")
   end
 
-  # ランキングをタイムでソートする。
-  def sort_ranking_by_speed(ranking)
+  def sort_ranking_by_score(ranking)
     ranking.sort { |a,b|
-      if a["return_trip"] == b["return_trip"]
-        if a["return_trip"]
-          level = a["level"] <=> b["level"]
-        else
-          level = b["level"] <=> a["level"]
-        end
-        if level == 0
-          time = a["time"] <=> b["time"]
-          if time == 0
-            a["timestamp"] <=> b["timestamp"]
-          else
-            time
-          end
-        else
-          level
-        end
-      elsif a["return_trip"]
-        -1
-      else
-        1
-      end
+      b["gold"] <=> a["gold"]
     }
   end
 
-  # ランキングを深さでソートする。
-  def sort_ranking_by_depth(ranking)
+  def sort_ranking_by_time(ranking)
     ranking.sort { |a,b|
-      if a["return_trip"] == b["return_trip"]
-        if a["return_trip"]
-          level = a["level"] <=> b["level"]
-        else
-          level = b["level"] <=> a["level"]
-        end
-        if level == 0
-          if a["objective_number"] == b["objective_number"]
-            a["timestamp"] <=> b["timestamp"]
-          else
-            b["objective_number"] <=> a["objective_number"]
-          end
-        else
-          level
-        end
-      elsif a["return_trip"]
-        -1
-      else
-        1
-      end
+      a["time"] <=> b["time"]
+    }
+  end
+
+  def sort_ranking_by_timestamp(ranking)
+    ranking.sort { |a,b|
+      b["timestamp"] <=> a["timestamp"]
     }
   end
 
   # ランキング表示画面。
-  def ranking_screen(title, ranking_file_name)
+  def ranking_screen(title, ranking_file_name, dispfunc)
     Curses.stdscr.clear
     Curses.stdscr.refresh
 
@@ -3424,11 +3397,7 @@ EOD
     if ranking.empty?
       message_window("まだ記録がありません。")
     else
-      dispfunc = proc do |win, data|
-        name = data["hero_name"] + ('　'*(6-data["hero_name"].size))
-        win.addster("#{name}  #{format_timestamp(data["timestamp"])}  #{data["message"]}")
-      end
-      menu = Menu.new(ranking, y: 0, x: 5, cols: 60, dispfunc: dispfunc, title: title)
+      menu = Menu.new(ranking, y: 0, x: 5, cols: 70, dispfunc: dispfunc, title: title)
       while true
         Curses.stdscr.clear
         Curses.stdscr.refresh
@@ -3446,6 +3415,13 @@ EOD
     end
   end
 
+  def format_time(seconds)
+    h = seconds / 3600
+    m = (seconds % 3600) / 60
+    s = seconds % 60
+    "%2d:%02d:%02d" % [h, m, s]
+  end
+
   # 起動時のメニュー。
   def initial_menu
     reset()
@@ -3461,10 +3437,11 @@ EOD
 
     menu = Menu.new([
                       "冒険に出る",
-                      "はやさ番付",
-                      "ふかみ番付",
+                      "スコア番付",
+                      "タイム番付",
+                      "最近のプレイ",
                       "終了",
-                    ], y: 0, x: 0, cols: 14)
+                    ], y: 0, x: 0, cols: 16)
     cmd, *args = menu.choose
     case cmd
     when :cancel
@@ -3474,10 +3451,29 @@ EOD
       case item
       when "冒険に出る"
         naming_screen
-      when "はやさ番付"
-        ranking_screen("はやさ番付", SPEED_RANKING_FILE_NAME)
-      when "ふかみ番付"
-        ranking_screen("ふかみ番付", DEPTH_RANKING_FILE_NAME)
+      when "スコア番付"
+        ranking_screen("スコア番付", SCORE_RANKING_FILE_NAME,
+                       proc do |win, data|
+                         name = data["hero_name"] + ('　'*(6-data["hero_name"].size))
+                         gold = "%7dG" % data["gold"]
+                         win.addstr("#{gold}  #{name}  #{format_timestamp(data["timestamp"])}  #{data["message"]}")
+                       end
+                      )
+      when "タイム番付"
+        ranking_screen("タイム番付", TIME_RANKING_FILE_NAME,
+                       proc do |win, data|
+                         name = data["hero_name"] + ('　'*(6-data["hero_name"].size))
+                         time = format_time(data["time"])
+                         win.addstr("#{time}  #{name}  #{format_timestamp(data["timestamp"])}  #{data["message"]}")
+                       end
+                      )
+      when "最近のプレイ"
+        ranking_screen("最近のプレイ", RECENT_GAMES_FILE_NAME,
+                       proc do |win, data|
+                         name = data["hero_name"] + ('　'*(6-data["hero_name"].size))
+                         win.addstr("#{format_timestamp(data["timestamp"])}  #{name}  #{data["message"]}")
+                       end
+                      )
       when "終了"
         return
       else

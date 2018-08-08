@@ -9,7 +9,6 @@ module ResultScreen
     h = seconds / 3600
     m = (seconds % 3600) / 60
     s = seconds % 60
-    "%2d時間%02d分%02d秒" % [h, m, s]
     nonzero_seen = false
     [[h, "%2d時間", "      "],
      [m, "%2d分", "    "],
@@ -35,6 +34,7 @@ module ResultScreen
       "weapon"       => hero.weapon&.to_s,
       "shield"       => hero.shield&.to_s,
       "ring"         => hero.ring&.to_s,
+      "gold"         => hero.gold,
     }
   end
 
@@ -49,6 +49,10 @@ module ResultScreen
       win.addstr("#{data['hero_name']}")
       win.setpos(1, 1 + 12 + 3)
       win.addstr("Lv#{data['hero_lv']}")
+
+      g = "#{data['gold']}G"
+      win.setpos(1, 34 - g.size - 1)
+      win.addstr(g)
 
       win.setpos(2, 19)
       win.addstr(format_time(data["time"]))
