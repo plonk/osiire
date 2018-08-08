@@ -1895,9 +1895,12 @@ EOD
       end
 
       index = @hero.inventory.index { |i| target.equal?(i) }
-      fail unless index
-      @hero.inventory[index] = Item.make_item("大きなパン")
-      log(display_item(target), "は ", display_item(@hero.inventory[index]), "に変わってしまった！")
+      if index
+        @hero.inventory[index] = Item.make_item("大きなパン")
+        log(display_item(target), "は ", display_item(@hero.inventory[index]), "に変わってしまった！")
+      else # パンの巻物にパンの巻物を読んだ。
+        log("しかし 何も起こらなかった。")
+      end
     when "祈りの巻物"
       if target.type == :staff
         old = display_item(target)
