@@ -167,6 +167,9 @@ module NamingScreen
       when 'n'
         handle_input.('l')
         handle_input.('j')
+      when 8, Curses::KEY_DC, 'x'
+        # Backspace, Delete Character or x
+        name = name[0..-2]
       when 'q'
         return nil
       when 10 # Enter
