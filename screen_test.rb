@@ -1380,6 +1380,7 @@ EOD
       end
     when "混乱草"
       unless monster.confused?
+        log("#{monster.name}は 混乱した。")
         monster.status_effects << StatusEffect.new(:confused, 10)
       end
     when "睡眠草"
