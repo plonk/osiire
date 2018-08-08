@@ -57,16 +57,16 @@ class Item
     [:scroll, "盾強化の巻物", nil, "盾が少し強くなる。"],
     [:scroll, "メッキの巻物", nil, "盾が錆びなくなる。"],
     [:scroll, "解呪の巻物", nil, "アイテムの呪いが解ける。"],
-    [:scroll, "同定の巻物", nil, nil],
+    [:scroll, "同定の巻物", nil, "何のアイテムか判別する。"],
     [:scroll, "あかりの巻物", nil, "フロア全体が見えるようになる。"],
     [:scroll, "かなしばりの巻物", nil, "隣接している敵をかなしばり状態にする。"],
     [:scroll, "結界の巻物", nil, "床に置くと敵に攻撃されなくなる。"],
     [:scroll, "さいごの巻物", nil, nil],
     [:scroll, "証明の巻物", nil, nil],
-    [:scroll, "千里眼の巻物", nil, nil],
-    [:scroll, "地獄耳の巻物", nil, nil],
-    [:scroll, "パンの巻物", nil, nil],
-    [:scroll, "祈りの巻物", nil, nil],
+    [:scroll, "豚鼻の巻物", nil, "アイテムの位置がわかるようになる。"],
+    [:scroll, "兎耳の巻物", nil, "モンスターの位置がわかるようになる。"],
+    [:scroll, "パンの巻物", nil, "アイテムを大きなパンに変えてしまう。"],
+    [:scroll, "祈りの巻物", nil, "杖の回数を増やす。"],
     [:scroll, "爆発の巻物", nil, "部屋の敵にダメージを与える。"],
     [:scroll, "くちなしの巻物", nil, nil],
     [:scroll, "時の砂の巻物", nil, nil],
@@ -82,10 +82,10 @@ class Item
     [:staff, "ワープの杖", nil, nil],
     [:staff, "変化の杖", nil, "敵を別の種類のモンスターに変化させる。"],
     [:staff, "ピオリムの杖", nil, nil],
-    [:staff, "レオルムの杖", nil, nil],
+    [:staff, "とうめいの杖", nil, "敵をとうめい状態にする。"],
     [:staff, "転ばぬ先の杖", nil, nil],
     [:staff, "分裂の杖", nil, "敵を分裂させてしまう。"],
-    [:staff, "ザキの杖", nil, nil],
+    [:staff, "即死の杖", nil, "モンスターを即死させる。"],
     [:staff, "もろ刃の杖", nil, "敵のHPを残り1にするが、自分のHPが半分になる。"],
     [:staff, "大損の杖", nil, nil],
     [:ring, "ちからの指輪", nil, nil],
@@ -132,7 +132,8 @@ class Item
 
       case item.type
       when :staff
-        if item.name == "転ばぬ先の杖"
+        case item.name
+        when "転ばぬ先の杖", "即死の杖"
           item.number = 0
         else
           # 杖の場合 5~8 で回数を設定する。
@@ -332,7 +333,7 @@ class Item
     return false unless @type == :scroll
 
     case @name
-    when "同定の巻物"
+    when "同定の巻物", "パンの巻物", "祈りの巻物"
       true
     else
       false

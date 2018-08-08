@@ -4,7 +4,7 @@ class StatusEffect
   attr_accessor :caster
   attr_accessor :type, :remaining_duration
 
-  def initialize(type, remaining_duration)
+  def initialize(type, remaining_duration = Float::INFINITY)
     @type = type
     @remaining_duration = remaining_duration
   end
@@ -25,6 +25,10 @@ class StatusEffect
       "倍速"
     when :bomb
       "爆弾"
+    when :audition_enhancement
+      "兎耳"
+    when :olfaction_enhancement
+      "豚鼻"
     else
       type.to_s
     end
@@ -64,6 +68,14 @@ module StatusEffectPredicates
 
   def nullified?
     @status_effects.any? { |e| e.type == :nullification }
+  end
+
+  def audition_enhanced?
+    @status_effects.any? { |e| e.type == :audition_enhancement }
+  end
+
+  def olfaction_enhanced?
+    @status_effects.any? { |e| e.type == :olfaction_enhancement }
   end
 
 end

@@ -341,7 +341,15 @@ class Program
   # モンスターが死んでいたら、その場合の処理を行う。
   def check_monster_dead(cell, monster)
     if monster.hp < 1.0
-      monster.invisible = false
+      if monster.invisible
+        old = monster.name
+        monster.invisible = false
+        monster.hp = 1
+        log("#{old}は #{monster.name}だった!")
+        render
+        monster.hp = 0
+        render
+      end
       monster.reveal_self! # 化けの皮を剥ぐ。
 
       cell.remove_object(monster)
@@ -797,6 +805,7 @@ class Program
       hero_move(c)
     when 16 # ^P
       open_history_window
+      :nothing
     when 12 # ^L
       if debug?
         Curses.close_screen
@@ -1723,6 +1732,13 @@ EOD
 
         log("#{monster.name}の特技は 封印された。")
       end
+    when "ザキの杖"
+      monster.hp = 0
+      check_monster_dead(cell, monster)
+    when "とうめいの杖"
+      unless monster.invisible
+        monster.invisible = true
+      end
     else
       fail "case not covered"
     end
@@ -1826,6 +1842,31 @@ EOD
         log(prevdesc, "は ", display_item(target), "だった。")
       else
         log("これは ", display_item(target), "に 間違いない！")
+      end
+    when "パンの巻物"
+      # 装備中のアイテムだったら装備状態を解除する。
+      if @hero.weapon.equal?(target)
+        @hero.weapon = nil
+      end
+      if @hero.shield.equal?(target)
+        @hero.shield = nil
+      end
+      if @hero.ring.equal?(target)
+        @hero.ring = nil
+      end
+
+      index = @hero.inventory.index { |i| target.equal?(i) }
+      fail unless index
+      @hero.inventory[index] = Item.make_item("大きなパン")
+      log(display_item(target), "は ", display_item(@hero.inventory[index]), "に変わってしまった！")
+    when "祈りの巻物"
+      if target.type == :staff
+        old = display_item(target)
+        r = rand(1..5)
+        target.number += r
+        log(old, "の回数が#{r}増えた。")
+      else
+        log("しかし 何も起こらなかった。")
       end
     else
       log("実装してない「どれを」巻物だよ。")
@@ -1977,6 +2018,20 @@ EOD
         item.cursed = false
       end
       log("アイテムの呪いが すべて解けた。")
+    when "兎耳の巻物"
+      if @hero.audition_enhanced?
+        log("しかし 何も起こらなかった。")
+      else
+        @hero.status_effects << StatusEffect.new(:audition_enhancement)
+        log("モンスターの気配を 察知できるようになった。")
+      end
+    when "豚鼻の巻物"
+      if @hero.olfaction_enhanced?
+        log("しかし 何も起こらなかった。")
+      else
+        @hero.status_effects << StatusEffect.new(:olfaction_enhancement)
+        log("アイテムを 嗅ぎ付けられるようになった。")
+      end
     else
       log("実装してないよ。")
     end
@@ -2429,6 +2484,14 @@ EOD
       @hero.char
     else
       obj = @level.first_visible_object(x, y)
+
+      if @hero.audition_enhanced?
+        obj ||= @level.cell(x, y).monster
+      end
+      if @hero.olfaction_enhanced?
+        obj ||= @level.cell(x, y).item || @level.cell(x, y).gold
+      end
+
       if obj
         if @hero.hallucinating?
           case obj
@@ -3426,6 +3489,8 @@ EOD
 
   def intrude_party_room
     log("魔物の巣窟だ！ ")
+    render
+
     if @hero.ring&.name != "盗賊の指輪"
 
       wake_monsters_in_room(@level.party_room, 1.0)
@@ -3495,9 +3560,10 @@ EOD
       Vec.plus(@hero.pos, DIRECTIONS[(index+ioff) % 8])
     }
 
-    if @hero.status_effects.any?
-      return false
-    elsif !hero_can_move_to?(target)
+    # if @hero.status_effects.any?
+    #   return false
+    # els
+    if !hero_can_move_to?(target)
       return false
     elsif @level.cell(*target).monster # ありえなくない？
       return false
