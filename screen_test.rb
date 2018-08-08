@@ -383,6 +383,17 @@ class Program
     end
   end
 
+  def remove_status_effect(character, type)
+    character.status_effects.reject! { |e|
+      if type == e.type
+        on_status_effect_expire(character, e)
+        true
+      else
+        false
+      end
+    }
+  end
+
   # 移動キー定義。
   KEY_TO_DIRVEC = {
     'h' => [-1,  0],
@@ -2137,6 +2148,8 @@ EOD
       use_health_item(@hero, 25, 2)
     when "高級薬草"
       use_health_item(@hero, 100, 4)
+      remove_status_effect(@hero, :confused)
+      remove_status_effect(@hero, :hallucination)
     when "毒けし草"
       unless @hero.strength_maxed?
         recover_strength()
@@ -2172,6 +2185,8 @@ EOD
     when "毒草"
       take_damage(5)
       take_damage_strength(3)
+      remove_status_effect(@hero, :confused)
+      remove_status_effect(@hero, :hallucination)
     when "目つぶし草"
       log("実装してないよ。")
     when "まどわし草"
