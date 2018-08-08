@@ -54,14 +54,20 @@ class Shop
     end
   end
 
+  def make_item(name, number)
+    item = Item.make_item(name)
+    if number
+      item.number = number
+    end
+    item.cursed = false
+    return item
+  end
+
   def merchandise_screen
     cols = 30
     menu = Menu.new(@merchandise, cols: cols, y: 3, x: 0,
                     dispfunc: proc { |win, (name, number, price)|
-                      item = Item.make_item(name)
-                      if number
-                        item.number = number
-                      end
+                      item = make_item(name, number)
                       @addstr_ml.(win, ["span", @display_item.(item), " ", price.to_s, "G"])
                     })
     begin
@@ -73,10 +79,7 @@ class Shop
           update_message("お金が足りないよ。")
         else
           if confirm_purchase(price)
-            item = Item.make_item(name)
-            if number
-              item.number = number
-            end
+            item = make_item(name, number)
             if @hero.add_to_inventory(item)
               update_message("まいどあり！")
               @hero.gold -= price
