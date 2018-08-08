@@ -1740,7 +1740,7 @@ EOD
 
         log("#{monster.name}の特技は 封印された。")
       end
-    when "ザキの杖"
+    when "即死の杖"
       monster.hp = 0
       check_monster_dead(cell, monster)
     when "とうめいの杖"
