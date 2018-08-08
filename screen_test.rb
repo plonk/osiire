@@ -1373,7 +1373,11 @@ EOD
       else fail
       end
     # when "目つぶし草"
-    # when "まどわし草"
+    when "まどわし草"
+      unless monster.hallucinating?
+        log("#{monster.name}は おびえだした。")
+        monster.status_effects << StatusEffect.new(:hallucination, 50)
+      end
     when "混乱草"
       unless monster.confused?
         monster.status_effects << StatusEffect.new(:confused, 10)
