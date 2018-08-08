@@ -2169,7 +2169,8 @@ EOD
       end
       log("ワナが見えるようになった。")
     when "毒草"
-      log("実装してないよ。")
+      take_damage(5)
+      take_damage_strength(3)
     when "目つぶし草"
       log("実装してないよ。")
     when "まどわし草"
