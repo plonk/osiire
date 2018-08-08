@@ -3038,10 +3038,7 @@ EOD
           m.status_effects << StatusEffect.new(:hallucination, Float::INFINITY)
         end
 
-        mx, my = @level.coordinates_of(m)
-        @level.remove_object(m, mx, my)
-        x,y = @level.get_random_character_placeable_place
-        @level.put_object(m, x, y)
+        monster_teleport(m, @level.cell(*@level.coordinates_of(m)))
       end
     when "白い手"
       if !@hero.held?
@@ -3108,10 +3105,7 @@ EOD
           m.status_effects << StatusEffect.new(:hallucination, Float::INFINITY)
         end
 
-        mx, my = @level.coordinates_of(m)
-        @level.remove_object(m, mx, my)
-        x,y = @level.get_random_character_placeable_place
-        @level.put_object(m, x, y)
+        monster_teleport(m, @level.cell(*@level.coordinates_of(m)))
       else
         log("#{@hero.name}は 何も持っていない。")
       end
