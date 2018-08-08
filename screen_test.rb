@@ -670,11 +670,20 @@ class Program
     rect.each_coords do |x, y|
       if @level.in_dungeon?(x, y)
         cell = @level.cell(x, y)
-        if cell.monster
-          cell.remove_object(cell.monster)
-        end
         if cell.item
+          log(display_item(cell.item), "は 消し飛んだ。")
           cell.remove_object(cell.item)
+          render
+        end
+      end
+    end
+    rect.each_coords do |x, y|
+      if @level.in_dungeon?(x, y)
+        cell = @level.cell(x, y)
+        if cell.monster
+          cell.monster.hp = 0
+          render
+          check_monster_dead(cell, cell.monster)
         end
       end
     end
