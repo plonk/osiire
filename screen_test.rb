@@ -1709,7 +1709,7 @@ EOD
     if placed
       log("#{monster.name}は 分裂した！ ")
     else
-      log("しかし 何も 起こらなかった。")
+      log("#{monster.name}は 分裂できなかった。")
     end
   end
 
