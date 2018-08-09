@@ -219,6 +219,12 @@ class Monster
       else
         @impersonating_char
       end
+    when "動くモアイ像"
+      if held?
+        @char
+      else
+        "\u{104066}\u{104067}"
+      end
     else
       if hp < 1.0
         "\u{104238}\u{104239}" # puff of smoke
