@@ -2056,10 +2056,15 @@ EOD
       @level.update_lighting(@hero.x, @hero.y)
       log("ダンジョンの壁がくずれた！ ")
     when "解呪の巻物"
-      @hero.inventory.each do |item|
-        item.cursed = false
+      cursed_items = @hero.inventory.select(&:cursed)
+      if cursed_items.any?
+        cursed_items.each do |item|
+          item.cursed = false
+        end
+        log("アイテムの呪いが 解けた。")
+      else
+        log("しかし呪われたアイテムは なかった。")
       end
-      log("アイテムの呪いが すべて解けた。")
     when "兎耳の巻物"
       if @hero.audition_enhanced?
         log("しかし 何も起こらなかった。")
