@@ -2378,7 +2378,9 @@ EOD
 
   # ヒーローがダメージを受ける。
   def take_damage(amount, opts = {})
-    unless opts[:quiet]
+    if opts[:quiet]
+      stop_dashing
+    else
       log("%.0f ポイントの ダメージを受けた。" % [amount])
     end
     @hero.hp -= amount
