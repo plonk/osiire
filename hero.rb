@@ -5,6 +5,7 @@ class Hero < Struct.new(:x, :y, :hp, :max_hp, :strength, :max_strength, :gold, :
   attr_accessor :weapon, :shield, :ring, :projectile
   attr_accessor :name
   attr_accessor :action_point
+  attr_accessor :invisible
 
   include StatusEffectPredicates
 
@@ -14,6 +15,7 @@ class Hero < Struct.new(:x, :y, :hp, :max_hp, :strength, :max_strength, :gold, :
     @status_effects = []
     @name = "名無しさん"
     @action_point = 0
+    @invisible = false
   end
 
   def action_point_recovery_rate

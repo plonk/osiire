@@ -270,14 +270,14 @@ class Program
         x, y = @level.coordinates_of(monster)
         monster_split(monster, cell, x, y)
       elsif monster.teleport_on_attack?
-        log("#{monster.name}は ワープした。")
+        log("#{display_character(monster)}は ワープした。")
         monster_teleport(monster, cell)
       end
     end
   end
 
   def monster_explode(monster, ground_zero_cell)
-    log("#{monster.name}は 爆発した！")
+    log("#{display_character(monster)}は 爆発した！")
 
     mx, my = @level.coordinates_of(monster)
 
@@ -307,7 +307,7 @@ class Program
     set_to_explode = !monster.nullified? && monster.bomb? && monster.hp < monster.max_hp/2
 
     monster.hp -= damage
-    log("#{monster.name}に #{damage} のダメージを与えた。")
+    log("#{display_character(monster)}に #{damage} のダメージを与えた。")
     if monster.hp >= 1.0 # 生きている
       if set_to_explode
         monster_explode(monster, cell)
@@ -342,11 +342,11 @@ class Program
   # モンスターが死んでいたら、その場合の処理を行う。
   def check_monster_dead(cell, monster)
     if monster.hp < 1.0
-      if monster.invisible
+      if monster.invisible && !@level.whole_level_lit
         old = monster.name
         monster.invisible = false
         monster.hp = 1
-        log("#{old}は #{monster.name}だった!")
+        log("#{old}は #{display_character(monster)}だった!")
         render
         monster.hp = 0
         render
@@ -369,7 +369,7 @@ class Program
       end
 
       @hero.exp += monster.exp
-      log("#{monster.name}を たおして #{monster.exp} ポイントの経験値を得た。")
+      log("#{display_character(monster)}を たおして #{monster.exp} ポイントの経験値を得た。")
       check_level_up
 
       @hero.status_effects.reject! { |e|
@@ -1346,18 +1346,18 @@ EOD
       end
     when "ちからの種"
       monster.strength += 1
-      log("#{monster.name}の ちからが 1 上がった。")
+      log("#{display_character(monster)}の ちからが 1 上がった。")
     # when "幸せの種"
     when "すばやさの種"
       case  monster.action_point_recovery_rate
       when 1
         monster.action_point_recovery_rate = 2
         monster.action_point = 2
-        log("#{monster.name}の 足はもう遅くない。")
+        log("#{display_character(monster)}の 足はもう遅くない。")
       when 2
         monster.action_point_recovery_rate = 4
         monster.action_point = 4
-        log("#{monster.name}の 足が速くなった。")
+        log("#{display_character(monster)}の 足が速くなった。")
       when 4
         log("しかし 何も起こらなかった。")
       else fail
@@ -1365,7 +1365,7 @@ EOD
     when "毒草"
       if monster.strength > 0
         monster.strength -= 1
-        log("#{monster.name}の ちからが 1 下がった。")
+        log("#{display_character(monster)}の ちからが 1 下がった。")
       else
         # log("しかし 何も起こらなかった。")
       end
@@ -1376,22 +1376,22 @@ EOD
       when 2
         monster.action_point_recovery_rate = 1
         monster.action_point = 1
-        log("#{monster.name}の 足が遅くなった。")
+        log("#{display_character(monster)}の 足が遅くなった。")
       when 4
         monster.action_point_recovery_rate = 2
         monster.action_point = 2
-        log("#{monster.name}の 足はもう速くない。")
+        log("#{display_character(monster)}の 足はもう速くない。")
       else fail
       end
     # when "目つぶし草"
     when "まどわし草"
       unless monster.hallucinating?
-        log("#{monster.name}は おびえだした。")
+        log("#{display_character(monster)}は おびえだした。")
         monster.status_effects << StatusEffect.new(:hallucination, 50)
       end
     when "混乱草"
       unless monster.confused?
-        log("#{monster.name}は 混乱した。")
+        log("#{display_character(monster)}は 混乱した。")
         monster.status_effects << StatusEffect.new(:confused, 10)
       end
     when "睡眠草"
@@ -1655,7 +1655,7 @@ EOD
   def monster_fall_asleep(monster)
     unless monster.asleep?
       monster.status_effects.push(StatusEffect.new(:sleep, 5))
-      log("#{monster.name}は 眠りに落ちた。")
+      log("#{display_character(monster)}は 眠りに落ちた。")
     end
   end
 
@@ -1687,7 +1687,7 @@ EOD
     cell.remove_object(monster)
     @level.put_object(m, x, y)
     m.action_point = m.action_point_recovery_rate
-    log("#{monster.name}は #{m.name}に変わった！ ")
+    log("#{display_character(monster)}は #{m.name}に変わった！ ")
   end
 
   # モンスターが分裂する。
@@ -1707,9 +1707,9 @@ EOD
       end
     end
     if placed
-      log("#{monster.name}は 分裂した！ ")
+      log("#{display_character(monster)}は 分裂した！ ")
     else
-      log("#{monster.name}は 分裂できなかった。")
+      log("#{display_character(monster)}は 分裂できなかった。")
     end
   end
 
@@ -1745,7 +1745,7 @@ EOD
     when "もろ刃の杖"
       monster.hp = 1
       @hero.hp = @hero.hp - (@hero.hp / 2.0).ceil
-      log("#{monster.name}の HP が 1 になった。")
+      log("#{display_character(monster)}の HP が 1 になった。")
     when "鈍足の杖"
       case  monster.action_point_recovery_rate
       when 1
@@ -1753,11 +1753,11 @@ EOD
       when 2
         monster.action_point_recovery_rate = 1
         monster.action_point = 1
-        log("#{monster.name}の 足が遅くなった。")
+        log("#{display_character(monster)}の 足が遅くなった。")
       when 4
         monster.action_point_recovery_rate = 2
         monster.action_point = 2
-        log("#{monster.name}の 足はもう速くない。")
+        log("#{display_character(monster)}の 足はもう速くない。")
       else fail
       end
     when "封印の杖"
@@ -1769,7 +1769,7 @@ EOD
         monster.action_point = 2
         monster.action_point_recovery_rate = 2
 
-        log("#{monster.name}の特技は 封印された。")
+        log("#{display_character(monster)}の特技は 封印された。")
       end
     when "即死の杖"
       monster.hp = 0
@@ -2537,11 +2537,42 @@ EOD
     return c
   end
 
+  def display_character(character)
+    if character.is_a?(Monster) && character.invisible && !@level.whole_level_lit
+      "見えない敵"
+    else
+      character.name
+    end
+  end
+
+  def visible_to_hero?(obj, lit, globally_lit, explored)
+    case obj
+    when Trap
+      explored && obj.visible
+    when Monster
+      if @hero.audition_enhanced? || lit || globally_lit
+        invisible = obj.invisible && !globally_lit
+        if invisible
+          false
+        else
+          true
+        end
+      else
+        false
+      end
+    when Gold, Item
+      @hero.olfaction_enhanced? || explored
+    when StairCase
+      explored
+    else fail
+    end
+  end
+
   def dungeon_char(x, y)
     if @hero.x == x && @hero.y == y
       @hero.char
     else
-      obj = @level.first_visible_object(x, y)
+      obj = @level.first_visible_object(x, y, method(:visible_to_hero?))
 
       if @hero.audition_enhanced?
         obj ||= @level.cell(x, y).monster
@@ -3033,9 +3064,9 @@ EOD
     attack = get_monster_attack(m)
 
     if attack == 0
-      log("#{m.name}は 様子を見ている。")
+      log("#{display_character(m)}は 様子を見ている。")
     else
-      log("#{m.name}の こうげき！ ")
+      log("#{display_character(m)}の こうげき！ ")
       if rand() < 0.125
         log("#{@hero.name}は ひらりと身をかわした。")
       else
@@ -3279,17 +3310,17 @@ EOD
   def on_status_effect_expire(character, effect)
     case effect.type
     when :paralysis
-      log("#{character.name}の かなしばりがとけた。")
+      log("#{display_character(character)}の かなしばりがとけた。")
     when :sleep
-      log("#{character.name}は 目をさました。")
+      log("#{display_character(character)}は 目をさました。")
     when :held
-      log("#{character.name}の 足が抜けた。")
+      log("#{display_character(character)}の 足が抜けた。")
     when :confused
-      log("#{character.name}の 混乱がとけた。")
+      log("#{display_character(character)}の 混乱がとけた。")
     when :quick
-      log("#{character.name}の 足はもう速くない。")
+      log("#{display_character(character)}の 足はもう速くない。")
     else
-      log("#{character.name}の #{effect.name}状態がとけた。")
+      log("#{display_character(character)}の #{effect.name}状態がとけた。")
     end
   end
 

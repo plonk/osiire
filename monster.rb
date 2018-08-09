@@ -242,14 +242,10 @@ class Monster
   end
 
   def name
-    if @invisible
-      "見えない敵"
+    if @name == "化け狸"
+      @impersonating_name
     else
-      if @name == "化け狸"
-        @impersonating_name
-      else
-        @name
-      end
+      @name
     end
   end
 

@@ -15,50 +15,13 @@ class Cell
     @objects = [].freeze
   end
 
-  def first_visible_object(hero_sees_everything, tileset)
-    if hero_sees_everything
-      visible_objects = @objects.select { |obj|
-        case obj
-        when Trap
-          obj.visible
-        else
-          true
-        end
-      }
-
-      if visible_objects.any?
-        return visible_objects.first
-      else
-        return nil
-      end
-    else
-      visible_objects = @objects.select { |obj|
-        case obj
-        when Trap
-          obj.visible
-        else
-          if obj.is_a?(Monster) && obj.invisible
-            false
-          elsif @lit
-            true
-          else
-            if @explored
-              obj.is_a?(Gold) || obj.is_a?(Item) || obj.is_a?(StairCase)
-            else
-              false
-            end
-          end
-        end
-      }
-
-      if !@explored
-        return nil
-      elsif visible_objects.any?
-        return visible_objects.first
-      else
-        return nil
-      end
-    end
+  def first_visible_object(globally_lit, visible_p)
+    return @objects.find { |obj|
+      visible_p.(obj,
+                 @lit,
+                 globally_lit,
+                 @explored)
+    }
   end
 
   def background_char(hero_sees_everything, tileset)
@@ -433,8 +396,8 @@ class Level
     end
   end
 
-  def first_visible_object(x, y)
-    @dungeon[y][x].first_visible_object(@whole_level_lit, @tileset)
+  def first_visible_object(x, y, visible_p)
+    @dungeon[y][x].first_visible_object(@whole_level_lit, visible_p)
   end
 
   def background_char(x, y)
