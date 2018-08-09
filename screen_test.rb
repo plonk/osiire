@@ -2676,9 +2676,9 @@ EOD
     addstr_ml(Curses, ["span", "%d" % [@level_number], ["special", "F"], "  "])
     addstr_ml(Curses, ["span", [dungeon, "Lv"], " %d  " % [@hero.lv]])
     Curses.attron(Curses::A_BLINK) if low_hp
-    addstr_ml(Curses, [dungeon, "HP "])
+    addstr_ml(Curses, [dungeon, "HP"])
     Curses.attroff(Curses::A_BLINK) if low_hp
-    Curses.addstr("%3d" % [@hero.hp])
+    Curses.addstr(" %3d" % [@hero.hp])
     addstr_ml(Curses, ["special", "/"])
     Curses.addstr("%d  " % [@hero.max_hp])
     Curses.attron(Curses::color_pair(HEALTH_BAR_COLOR_PAIR))
@@ -2687,9 +2687,9 @@ EOD
     Curses.addstr("  %d" % [@hero.gold])
     addstr_ml(["span", ["special", "G"], "  "])
     Curses.attron(Curses::A_BLINK) if starving
-    addstr_ml(Curses, ["special", "満 "])
+    addstr_ml(Curses, ["special", "満"])
     Curses.attroff(Curses::A_BLINK) if starving
-    Curses.addstr("%d"   % [@hero.fullness.ceil])
+    Curses.addstr(" %d"   % [@hero.fullness.ceil])
     addstr_ml(["special", "% "])
     Curses.addstr("%s "     % [@hero.status_effects.map(&:name).join(' ')])
     addstr_ml(["special", "["])
