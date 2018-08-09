@@ -2766,24 +2766,28 @@ EOD
 
   def status_window
     until_next_lv = exp_until_next_lv ? exp_until_next_lv.to_s : "∞"
-    text = "攻撃力 %d\n" % [get_hero_attack] +
-           "防御力 %d\n" % [get_hero_defense] +
-           "  武器 %s\n" % [@hero.weapon || "なし"] +
-           "    盾 %s\n" % [@hero.shield || "なし"] +
-           "  指輪 %s\n" % [@hero.ring || "なし"] +
-           "ちから %d/%d\n" % [@hero.strength, @hero.max_strength] +
-           "経験値 %d\n" % [@hero.exp] +
-           "つぎのLvまで %s\n" % [until_next_lv] +
-           "満腹度 %d%%/%d%%\n" % [@hero.fullness.ceil, @hero.max_fullness]
+    disp = proc { |item| item.nil? ? 'なし' : display_item(item) }
+    text =
+      [
+        ["span", "攻撃力 %d" % [get_hero_attack]],
+        ["span", "防御力 %d" % [get_hero_defense]],
+        ["span", "  武器 ", disp.(@hero.weapon)],
+        ["span", "    盾 ", disp.(@hero.shield)],
+        ["span", "  指輪 ", disp.(@hero.ring)],
+        ["span", "ちから %d/%d" % [@hero.strength, @hero.max_strength]],
+        ["span", "経験値 %d" % [@hero.exp]],
+        ["span", "つぎのLvまで %s" % [until_next_lv]],
+        ["span", "満腹度 %d%%/%d%%" % [@hero.fullness.ceil, @hero.max_fullness]]
+      ]
 
-    win = Curses::Window.new(9+2, 30, 1, 0) # lines, cols, y, x
+    win = Curses::Window.new(9+2, 31, 1, 0) # lines, cols, y, x
     win.clear
     win.rounded_box
     win.setpos(0, 1)
     win.addstr(@hero.name)
-    text.each_line.with_index(1) do |line, y|
+    text.each.with_index(1) do |line, y|
       win.setpos(y, 1)
-      win.addstr(line.chomp)
+      addstr_ml(win, line)
     end
     win.getch
     win.close
