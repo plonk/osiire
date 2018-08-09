@@ -2135,6 +2135,13 @@ EOD
   def take_herb(item)
     fail "not a herb" unless item.type == :herb
 
+    if item.name == "火炎草"
+      vec = ask_direction
+      if vec.nil?
+        return :nothing
+      end
+    end
+
     # 副作用として満腹度5%回復。
     @hero.increase_fullness(5.0)
 
@@ -2204,11 +2211,6 @@ EOD
       wait_delay
       hero_teleport
     when "火炎草"
-      vec = ask_direction
-      if vec.nil?
-        return :nothing
-      end
-
       log("#{@hero.name}は 口から火を はいた！ ")
 
       tx, ty = Vec.plus([@hero.x, @hero.y], vec)
