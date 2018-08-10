@@ -314,6 +314,12 @@ class Dungeon
       }
     when 10..12
       {
+        :HORIZONTAL_WALL => "\u{104240}\u{104241}",
+        :VERTICAL_WALL   => "\u{104242}\u{104243}",
+        :WALL            => "\u{104244}\u{104245}",
+      }
+    when 13..15
+      {
         :HORIZONTAL_WALL => '􄅲􄅳',
         :VERTICAL_WALL   => '􄅴􄅵',
         :WALL            => '􄅶􄅷',
