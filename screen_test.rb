@@ -2548,7 +2548,7 @@ EOD
   def visible_to_hero?(obj, lit, globally_lit, explored)
     case obj
     when Trap
-      explored && obj.visible
+      obj.visible && (explored || globally_lit)
     when Monster
       if @hero.audition_enhanced? || lit || globally_lit
         invisible = obj.invisible && !globally_lit
@@ -2561,9 +2561,9 @@ EOD
         false
       end
     when Gold, Item
-      @hero.olfaction_enhanced? || explored
+      @hero.olfaction_enhanced? || explored || globally_lit
     when StairCase
-      explored
+      explored || globally_lit
     else fail
     end
   end
