@@ -6,6 +6,7 @@ class Hero < Struct.new(:x, :y, :hp, :max_hp, :strength, :max_strength, :gold, :
   attr_accessor :name
   attr_accessor :action_point
   attr_accessor :invisible
+  attr_accessor :facing
 
   include StatusEffectPredicates
 
@@ -16,6 +17,7 @@ class Hero < Struct.new(:x, :y, :hp, :max_hp, :strength, :max_strength, :gold, :
     @name = "名無しさん"
     @action_point = 0
     @invisible = false
+    @facing = [0,1]
   end
 
   def action_point_recovery_rate
@@ -31,20 +33,32 @@ class Hero < Struct.new(:x, :y, :hp, :max_hp, :strength, :max_strength, :gold, :
   end
 
   def char
-    if hp < 1.0
-      '􄅂􄅃'
-    elsif asleep?
-      '􄅂􄅃'
+    # if hp < 1.0
+    #   '􄅂􄅃' # 倒れている
+    # elsif asleep?
+    #   '􄅂􄅃' # 倒れている
+    # else
+    #   if weapon && shield
+    #     '􄀦􄀧' # 武器・盾
+    #   elsif weapon
+    #     '􄄾􄄿' # 武器のみ
+    #   elsif shield
+    #     '􄄼􄄽' # 盾のみ
+    #   else
+    #     '􄅀􄅁' # 装備なし
+    #   end
+    # end
+    case facing
+    when [ 0,-1] then "\u{104252}\u{104253}" # '↑ '
+    when [ 1,-1] then "\u{104252}\u{104253}" # '↗ '
+    when [ 1, 0] then "\u{104256}\u{104257}" # →
+    when [ 1, 1] then '􄀦􄀧'
+    when [ 0, 1] then '􄀦􄀧'
+    when [-1, 1] then '􄀦􄀧'
+    when [-1, 0] then "\u{104254}\u{104255}"
+    when [-1,-1] then "\u{104252}\u{104253}"
     else
-      if weapon && shield
-        '􄀦􄀧'
-      elsif weapon
-        '􄄾􄄿'
-      elsif shield
-        '􄄼􄄽'
-      else
-        '􄅀􄅁'
-      end
+      '??'
     end
   end
 

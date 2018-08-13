@@ -193,12 +193,13 @@ class Program
     herbs_false = ["黒い草", "白い草", "赤い草", "青い草", "黄色い草", "緑色の草",
                    "まだらの草", "スベスベの草", "チクチクの草", "空色の草", "しおれた草",
                    "くさい草", "茶色い草", "ピンクの草"]
-    scrolls_false = ["αの巻物", "βの巻物", "γの巻物", "δの巻物", "εの巻物", "ζの巻物", "ηの巻物", "θの巻物",
-                     "ιの巻物", "κの巻物", "λの巻物", "μの巻物", "νの巻物", "ξの巻物", "οの巻物", "πの巻物",
-                     "ρの巻物", "σの巻物", "τの巻物", "υの巻物", "φの巻物", "χの巻物", "ψの巻物", "ωの巻物"]
-    # scrolls_false = ["巻物I", "巻物II", "巻物III", "巻物IV", "巻物V", "巻物VI", "巻物VII", "巻物VIII",
-    #                  "巻物IX", "巻物X", "巻物XI", "巻物XII", "巻物XIII", "巻物XIV", "巻物XV", "巻物XVI",
-    #                  "巻物XVII", "巻物XVIII", "巻物XIX", "巻物XX", "巻物XXI", "巻物XXII"]
+    scrolls_false = ["ウナギの絵の巻物", "入道の絵の巻物", "金魚の絵の巻物", "カエルの絵の巻物",
+                     "スイカの絵の巻物", "猫の絵の巻物", "火鉢の絵の巻物", "トカゲの絵の巻物",
+                     "餓鬼の絵の巻物", "岩の絵の巻物", "滝の絵の巻物", "幽霊の絵の巻物",
+                     "コイの絵の巻物", "タヌキの絵の巻物", "アシカの絵の巻物",
+                     "異人の絵の巻物", "天狗の絵の巻物", "船の絵の巻物", "武具の絵の巻物",
+                     "囲炉裏の絵の巻物", "祭の絵の巻物", "やまんばの絵の巻物",
+                     "龍の絵の巻物", "亀の絵の巻物"]
     staves_false = ["鉄の杖", "銅の杖", "鉛の杖", "銀の杖", "金の杖", "アルミの杖", "真鍮の杖",
                     "ヒノキの杖", "杉の杖", "桜の杖", "松の杖", "キリの杖", "ナラの杖", "ビワの杖"]
     rings_false = ["金剛石の指輪", "翡翠の指輪", "猫目石の指輪", "水晶の指輪", # "タイガーアイの指輪",
@@ -454,15 +455,26 @@ class Program
     end
   end
 
+  SHIFTED_MOVEMENT_KEYS = %w[H J K L Y U B N] + # Shiftされた letter key
+                          %w[7 8 9 4 6 1 2 3] + # Shiftされたか(一部OS)、NumLock状態のnumpad
+                          [Curses::KEY_SLEFT,
+                           Curses::KEY_SRIGHT,
+                           Curses::KEY_SR,
+                           Curses::KEY_SF] # ShiftされたNav cluster の矢印キー
+  def shifted?(movement_key)
+    SHIFTED_MOVEMENT_KEYS.include?(movement_key)
+  end
+
   # ヒーローの移動・攻撃。
-  # String → :move | :action
+  # String | Integer → :move | :action
   def hero_move(c)
     vec = KEY_TO_DIRVEC[c]
     unless vec
       fail ArgumentError, "unknown movement key #{c.inspect}"
     end
 
-    shifted = (%w[H J K L Y U B N 7 8 9 4 6 1 2 3] + [Curses::KEY_SLEFT, Curses::KEY_SRIGHT, Curses::KEY_SR, Curses::KEY_SF]).include?(c)
+    @hero.facing = vec
+    shifted = shifted?(c)
 
     if @hero.confused?
       vec = DIRECTIONS.sample
@@ -2705,32 +2717,32 @@ EOD
   def render_status
     low_hp   = @hero.hp.floor <= (@hero.max_hp / 10.0).ceil
     starving = @hero.fullness <= 0.0
-    dungeon = "special"
+    dungeon = "span" # span or special
 
     Curses.setpos(0, 0)
     Curses.clrtoeol
-    addstr_ml(Curses, ["span", "%d" % [@level_number], ["special", "F"], "  "])
+    addstr_ml(Curses, ["span", "%d" % [@level_number], [dungeon, "F"], "  "])
     addstr_ml(Curses, ["span", [dungeon, "Lv"], " %d  " % [@hero.lv]])
     Curses.attron(Curses::A_BLINK) if low_hp
     addstr_ml(Curses, [dungeon, "HP"])
     Curses.attroff(Curses::A_BLINK) if low_hp
     Curses.addstr(" %3d" % [@hero.hp])
-    addstr_ml(Curses, ["special", "/"])
+    addstr_ml(Curses, [dungeon, "/"])
     Curses.addstr("%d  " % [@hero.max_hp])
     Curses.attron(Curses::color_pair(HEALTH_BAR_COLOR_PAIR))
     Curses.addstr(render_health_bar)
     Curses.attroff(Curses::color_pair(HEALTH_BAR_COLOR_PAIR))
     Curses.addstr("  %d" % [@hero.gold])
-    addstr_ml(["span", ["special", "G"], "  "])
+    addstr_ml(["span", [dungeon, "G"], "  "])
     Curses.attron(Curses::A_BLINK) if starving
-    addstr_ml(Curses, ["special", "満"])
+    addstr_ml(Curses, [dungeon, "満"])
     Curses.attroff(Curses::A_BLINK) if starving
     Curses.addstr(" %d"   % [@hero.fullness.ceil])
-    addstr_ml(["special", "% "])
+    addstr_ml([dungeon, "% "])
     Curses.addstr("%s "     % [@hero.status_effects.map(&:name).join(' ')])
-    addstr_ml(["special", "["])
+    addstr_ml([dungeon, "["])
     Curses.addstr("%04d"  % [@level.turn])
-    addstr_ml(["special", "]"])
+    addstr_ml([dungeon, "]"])
   end
 
   # メッセージの表示。
