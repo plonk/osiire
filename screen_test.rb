@@ -63,6 +63,9 @@ class Program
   CURSED_ITEM_COLOR_PAIR = 4
   SPECIAL_DUNGEON_COLOR_PAIR = 5
 
+  MONSTER_TERON_RATE = 0.15
+  HERO_TERON_RATE = 0.05
+
   def initialize
     @debug = ARGV.include?("-d")
     @default_name = nil
@@ -326,7 +329,7 @@ class Program
   def hero_attack(cell, monster)
     log("#{@hero.name}の攻撃！ ")
     on_monster_attacked(monster)
-    if !@hero.no_miss? && rand() < 0.125
+    if !@hero.no_miss? && rand() < HERO_TERON_RATE
       log("#{@hero.name}の攻撃は 外れた。")
     else
       attack = get_hero_attack
@@ -3214,7 +3217,7 @@ EOD
       log("#{display_character(m)}は 様子を見ている。")
     else
       log("#{display_character(m)}の こうげき！ ")
-      if rand() < 0.125
+      if rand() < MONSTER_TERON_RATE
         log("#{@hero.name}は ひらりと身をかわした。")
       else
         damage = attack_to_hero_damage(attack)
