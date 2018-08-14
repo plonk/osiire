@@ -664,7 +664,7 @@ class Program
     when "トラばさみ"
       log("トラばさみに かかってしまった！ ")
       unless @hero.held?
-        @hero.status_effects << StatusEffect.new(:held, 10)
+        @hero.status_effects << StatusEffect.new(:held, 7)
       end
     when "眠りガス"
       log("足元から 霧が出ている！ ")
@@ -3275,7 +3275,7 @@ EOD
     when "白い手"
       if !@hero.held?
         log("#{m.name}は #{@hero.name}の足をつかんだ！ ")
-        effect = StatusEffect.new(:held, 10)
+        effect = StatusEffect.new(:held, 7)
         effect.caster = m
         @hero.status_effects << effect
       end
