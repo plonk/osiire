@@ -159,6 +159,10 @@ class Hero < Struct.new(:x, :y, :hp, :max_hp, :strength, :max_strength, :gold, :
     )
   end
 
+  def in_inventory?(item)
+    !!inventory.find { |i| i.equal?(item) }
+  end
+
   def pos
     [x, y]
   end

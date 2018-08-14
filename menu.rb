@@ -15,6 +15,7 @@ class Menu
     @dispfunc = opts[:dispfunc] || proc { |win,data| win.addstr(data.to_s) }
     @title = opts[:title] || ""
     @sortable = opts[:sortable] || false
+    @titledispfunc = opts[:titledispfunc] || nil
   end
 
   def close
@@ -28,7 +29,11 @@ class Menu
     @win.clear
     @win.rounded_box
     @win.setpos(0, 1)
-    @win.addstr(@title)
+    if @titledispfunc
+      @titledispfunc.call(@win)
+    else
+      @win.addstr(@title)
+    end
 
     case @items.size
     when 0

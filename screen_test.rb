@@ -127,6 +127,8 @@ class Program
   end
 
   def addstr_ml(win = Curses, ml)
+    fail TypeError, "no addstr method on #{win.inspect}" unless win.respond_to?(:addstr)
+
     case ml
     when String
       win.addstr(ml)
@@ -609,10 +611,10 @@ class Program
          @level.cell(x, y).can_place?
         item = candidates.shift
         if item.name == "結界の巻物"
-          item.stuck = true
+          stick_scroll(item)
         end
         @level.put_object(item, x, y)
-        @hero.remove_from_inventory(item)
+        remove_item_from_hero(item)
         count += 1
       end
     end
@@ -620,6 +622,16 @@ class Program
     if count > 0
       log("アイテムを #{count}個 ばらまいてしまった！ ")
     end
+  end
+
+  def stick_scroll(item)
+    prevdesc = display_item(item)
+
+    if @naming_table.include?(item.name) && !@naming_table.identified?(item.name)
+      @naming_table.identify!(item.name)
+      log(prevdesc, "は ", display_item(item), "だった。")
+    end
+    item.stuck = true
   end
 
   # ヒーローがワープする。
@@ -778,16 +790,86 @@ class Program
     # 足元にワナがある場合、階段がある場合、アイテムがある場合、なにもない場合。
     cell = @level.cell(@hero.x, @hero.y)
     if cell.trap
-      log("足元には #{cell.trap.name}がある。「>」でわざとかかる。")
-      return :nothing
+      return trap_menu(cell.trap)
     elsif cell.staircase
-      log("足元には 階段がある。「>」で昇降。")
-      return :nothing
+      return staircase_menu(cell.staircase)
     elsif cell.item
-      log("足元には ", display_item(cell.item), "が ある。")
-      return :nothing
+      return underfoot_item_menu(cell.item)
     else
       log("足元には なにもない。")
+      return :nothing
+    end
+  end
+
+  def display_trap(trap)
+    "#{trap.char} #{trap.name}"
+    #["span", trap.char, trap.name]
+  end
+
+  def describe_trap(trap)
+    message_window(trap.desc, y: 1, x: 15)
+  end
+
+  def trap_menu(trap)
+    fail TypeError, "not a trap: #{trap.inspect}" unless trap.is_a?(Trap)
+
+    menu = Menu.new(["ふむ", "説明"],
+                    y: 1, x: 0, cols: 15,
+                    title: display_trap(trap))
+    begin
+      loop do
+        command, label = menu.choose
+        case command
+        when :chosen
+          case label
+          when "ふむ"
+            trap_activate(trap)
+            return :action
+          when "説明"
+            describe_trap(trap)
+            # ループにもどる。
+          else fail end
+        when :cancel
+          return :nothing
+        else fail end
+        render
+      end
+    rescue
+      menu.close
+    end
+  end
+
+  def staircase_menu(staircase)
+    menu = Menu.new([staircase.upwards ? "のぼる" : "降りる", "そのまま"],
+                    y: 1, x: 0, cols: 15,
+                    title: "#{staircase.char} #{staircase.name}")
+    begin
+      loop do
+        command, label = menu.choose
+        case command
+        when :chosen
+          case label
+          when "のぼる", "降りる"
+            return go_downstairs()
+          when "そのまま"
+            return :nothing
+          else fail end
+        when :cancel
+          return :nothing
+        else fail end
+        render
+      end
+    rescue
+      menu.close
+    end
+  end
+
+  def underfoot_item_menu(item)
+    log(display_item(item), "を？")
+    action = item_action_menu(item, y: 1, x: 0)
+    if action
+      return try_do_action_on_item(action, item)
+    else
       return :nothing
     end
   end
@@ -853,6 +935,8 @@ class Program
         load(File.dirname(__FILE__) + "/item.rb")
         load(File.dirname(__FILE__) + "/level.rb")
         load(File.dirname(__FILE__) + "/shop.rb")
+        load(File.dirname(__FILE__) + "/trap.rb")
+        load(File.dirname(__FILE__) + "/menu.rb")
       end
       render
       :nothing
@@ -1047,16 +1131,22 @@ EOD
 
   # アイテムに適用可能な行動
   def actions_for_item(item)
-    actions = item.actions
+    in_inventory = @hero.inventory.find { |i| i.equal?(item) }
+    basics = ["投げる", in_inventory ? "置く" : "拾う"]
+    actions = item.actions + basics
     if !@naming_table.include?(item.name) || @naming_table.identified?(item.name)
     else
       actions += ["名前"]
     end
     actions += ["説明"]
+    actions -= ["装備"] unless @hero.in_inventory?(item)
+    return actions
   end
 
   # 足元にアイテムを置く。
   def try_place_item(item)
+    fail 'not in inventory' unless @hero.in_inventory?(item)
+
     if @level.cell(@hero.x, @hero.y).can_place?
       if (@hero.weapon.equal?(item) || @hero.shield.equal?(item) || @hero.ring.equal?(item)) &&
          item.cursed
@@ -1064,9 +1154,9 @@ EOD
         return
       end
 
-      @hero.remove_from_inventory(item)
+      remove_item_from_hero(item)
       if item.name == "結界の巻物"
-        item.stuck = true
+        stick_scroll(item)
       end
       @level.put_object(item, @hero.x, @hero.y)
       update_stairs_direction
@@ -1144,6 +1234,47 @@ EOD
     ["nicknamed", kind_label, ":", @naming_table.nickname(item.name)]
   end
 
+  # 足元かインベントリからアイテムを削除する。
+  def remove_item_from_hero(item)
+    cell = @level.cell(*@hero.pos)
+    if cell&.item.equal?(item) ||
+       cell&.gold.equal?(item)
+      cell.remove_object(item)
+    elsif @hero.in_inventory?(item)
+      @hero.remove_from_inventory(item)
+    else
+      fail "item neither underfoot nor in inventory"
+    end
+  end
+
+  # () -> :action | :nothing
+  def try_do_action_on_item(action, item)
+    case action
+    when "置く"
+      try_place_item(item)
+    when "拾う"
+      x, y = @level.coordinates_of(item)
+      cell = @level.cell(x, y)
+      pick(cell, item)
+      return :action
+    when "投げる"
+      return throw_item(item)
+    when "食べる"
+      eat_food(item)
+    when "飲む"
+      return take_herb(item)
+    when "装備"
+      equip(item)
+    when "読む"
+      return read_scroll(item)
+    when "ふる"
+      return zap_staff(item)
+    else
+      log("case not covered: #{item}を#{action}。")
+    end
+    return :action
+  end
+
   # 持ち物メニューを開く。
   # () → :action | :nothing
   def open_inventory
@@ -1159,62 +1290,54 @@ EOD
       addstr_ml(win, ["span", prefix, item.char, display_item(item)])
     }
 
-    menu = nil
-    item = c = nil
+    menu = Menu.new(@hero.inventory,
+                    y: 1, x: 0, cols: 28,
+                    dispfunc: dispfunc,
+                    title: "持ち物 [s]ソート",
+                    sortable: true)
+    begin
+      item = action = nil
 
-    loop do
-      item = c = nil
-      menu = Menu.new(@hero.inventory,
-                      y: 1, x: 0, cols: 28,
-                      dispfunc: dispfunc,
-                      title: "持ち物 [s]ソート",
-                      sortable: true)
-      render
-      command, *args = menu.choose
+      loop do
+        item = action = nil
+        command, item = menu.choose
 
-      case command
-      when :cancel
-        #Curses.beep
-        return :nothing
-      when :chosen
-        item, = args
-
-        c = item_action_menu(item)
-        if c.nil?
-          next
+        case command
+        when :cancel
+          return :nothing
+        when :chosen
+          action = item_action_menu(item)
+          render
+          if action.nil?
+            next
+          end
+        when :sort
+          @hero.sort_inventory!
+          # @hero.inventory と Menu 内の配列が coreferential なことを利用している…
         end
-      when :sort
-        @hero.sort_inventory!
+
+        break if item and action
       end
 
-      break if item and c
+      return try_do_action_on_item(action, item)
+    ensure
+      menu.close
     end
-
-    case c
-    when "置く"
-      try_place_item(item)
-    when "投げる"
-      return throw_item(item)
-    when "食べる"
-      eat_food(item)
-    when "飲む"
-      return take_herb(item)
-    when "装備"
-      equip(item)
-    when "読む"
-      return read_scroll(item)
-    when "ふる"
-      return zap_staff(item)
-    else
-      log("case not covered: #{item}を#{c}。")
-    end
-    return :action
-  ensure
-    menu&.close
   end
 
-  def item_action_menu(item)
-    action_menu = Menu.new(actions_for_item(item), y: 1, x: 27, cols: 9)
+  def nicknaming_interaction(item)
+    if @naming_table.state(item.name) == :nicknamed
+      nickname = @naming_table.nickname(item.name)
+    else
+      nickname = nil
+    end
+    nickname = NamingScreen.run(nickname)
+    @naming_table.set_nickname(item.name, nickname)
+  end
+
+  def item_action_menu(item, menu_opts = {})
+    menu_opts = {y: 1, x: 27, cols: 9}.merge(menu_opts)
+    action_menu = Menu.new(actions_for_item(item), menu_opts)
     begin
       c, *args = action_menu.choose
       case c
@@ -1227,13 +1350,7 @@ EOD
           return nil
         elsif c == "名前"
           render
-          if @naming_table.state(item.name) == :nicknamed
-            nickname = @naming_table.nickname(item.name)
-          else
-            nickname = nil
-          end
-          nickname = NamingScreen.run(nickname)
-          @naming_table.set_nickname(item.name, nickname)
+          nicknaming_interaction(item)
           return nil
         else
           return c
@@ -1316,7 +1433,7 @@ EOD
 
         @level.cell(x+dx, y+dy).put_object(item)
         if item.name == "結界の巻物"
-          item.stuck = true
+          stick_scroll(item)
         end
         log(display_item(item), "は 床に落ちた。")
         return
@@ -1625,6 +1742,11 @@ EOD
       return :action
     end
 
+    if item.stuck
+      log(display_item(item), "は 床にはりついて 外れない！")
+      return :action
+    end
+
     dir = ask_direction()
     if dir.nil?
       return :nothing
@@ -1636,7 +1758,7 @@ EOD
       item.number -= 1
       do_throw_item(one, dir)
     else
-      @hero.remove_from_inventory(item)
+      remove_item_from_hero(item)
       do_throw_item(item, dir)
     end
     return :action
@@ -1853,6 +1975,11 @@ EOD
   def read_scroll(item)
     fail "not a scroll" unless item.type == :scroll
 
+    if item.stuck
+      log(display_item(item), "は 床にはりついて 読めない。")
+      return :action
+    end
+
     if item.targeted_scroll?
       return read_targeted_scroll(item)
     else
@@ -1864,7 +1991,7 @@ EOD
     target = choose_target
     return :nothing unless target
 
-    @hero.remove_from_inventory(scroll)
+    remove_item_from_hero(scroll)
     log(display_item(scroll), "を 読んだ。")
     unless @naming_table.identified?(scroll.name)
       @naming_table.identify!(scroll.name)
@@ -1966,7 +2093,7 @@ EOD
   end
 
   def read_nontargeted_scroll(item)
-    @hero.remove_from_inventory(item)
+    remove_item_from_hero(item)
     log(display_item(item), "を 読んだ。")
     unless @naming_table.identified?(item.name)
       @naming_table.identify!(item.name)
@@ -2162,7 +2289,7 @@ EOD
     # 副作用として満腹度5%回復。
     @hero.increase_fullness(5.0)
 
-    @hero.remove_from_inventory(item)
+    remove_item_from_hero(item)
     log(display_item(item), "を 薬にして 飲んだ。")
 
     unless @naming_table.identified?(item.name)
@@ -2311,6 +2438,8 @@ EOD
 
   # 武器を装備する。
   def equip_weapon(item)
+    fail 'not in inventory' unless @hero.in_inventory?(item)
+
     if @hero.weapon&.cursed
       log(display_item(@hero.weapon), "は 呪われていて 外れない！")
     elsif @hero.weapon.equal?(item) # coreferential?
@@ -2330,6 +2459,8 @@ EOD
 
   # 盾を装備する。
   def equip_shield(item)
+    fail 'not in inventory' unless @hero.in_inventory?(item)
+
     if @hero.shield&.cursed
       log(display_item(@hero.shield), "は 呪われていて 外れない！")
     elsif @hero.shield.equal?(item)
@@ -2349,6 +2480,8 @@ EOD
 
   # 指輪を装備する。
   def equip_ring(item)
+    fail 'not in inventory' unless @hero.in_inventory?(item)
+
     if @hero.ring&.cursed
       log(display_item(@hero.ring), "は 呪われていて 外れない！")
     elsif @hero.ring.equal?(item)
@@ -2365,6 +2498,8 @@ EOD
 
   # 矢を装備する。
   def equip_projectile(item)
+    fail 'not in inventory' unless @hero.in_inventory?(item)
+
     if @hero.projectile.equal?(item)
       @hero.projectile = nil
       log(display_item(item), "を 外した。")
@@ -2425,7 +2560,7 @@ EOD
   def eat_food(food)
     fail "not a food" unless food.type == :food
 
-    @hero.remove_from_inventory(food)
+    remove_item_from_hero(food)
     log("#{@hero.name}は #{food.name}を 食べた。")
     case food.name
     when "パン"
@@ -3194,7 +3329,7 @@ EOD
 
       if candidates.any?
         item = candidates.sample
-        @hero.remove_from_inventory(item)
+        remove_item_from_hero(item)
         m.item = item
         log("#{m.name}は ", display_item(item), "を盗んでワープした。")
 

@@ -257,26 +257,25 @@ class Item
   end
 
   def actions
-    basics = ["投げる", "置く"]
     case type
     when :box
-      [] + basics
+      []
     when :food
-      ["食べる"] + basics
+      ["食べる"]
     when :herb
-      ["飲む"] + basics
+      ["飲む"]
     when :projectile
-      ["装備"] + basics
+      ["装備"]
     when :ring
-      ["装備"] + basics
+      ["装備"]
     when :scroll
-      ["読む"] + basics
+      ["読む"]
     when :shield
-      ["装備"] + basics
+      ["装備"]
     when :staff
-      ["ふる"] + basics
+      ["ふる"]
     when :weapon
-      ["装備"] + basics
+      ["装備"]
     else fail
       "uncovered case"
     end

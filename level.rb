@@ -148,6 +148,10 @@ class StairCase
       '􄀨􄀩'
     end
   end
+
+  def name
+    "階段"
+  end
 end
 
 class Rect
