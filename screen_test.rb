@@ -49,6 +49,16 @@ class Action
   end
 end
 
+class OverlayedTile
+  attr :char, :x, :y
+
+  def initialize(char, x, y)
+    @char = char
+    @x = x
+    @y = y
+  end
+end
+
 class Program
   include CharacterLevel
 
@@ -127,6 +137,8 @@ class Program
     @last_message_shown_at = Time.at(0)
 
     @naming_table = create_naming_table()
+
+    @overlayed_tiles = []
   end
 
   def addstr_ml(win = Curses, ml)
@@ -683,6 +695,7 @@ class Program
       take_damage(5)
       take_damage_strength(1)
     when "地雷"
+      mine_explosion_effect(@hero.x, @hero.y)
       log("足元で爆発が起こった！ ")
       mine_activate(trap)
     when "落とし穴"
@@ -696,6 +709,26 @@ class Program
     tx, ty = @level.coordinates_of(trap)
     if rand() < 0.5
       @level.remove_object(trap, tx, ty)
+    end
+  end
+
+  EXPLOSION_CHAR = {
+    [-1,-2] =>"\u{104320}\u{104321}",
+    [ 0,-2] =>"\u{104322}\u{104323}",
+    [ 1,-2] =>"\u{104324}\u{104325}",
+
+    [-1, -1] =>"\u{104330}\u{104331}",
+    [ 0, -1] =>"\u{104332}\u{104333}",
+    [ 1, -1] =>"\u{104334}\u{104335}",
+
+    [-1, 0] =>"\u{104340}\u{104341}",
+    [ 0, 0] =>"\u{104342}\u{104343}",
+    [ 1, 0] =>"\u{104344}\u{104345}",
+  }
+
+  def mine_explosion_effect(x, y)
+    EXPLOSION_CHAR.each_pair do |(dx, dy), char|
+      @overlayed_tiles.push OverlayedTile.new(char, x+dx, y+dy)
     end
   end
 
@@ -2770,7 +2803,12 @@ EOD
         x1 = x + @hero.x - Curses.cols/4
         if y1 >= 0 && y1 < @level.height &&
            x1 >= 0 && x1 < @level.width
-          Curses.addstr(dungeon_char(x1, y1))
+          tile = @overlayed_tiles.find { |t| t.x == x1 && t.y == y1 }
+          if tile
+            Curses.addstr(tile.char)
+          else
+            Curses.addstr(dungeon_char(x1, y1))
+          end
         else
           if @level.whole_level_lit
             Curses.addstr(@level.tileset[:WALL])
@@ -2780,6 +2818,7 @@ EOD
         end
       end
     end
+    @overlayed_tiles.clear
   end
 
   # 主人公を中心として 5x5 の範囲を撮影する。
