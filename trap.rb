@@ -37,10 +37,14 @@ class Trap
 
   attr_reader :name
   attr_accessor :visible
+  attr_accessor :active_count
+  attr_accessor :activated
 
   def initialize(name, visible = false)
     @name = name
     @visible = visible
+    @active_count = 0
+    @activated = false
   end
 
   def char

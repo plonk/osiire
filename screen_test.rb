@@ -553,7 +553,7 @@ class Program
       stop_dashing
       unless @hero.ring&.name == "ワナ抜けの指輪"
         if rand() < activation_rate
-          trap_activate(trap)
+          trap.activated = true
         else
           log("#{trap.name}は 発動しなかった。")
         end
@@ -655,7 +655,7 @@ class Program
 
 
   # ヒーローに踏まれた罠が発動する。
-  def trap_activate(trap)
+  def trap_do_activate(trap)
     case trap.name
     when "ワープゾーン"
       log("ワープゾーンだ！ ")
@@ -780,7 +780,7 @@ class Program
       log("#{gold.amount}G を拾った。")
       return :action
     elsif cell.trap
-      trap_activate(cell.trap)
+      cell.trap.activated = true
       return :action
     else
       log("足元には何もない。")
@@ -826,7 +826,7 @@ class Program
         when :chosen
           case label
           when "ふむ"
-            trap_activate(trap)
+            trap.activated = true
             return :action
           when "説明"
             describe_trap(trap)
@@ -3848,12 +3848,22 @@ EOD
     end
   end
 
+  def traps_deactivate
+    @level.all_traps_with_position.each do |trap, x, y|
+      trap.activated = false
+      trap.active_count = 0
+    end
+  end
+
   def next_turn
     @level.turn += 1
     @hero.action_point += @hero.action_point_recovery_rate
     recover_monster_action_point
     status_effects_wear_out
     hero_fullness_decrease
+
+    traps_deactivate
+
     if @level.turn % 64 == 0 && @level.monster_count < 25
       spawn_monster
     end
@@ -3863,6 +3873,15 @@ EOD
     @level.all_monsters_with_position.all? { |m, pos|
       m.action_point < 2
     }
+  end
+
+  def traps_activate
+    @level.all_traps_with_position.each do |trap, x, y|
+      if trap.activated && trap.active_count == 0
+        trap_do_activate(trap)
+      end
+      trap.active_count += 1
+    end
   end
 
   # モンスターの移動・行動フェーズ。
@@ -3880,6 +3899,8 @@ EOD
       end
     end
 
+    traps_activate
+
     doers.each do |m, action|
       next if m.hp < 1.0
 
@@ -3891,6 +3912,8 @@ EOD
         m.action_point -= 2
       end
     end
+
+    traps_activate
   end
 
   # ダンジョンのプレイ。

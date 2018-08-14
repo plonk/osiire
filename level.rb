@@ -633,6 +633,14 @@ class Level
     end
   end
 
+  def all_traps_with_position
+    (0 ... height).flat_map do |y|
+      (0 ... width).flat_map do |x|
+        @dungeon[y][x].objects.select { |obj| obj.is_a?(Trap) }.map { |t| [t, x, y] }
+      end
+    end
+  end
+
   def monster_count
     all_monsters_with_position.size
   end
