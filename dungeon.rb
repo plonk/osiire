@@ -5,7 +5,9 @@ class Dungeon
   # [[Integer, [String,Integer], [String,Integer]...]...]
   ITEM_TABLE = eval(IO.read(File.join(File.dirname(__FILE__), 'item_table.rb')))
 
-  OBJECTIVE_NAME = "イェンダーの魔除け"
+  def name
+    "じゃんじょん"
+  end
 
   # 階段を置く。
   def place_staircase(level)
@@ -46,6 +48,9 @@ class Dungeon
   end
 
   def select(distribution)
+    fail TypeError, 'Array expected' unless distribution.is_a?(Array)
+    fail 'empty distribution' if distribution.empty?
+
     denominator = distribution.map(&:last).inject(:+)
     r = rand(denominator)
     selected_monster = distribution.each do |name, prob|
@@ -54,7 +59,7 @@ class Dungeon
       end
       r -= prob
     end
-    fail 'バグバグりん'
+    fail "バグバグりん #{distribution.inspect}"
   end
 
   def make_monster_from_dungeon
@@ -286,81 +291,72 @@ class Dungeon
     end
   end
 
-  def tileset(level_number)
-    case level_number
-    when 1..2
+  TILESETS =
+    [
       {
         :WALL            => '􄅦􄅧',
         :HORIZONTAL_WALL => '􄅠􄅡',
         :VERTICAL_WALL   => '􄅢􄅣',
-      }
-    when 3..4
+      },
       {
         :WALL            => '􄅘􄅙',
         :HORIZONTAL_WALL => '􄅔􄅕',
         :VERTICAL_WALL   => '􄅖􄅗',
-      }
-    when 5..6
+      },
       {
         :WALL            => '􄅞􄅟',
         :HORIZONTAL_WALL => '􄅚􄅛',
         :VERTICAL_WALL   => '􄅜􄅝',
-      }
-    when 7..9
+      },
       {
         :WALL            => '􄅰􄅱',
         :HORIZONTAL_WALL => '􄅬􄅭',
         :VERTICAL_WALL   => '􄅮􄅯',
-      }
-    when 10..12
+      },
       {
         :HORIZONTAL_WALL => "\u{104240}\u{104241}",
         :VERTICAL_WALL   => "\u{104242}\u{104243}",
         :WALL            => "\u{104244}\u{104245}",
-      }
-    when 13..15
+      },
       {
         :HORIZONTAL_WALL => '􄅲􄅳',
         :VERTICAL_WALL   => '􄅴􄅵',
         :WALL            => '􄅶􄅷',
-      }
-    when 16..18
+      },
       {
         :WALL            => '􄈪􄈫',
         :HORIZONTAL_WALL => '􄈦􄈧',
         :VERTICAL_WALL   => '􄈨􄈩',
-      }
-    when 19..21
+      },
       {
         :WALL            => '􄅌􄅍',
         :HORIZONTAL_WALL => '􄅈􄅉',
         :VERTICAL_WALL   => '􄅊􄅋',
-      }
-    when 25..26
+      },
       {
         :WALL            => '􄅒􄅓',
         :HORIZONTAL_WALL => '􄅐􄅑',
         :VERTICAL_WALL   => '􄅎􄅏',
-      }
-    when 22..24
+      },
       {
         :HORIZONTAL_WALL => '􄈠􄈡',
         :VERTICAL_WALL   => '􄈢􄈣',
         :WALL            => '􄈤􄈥',
-      }
-    when 27..99
+      },
       {
         :HORIZONTAL_WALL => '􄅸􄅹',
         :VERTICAL_WALL   => '􄅺􄅻',
         :WALL            => '􄅼􄅽',
-      }
-    else
+      },
       {
         :WALL            => '􄁀􄁁',
         :HORIZONTAL_WALL => '􄀢􄀣',
         :VERTICAL_WALL   => '􄀼􄀽',
       }
-    end
+    ]
+
+  def tileset(level_number)
+    TILESETS.sample
   end
 
   def make_level(level_number, hero)
@@ -399,23 +395,9 @@ class Dungeon
     place_statues(level, level_number)
 
     place_staircase(level)
-    unless on_return_trip?(hero)
-      place_items(level, level_number)
-    end
+    place_items(level, level_number)
     place_traps(level, level_number)
     place_monsters(level, level_number)
-    if level_number >= 27 && !on_return_trip?(hero)
-      place_objective(level, level_number)
-    end
-    if level_number == 50 && !on_return_trip?(hero) && hero.inventory.none? { |item| item.name == "必中会心剣" }
-      sword = Item.make_item("必中会心剣")
-      sword.number = 20
-      place_item(level, sword)
-    end
-    if level_number == 99 && !on_return_trip?(hero) && hero.inventory.none? { |item| item.name == "退魔の指輪" }
-      ring = Item.make_item("退魔の指輪")
-      place_item(level, ring)
-    end
 
     mazes.each do |r|
       # level.replace_floor_to_passage(r)
@@ -427,19 +409,12 @@ class Dungeon
       level.party_room = r
 
       place_traps_in_room(level, level_number, r)
-      unless on_return_trip?(hero)
-        place_items_in_room(level, level_number, r, 10)
-      end
+      place_items_in_room(level, level_number, r, 10)
       place_monsters_in_room(level, level_number, r, 10)
     end
 
     return level
   end
 
-  def on_return_trip?(hero)
-    hero.inventory.any? { |item|
-      item.type == :box && item.name != "鉄の金庫"
-    }
-  end
 
 end

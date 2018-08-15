@@ -106,18 +106,16 @@ class Program
     if debug?
       @hero.inventory << Item.make_item("エンドゲーム")
       @hero.inventory << Item.make_item("メタルヨテイチの盾")
-      @hero.inventory << Item.make_item("人形よけの指輪")
       @hero.inventory << Item.make_item("目薬草")
       @hero.inventory << Item.make_item("薬草")
-      @hero.inventory << Item.make_item("薬草")
-      @hero.inventory << Item.make_item("高級薬草")
       @hero.inventory << Item.make_item("高級薬草")
       @hero.inventory << Item.make_item("毒けし草")
       @hero.inventory << Item.make_item("あかりの巻物")
       @hero.inventory << Item.make_item("あかりの巻物")
       @hero.inventory << Item.make_item("結界の巻物")
-      @hero.inventory << Item.make_item("解呪の巻物")
       @hero.inventory << Item.make_item("同定の巻物")
+      @hero.inventory << Item.make_item("進化の杖")
+      @hero.inventory << Item.make_item("退化の杖")
     end
     @level_number = 0
     @dungeon = Dungeon.new
@@ -142,7 +140,9 @@ class Program
   end
 
   def addstr_ml(win = Curses, ml)
-    fail TypeError, "no addstr method on #{win.inspect}" unless win.respond_to?(:addstr)
+    unless win.respond_to?(:addstr)
+      fail TypeError, "no addstr method on #{win.inspect}"
+    end
 
     case ml
     when String
@@ -217,8 +217,12 @@ class Program
                      "異人の絵の巻物", "天狗の絵の巻物", "船の絵の巻物", "武具の絵の巻物",
                      "囲炉裏の絵の巻物", "祭の絵の巻物", "やまんばの絵の巻物",
                      "龍の絵の巻物", "亀の絵の巻物"]
-    staves_false = ["鉄の杖", "銅の杖", "鉛の杖", "銀の杖", "金の杖", "アルミの杖", "真鍮の杖",
-                    "ヒノキの杖", "杉の杖", "桜の杖", "松の杖", "キリの杖", "ナラの杖", "ビワの杖"]
+    staves_false = ["鉄の杖", "銅の杖", "鉛の杖", "銀の杖",
+                    "金の杖", "アルミの杖", "真鍮の杖",
+                    "ヒノキの杖", "杉の杖", "桜の杖", "松の杖",
+                    "キリの杖", "ナラの杖", "ビワの杖",
+                    "チークの杖", "バルサの杖", "柿の杖",
+                   ]
     rings_false = ["金剛石の指輪", "翡翠の指輪", "猫目石の指輪", "水晶の指輪", # "タイガーアイの指輪",
                    "瑪瑙の指輪", "天河石の指輪","琥珀の指輪","孔雀石の指輪","珊瑚の指輪","電気石の指輪",
                    "真珠の指輪","葡萄石の指輪","蛍石の指輪","紅玉の指輪","フォーダイトの指輪", "黒曜石の指輪"]
@@ -597,8 +601,8 @@ class Program
       if @hero.shield.rustproof?
         log("しかし #{@hero.shield}は錆びなかった。")
       else
-        if @hero.shield.number > 0
-          @hero.shield.number -= 1
+        if @hero.shield.number > @hero.shield.correction
+          @hero.shield.correction -= 1
           log("盾が錆びてしまった！ ")
         else
           log("しかし 何も起こらなかった。")
@@ -701,7 +705,7 @@ class Program
     when "落とし穴"
       log("落とし穴だ！ ")
       wait_delay
-      new_level(+1, false)
+      new_level(+1)
       return # ワナ破損処理をスキップする
     else fail
     end
@@ -767,7 +771,6 @@ class Program
     else
       if @hero.add_to_inventory(item)
         cell.remove_object(item)
-        update_stairs_direction
         log(@hero.name, "は ", display_item(item), "を 拾った。")
       else
         log("持ち物が いっぱいで ", display_item(item), "が 拾えない。")
@@ -1102,16 +1105,13 @@ EOD
 
   # ダンジョンをクリアしたリザルト画面。
   def clear_message
-    item = @hero.inventory.find { |item| item.name == Dungeon::OBJECTIVE_NAME }
-    message = "#{item&.number || '??'}階から魔除けを持って無事帰る！"
+    message = "#{@dungeon.name}クリア！"
     data = ResultScreen.to_data(@hero)
            .merge({"screen_shot" => take_screen_shot(),
                    "time" => (Time.now - @start_time).to_i,
                    "message" => message,
                    "level" => @level_number,
-                   "return_trip" => @dungeon.on_return_trip?(@hero),
                    "timestamp" => Time.now.to_i,
-                   "objective_number" => item&.number || -1,
                   })
 
     ResultScreen.run(data)
@@ -1195,7 +1195,6 @@ EOD
         stick_scroll(item)
       end
       @level.put_object(item, @hero.x, @hero.y)
-      update_stairs_direction
       log(display_item(item), "を 置いた。")
     else
       log("ここには 置けない。")
@@ -1948,8 +1947,46 @@ EOD
       unless monster.invisible
         monster.invisible = true
       end
+    when "進化の杖"
+      level_up_monster(cell, monster)
+    when "退化の杖"
+      level_down_monster(cell, monster)
     else
       fail "case not covered"
+    end
+  end
+
+  def level_up_monster(cell, monster)
+    descendant = monster.descendant
+    if descendant
+      m = Monster.make_monster(descendant)
+
+      # TODO: いくらかの状態は元のモンスターから継承するべき。(封印状態など)
+      m.action_point = monster.action_point
+      m.state = :awake # 起きている。
+
+      cell.remove_object(monster)
+      cell.put_object(m)
+      log("#{display_character(monster)}は #{display_character(m)}に進化した。")
+    else
+      log("しかし#{display_character(monster)}は 進化しなかった。")
+    end
+  end
+
+  def level_down_monster(cell, monster)
+    ancestor = monster.ancestor
+    if ancestor
+      m = Monster.make_monster(ancestor)
+
+      # TODO: いくらかの状態は元のモンスターから継承するべき。(封印状態など)
+      m.action_point = monster.action_point
+      m.state = :awake # 起きている。
+
+      cell.remove_object(monster)
+      cell.put_object(m)
+      log("#{display_character(monster)}は #{display_character(m)}に退化した。")
+    else
+      log("しかし#{display_character(monster)}は 退化しなかった。")
     end
   end
 
@@ -2197,13 +2234,11 @@ EOD
     when "結界の巻物"
       log("何も起こらなかった。足元に置いて使うようだ。")
     when "やりなおしの巻物"
-      if @dungeon.on_return_trip?(@hero)
-        log("帰り道では 使えない。")
-      elsif @level_number <= 1
+      if @level_number <= 1
         log("しかし何も起こらなかった。")
       else
         log("不思議なちからで 1階 に引き戻された！ ")
-        new_level(1 - @level_number, false)
+        new_level(1 - @level_number)
       end
     when "爆発の巻物"
       log("空中で 爆発が 起こった！ ")
@@ -2627,7 +2662,7 @@ EOD
   # 下の階へ移動。
   def cheat_go_downstairs
     if @level_number < 99
-      new_level(+1, false)
+      new_level(+1)
     end
     return :nothing
   end
@@ -2635,7 +2670,7 @@ EOD
   # 上の階へ移動。
   def cheat_go_upstairs
     if @level_number > 1
-      new_level(-1, false)
+      new_level(-1)
     end
     return :nothing
   end
@@ -2645,16 +2680,11 @@ EOD
   def go_downstairs
     st = @level.cell(@hero.x, @hero.y).staircase
     if st
-      new_level(st.upwards ? -1 : +1, true)
+      new_level(st.upwards ? -1 : +1)
     else
       log("ここに 階段は ない。")
     end
     return :nothing
-  end
-
-  # 階段の方向を更新。
-  def update_stairs_direction
-    @level.stairs_going_up = @dungeon.on_return_trip?(@hero)
   end
 
   def shop_interaction
@@ -2668,21 +2698,13 @@ EOD
   end
 
   # 新しいフロアに移動する。
-  def new_level(dir = +1, shop)
+  def new_level(dir)
     @level_number += dir
-    if @level_number == 0
+    if @level_number == 100
       @beat = true
       clear_message
       @quitting = true
     else
-      if @level_number == 100
-        @level_number = 99
-      end
-
-      if shop && @level_number != 1 && dir == +1 && rand() < 0.1
-        shop_interaction
-      end
-
       @level = @dungeon.make_level(@level_number, @hero)
 
       # 状態異常のクリア
@@ -2701,10 +2723,8 @@ EOD
       # 視界
       @level.update_lighting(@hero.x, @hero.y)
 
-      update_stairs_direction
-
       # 行動ポイントの回復。上の階で階段を降りる時にあまったポイントに
-      # 影響されたくないので下の代入文で当ってる。
+      # 影響されたくないので下の代入文で合ってる。
       @hero.action_point = @hero.action_point_recovery_rate
       recover_monster_action_point
     end
@@ -2941,17 +2961,12 @@ EOD
 
   # 死んだ時のリザルト画面。
   def gameover_message
-    if @dungeon.on_return_trip?(@hero)
-      message = "魔除けを持って#{@level_number}階で力尽きる。"
-    else
-      message = "#{@level_number}階で力尽きる。"
-    end
+    message = "#{@level_number}階で力尽きる。"
     data = ResultScreen.to_data(@hero)
            .merge({"screen_shot" => take_screen_shot(),
                    "time" => (Time.now - @start_time).to_i,
                    "message" => message,
                    "level" => @level_number,
-                   "return_trip" => @dungeon.on_return_trip?(@hero),
                    "timestamp" => Time.now.to_i,
                   })
 
@@ -2961,17 +2976,12 @@ EOD
   end
 
   def give_up_message
-    if @dungeon.on_return_trip?(@hero)
-      message = "魔除けを持って#{@level_number}階であきらめた。"
-    else
-      message = "#{@level_number}階で冒険をあきらめた。"
-    end
+    message = "#{@level_number}階で冒険をあきらめた。"
     data = ResultScreen.to_data(@hero)
            .merge({"screen_shot" => take_screen_shot(),
                    "time" => (Time.now - @start_time).to_i,
                    "message" => message,
                    "level" => @level_number,
-                   "return_trip" => @dungeon.on_return_trip?(@hero),
                    "timestamp" => Time.now.to_i,
                   })
 
@@ -2982,7 +2992,7 @@ EOD
 
   # 次のレベルまでに必要な経験値。
   def exp_until_next_lv
-    if @hero.lv == 37
+    if @hero.lv == 99
       return nil
     else
       return lv_to_exp(@hero.lv + 1) - @hero.exp
@@ -3443,15 +3453,13 @@ EOD
   def hero_fullness_decrease
     old = @hero.fullness
     if @hero.fullness > 0.0
-      unless @dungeon.on_return_trip?(@hero)
-        @hero.fullness -= @hero.hunger_per_turn
-        if old >= 20.0 && @hero.fullness <= 20.0
-          log("おなかが 減ってきた。")
-        elsif old >= 10.0 && @hero.fullness <= 10.0
-          log("空腹で ふらふらしてきた。")
-        elsif @hero.fullness <= 0.0
-          log("早く何か食べないと死んでしまう！ ")
-        end
+      @hero.fullness -= @hero.hunger_per_turn
+      if old >= 20.0 && @hero.fullness <= 20.0
+        log("おなかが 減ってきた。")
+      elsif old >= 10.0 && @hero.fullness <= 10.0
+        log("空腹で ふらふらしてきた。")
+      elsif @hero.fullness <= 0.0
+        log("早く何か食べないと死んでしまう！ ")
       end
 
       # 自然回復
@@ -3960,7 +3968,7 @@ EOD
     @start_time = Time.now
     @quitting = false
 
-    new_level(+1, false)
+    new_level(+1)
     render
 
     begin

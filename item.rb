@@ -88,6 +88,8 @@ class Item
     [:staff, "即死の杖", nil, "モンスターを即死させる。"],
     [:staff, "もろ刃の杖", nil, "敵のHPを残り1にするが、自分のHPが半分になる。"],
     [:staff, "大損の杖", nil, nil],
+    [:staff, "進化の杖", nil, "敵のレベルが1つ上がる。"],
+    [:staff, "退化の杖", nil, "敵のレベルが1つ下がる。"],
     [:ring, "ちからの指輪", nil, nil],
     [:ring, "毒けしの指輪", nil, "毒を受けなくなる。"],
     [:ring, "眠らずの指輪", nil, "眠らなくなる。"],
@@ -143,11 +145,11 @@ class Item
         item.number = rand(5..15)
       when :weapon
         r = rand(-1..+3)
-        item.number = item.number + r
+        item.correction = r
         item.cursed = r == -1
       when :shield
         r = rand(-1..+3)
-        item.number = item.number + r
+        item.correction = r
         item.cursed = r == -1
       when :ring
         item.cursed = rand(5) == 0
@@ -164,6 +166,7 @@ class Item
   attr_accessor :mimic
   attr_accessor :cursed
   attr_accessor :inspected
+  attr_accessor :correction # 武器盾の修正値
 
   def initialize(type, name, number, desc)
     @type   = type
@@ -183,24 +186,11 @@ class Item
     @mimic = false
     @cursed = false
     @inspected = false
+    @correction = nil
   end
 
-  def original_number
-    row = ITEMS.find { |r| r[1] == @name }
-    if row
-      return row[2]
-    else
-      return nil
-    end
-  end
-
-  def relative_number
-    n = original_number
-    if n
-      return @number - n
-    else
-      return nil
-    end
+  def corrected_number
+    @number + @correction
   end
 
   def char
@@ -242,7 +232,7 @@ class Item
       else
         prefix = ""
       end
-      "#{prefix}#{name}#{ws_num_fmt.(relative_number)}"
+      "#{prefix}#{name}#{ws_num_fmt.(@correction)}"
     when :staff
       "#{name}[#{number}]"
     when :projectile
@@ -318,9 +308,9 @@ class Item
   def desc
     @desc || case type
              when :weapon
-               "強さ#{original_number}の武器だ。"
+               "強さ#{@number}の武器だ。"
              when :shield
-               "強さ#{original_number}の盾だ。"
+               "強さ#{@number}の盾だ。"
              when :projectile
                "投げて使う。"
              else
