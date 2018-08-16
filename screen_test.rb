@@ -12,6 +12,7 @@ require_relative 'naming_screen'
 require_relative 'shop'
 require_relative 'history_window'
 require_relative 'naming_table'
+require_relative 'seal'
 
 class HeroDied < Exception
 end
@@ -72,6 +73,9 @@ class Program
   NICKNAMED_ITEM_COLOR_PAIR = 3
   CURSED_ITEM_COLOR_PAIR = 4
   SPECIAL_DUNGEON_COLOR_PAIR = 5
+  RED_SEAL_COLOR_PAIR = 6
+  BLUE_SEAL_COLOR_PAIR = 7
+  GREEN_SEAL_COLOR_PAIR = 8
 
   MONSTER_TERON_RATE = 0.15
   HERO_TERON_RATE = 0.05
@@ -86,8 +90,11 @@ class Program
     Curses.init_pair(HEALTH_BAR_COLOR_PAIR, Curses::COLOR_GREEN, Curses::COLOR_RED)
     Curses.init_pair(UNIDENTIFIED_ITEM_COLOR_PAIR, Curses::COLOR_YELLOW, Curses::COLOR_BLACK)
     Curses.init_pair(NICKNAMED_ITEM_COLOR_PAIR, Curses::COLOR_GREEN, Curses::COLOR_BLACK)
-    Curses.init_pair(CURSED_ITEM_COLOR_PAIR, Curses::COLOR_BLUE, Curses::COLOR_BLACK)
+    Curses.init_pair(CURSED_ITEM_COLOR_PAIR, Curses::COLOR_WHITE, Curses::COLOR_BLUE)
     Curses.init_pair(SPECIAL_DUNGEON_COLOR_PAIR, Curses::COLOR_MAGENTA, Curses::COLOR_BLACK)
+    Curses.init_pair(RED_SEAL_COLOR_PAIR, Curses::COLOR_WHITE, Curses::COLOR_RED)
+    Curses.init_pair(BLUE_SEAL_COLOR_PAIR, Curses::COLOR_WHITE, Curses::COLOR_BLUE)
+    Curses.init_pair(GREEN_SEAL_COLOR_PAIR, Curses::COLOR_BLACK, Curses::COLOR_GREEN)
 
     Curses.noecho
     Curses.crmode
@@ -105,7 +112,7 @@ class Program
     @hero.inventory << Item.make_item("大きなパン")
     if debug?
       @hero.inventory << Item.make_item("エンドゲーム")
-      @hero.inventory << Item.make_item("メタルヨテイチの盾")
+      @hero.inventory << Item.make_item("風魔の盾")
       @hero.inventory << Item.make_item("目薬草")
       @hero.inventory << Item.make_item("薬草")
       @hero.inventory << Item.make_item("高級薬草")
@@ -180,6 +187,12 @@ class Program
       win.attron(Curses::color_pair(CURSED_ITEM_COLOR_PAIR))
     when "special"
       win.attron(Curses::color_pair(SPECIAL_DUNGEON_COLOR_PAIR))
+    when "red-seal"
+      win.attron(Curses::color_pair(RED_SEAL_COLOR_PAIR))
+    when "blue-seal"
+      win.attron(Curses::color_pair(BLUE_SEAL_COLOR_PAIR))
+    when "green-seal"
+      win.attron(Curses::color_pair(GREEN_SEAL_COLOR_PAIR))
     end
   end
 
@@ -196,12 +209,18 @@ class Program
       win.attroff(Curses::color_pair(CURSED_ITEM_COLOR_PAIR))
     when "special"
       win.attroff(Curses::color_pair(SPECIAL_DUNGEON_COLOR_PAIR))
+    when "red-seal"
+      win.attroff(Curses::color_pair(RED_SEAL_COLOR_PAIR))
+    when "blue-seal"
+      win.attroff(Curses::color_pair(BLUE_SEAL_COLOR_PAIR))
+    when "green-seal"
+      win.attroff(Curses::color_pair(GREEN_SEAL_COLOR_PAIR))
     end
   end
 
   def create_naming_table()
     get_item_names_by_kind = proc { |specified|
-      Item::ITEMS.select { |kind, name, number, desc| kind == specified }.map { |_, name, _, _| name }
+      Item::ITEMS.select { |i| i[:type] == specified }.map { |i| i[:name] }
     }
     take_strict = proc { |n, arr|
       fail "list too short" if arr.size < n
@@ -1028,6 +1047,7 @@ class Program
       "指輪" => :ring,
       "食べ物" => :food,
       "箱" => :box,
+      "壺" => :jar,
     }
 
     menu = Menu.new(item_kinds.keys)
@@ -1036,7 +1056,7 @@ class Program
       case c
       when :chosen
         kind = item_kinds[arg]
-        names = Item::ITEMS.select { |k,| k == kind }.map { |_,name,| name }
+        names = Item::ITEMS.select { |i| i[:type] == kind }.map { |i| i[:name] }
         menu2 = Menu.new(names)
         begin
           c2, arg2 = menu2.choose
@@ -1233,6 +1253,8 @@ EOD
   def display_inspected_item(item)
     if item.cursed
       ["cursed", item.to_s]
+    elsif (item.type == :weapon || item.type == :shield) && item.seals.any?
+      ["nicknamed", item.to_s]
     else
       item.to_s
     end
@@ -1282,9 +1304,111 @@ EOD
     end
   end
 
-  # () -> :action | :nothing
+  def synthesize_weapon(weapon1, weapon2)
+    if weapon2.unsealifiable
+      [weapon1, weapon2]
+    else
+      seals =
+        [*weapon1.seals, *weapon2.own_seal, *weapon2.seals]
+        .take(weapon1.nslots)
+
+      weapon1.seals.replace(seals)
+      weapon1.correction += weapon2.correction
+      weapon1.cursed ||= weapon2.cursed
+      [weapon1]
+    end
+  end
+
+  def synthesize_shield(item1, item2)
+    [item1, item2]
+  end
+
+  def synthesize_staff(item1, item2)
+    [item1, item2]
+  end
+
+  # (Item, Item) -> [Item]
+  def synthesize(item1, item2)
+    if item1.type != item2.type
+      [item1, item2]
+    elsif item1.type == :weapon
+      synthesize_weapon(item1, item2)
+    elsif item1.type == :shield
+      synthesize_shield(item1, item2)
+    elsif item1.type == :staff
+      synthesize_staff(item1, item2)
+    else
+      [item1, item2]
+    end
+  end
+
+  # (Jar, Item) -> :action | :nothing
+  def put_in_jar(jar, target)
+    if jar.capacity <= jar.contents.size
+      log("壺はもういっぱいだ。")
+      return :nothing
+    elsif target.is_a?(Jar)
+      log("壺に壺は入らない。")
+      return :nothing
+    elsif @hero.equipped?(target) && target.cursed
+      log(display_item(item), "は 呪われていて外れない！")
+      return :action
+    else
+      case jar.name
+      when "合成の壺"
+        new_contents = []
+        success = false
+        jar.contents.each do |item|
+          if success
+            new_contents.push(item)
+          else
+            result = synthesize(item, target)
+            if result.size == 2
+              new_contents.push(item)
+            elsif result.size == 1
+              new_contents.push(result[0])
+              success = true
+            else fail
+            end
+          end
+        end
+        remove_item_from_hero(target)
+        if success
+          jar.capacity -= 1
+        else
+          new_contents.push(target)
+        end
+        jar.contents.replace(new_contents)
+      else
+        log("#{jar.name}の入れるは実装してないよ。")
+        return :nothing
+      end
+    end
+  end
+
+  # (Jar) -> :action | :nothing
+  def try_put_in_jar(jar)
+    fail TypeError, "Jar expected" unless jar.is_a?(Jar)
+
+    case jar.name
+    when "合成の壺" # などなど
+      target = choose_target()
+      if target
+        return put_in_jar(jar, target)
+      else
+        return :nothing
+      end
+    else
+      log("#{jar.name}の入れるは実装してないよ。")
+      return :nothing
+    end
+  end
+
+  # (String, Item) -> :action | :nothing
   def try_do_action_on_item(action, item)
     case action
+    when "入れる"
+      try_put_in_jar(item)
     when "置く"
       try_place_item(item)
     when "拾う"
@@ -1448,33 +1572,40 @@ EOD
 
   # 投げられたアイテムが着地する。
   def item_land(item, x, y)
-    cell = @level.cell(x, y)
+    if item.type == :jar && !item.unbreakable
+      log(display_item(item), "は 割れた！")
+      item.contents.each do |subitem|
+        item_land(subitem, x, y)
+      end
+    else
+      cell = @level.cell(x, y)
 
-    if cell.trap && !cell.trap.visible
-      cell.trap.visible = true
-    end
+      if cell.trap && !cell.trap.visible
+        cell.trap.visible = true
+      end
 
-    LAND_POSITIONS.each do |dx, dy|
-      if LAND_DEPENDENT_POSITION[[dx,dy]]
-        dx2, dy2 = LAND_DEPENDENT_POSITION[[dx,dy]]
-        unless (@level.in_dungeon?(x+dx2, y+dy2) &&
-                (@level.cell(x+dx2, y+dy2).type == :FLOOR ||
-                 @level.cell(x+dx2, y+dy2).type == :PASSAGE))
-          next
+      LAND_POSITIONS.each do |dx, dy|
+        if LAND_DEPENDENT_POSITION[[dx,dy]]
+          dx2, dy2 = LAND_DEPENDENT_POSITION[[dx,dy]]
+          unless (@level.in_dungeon?(x+dx2, y+dy2) &&
+                  (@level.cell(x+dx2, y+dy2).type == :FLOOR ||
+                   @level.cell(x+dx2, y+dy2).type == :PASSAGE))
+            next
+          end
+        end
+        if (@level.in_dungeon?(x+dx, y+dy) &&
+            @level.cell(x+dx, y+dy).can_place?)
+
+          @level.cell(x+dx, y+dy).put_object(item)
+          if item.name == "結界の巻物"
+            stick_scroll(item)
+          end
+          log(display_item(item), "は 床に落ちた。")
+          return
         end
       end
-      if (@level.in_dungeon?(x+dx, y+dy) &&
-          @level.cell(x+dx, y+dy).can_place?)
-
-        @level.cell(x+dx, y+dy).put_object(item)
-        if item.name == "結界の巻物"
-          stick_scroll(item)
-        end
-        log(display_item(item), "は 床に落ちた。")
-        return
-      end
+      log(display_item(item), "は消えてしまった。")
     end
-    log(display_item(item), "は消えてしまった。")
   end
 
   def use_health_item(character, amount, amount_maxhp)
@@ -2798,7 +2929,7 @@ EOD
           obj.char
         end
       else
-        tile = @level.background_char(x, y) 
+        tile = @level.background_char(x, y)
         if @hero.hallucinating?
           if tile == '􄄤􄄥'
             "\u{104168}\u{104169}"
@@ -2999,6 +3130,22 @@ EOD
     end
   end
 
+
+  SEAL_COLOR_TAG_MAP = {
+    :red => "red-seal",
+    :blue => "blue-seal",
+    :green => "green-seal"
+  }
+  def display_seal(seal)
+    tag = SEAL_COLOR_TAG_MAP[seal.color] || fail
+    [tag, seal.char]
+  end
+
+  def display_seals(item)
+    return "なし" if item.nil?
+    ["span", "["] + item.seals.map { |seal| display_seal(seal) } + ["・" * (item.nslots - item.seals.size)] + ["]"]
+  end
+
   def status_window
     until_next_lv = exp_until_next_lv ? exp_until_next_lv.to_s : "∞"
     disp = proc { |item| item.nil? ? 'なし' : display_item(item) }
@@ -3007,7 +3154,9 @@ EOD
         ["span", "攻撃力 %d" % [get_hero_attack]],
         ["span", "防御力 %d" % [get_hero_defense]],
         ["span", "  武器 ", disp.(@hero.weapon)],
+        ["span", "       ", display_seals(@hero.weapon)],
         ["span", "    盾 ", disp.(@hero.shield)],
+        ["span", "       ", display_seals(@hero.shield)],
         ["span", "  指輪 ", disp.(@hero.ring)],
         ["span", "ちから %d/%d" % [@hero.strength, @hero.max_strength]],
         ["span", "経験値 %d" % [@hero.exp]],
@@ -3015,7 +3164,7 @@ EOD
         ["span", "満腹度 %d%%/%d%%" % [@hero.fullness.ceil, @hero.max_fullness]]
       ]
 
-    win = Curses::Window.new(9+2, 31, 1, 0) # lines, cols, y, x
+    win = Curses::Window.new(text.size+2, 31, 1, 0) # lines, cols, y, x
     win.clear
     win.rounded_box
     win.setpos(0, 1)

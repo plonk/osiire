@@ -19,98 +19,159 @@ class Gold
 end
 
 class Item
-  ITEMS = [
-    [:weapon, "こん棒", 1, nil],
-    [:weapon, "金の剣", 2, nil],
-    [:weapon, "銅の剣", 3, nil],
-    [:weapon, "鉄の斧", 4, nil],
-    [:weapon, "ドラゴンキラー", 5, nil],
-    [:weapon, "メタルヨテイチの剣", 7, nil],
-    [:weapon, "エンドゲーム", 10, nil],
-    [:weapon, "必中会心剣", 20, "必ず当たり、会心の一撃が出る事もある強さ20の剣。"],
-    [:projectile, "木の矢", nil, nil],
-    [:projectile, "鉄の矢", nil, nil],
-    [:projectile, "銀の矢", nil, nil],
-    [:shield, "皮の盾", 3, "強さ3の盾。腹が減りにくくなる。"],
-    [:shield, "青銅の盾", 3, nil],
-    [:shield, "うろこの盾", 4, "強さ4の盾。毒を受けなくなる。"],
-    [:shield, "銀の盾", 5, nil],
-    [:shield, "鋼鉄の盾", 6, nil],
-    [:shield, "ドラゴンシールド", 7, nil],
-    [:shield, "メタルヨテイチの盾", 10, nil],
-    [:herb, "薬草", nil, "HPを25回復する。"],
-    [:herb, "高級薬草", nil, "HPを100回復する。"],
-    [:herb, "毒けし草", nil, "ちからが回復する。"],
-    [:herb, "ちからの種", nil, "ちからが満タンの時に最大値を1つ増やす。"],
-    [:herb, "幸せの種", nil, "レベルが1つ上がる。"],
-    [:herb, "すばやさの種", nil, nil],
-    [:herb, "目薬草", nil, "ワナが見えるようになる。"],
-    [:herb, "毒草", nil, nil],
-    [:herb, "目つぶし草", nil, nil],
-    [:herb, "まどわし草", nil, nil],
-    [:herb, "混乱草", nil, "混乱してしまう。投げて使おう。"],
-    [:herb, "睡眠草", nil, "眠ってしまう。投げて使おう。"],
-    [:herb, "ワープ草", nil, "フロアの別の場所にワープする。"],
-    [:herb, "火炎草", nil, "口から火をはく。敵に投げても使える。"],
-    [:scroll, "やりなおしの巻物", nil, nil],
-    [:scroll, "武器強化の巻物", nil, "武器が少し強くなる。"],
-    [:scroll, "盾強化の巻物", nil, "盾が少し強くなる。"],
-    [:scroll, "メッキの巻物", nil, "盾が錆びなくなる。"],
-    [:scroll, "解呪の巻物", nil, "アイテムの呪いが解ける。"],
-    [:scroll, "同定の巻物", nil, "何のアイテムか判別する。"],
-    [:scroll, "あかりの巻物", nil, "フロア全体が見えるようになる。"],
-    [:scroll, "かなしばりの巻物", nil, "隣接している敵をかなしばり状態にする。"],
-    [:scroll, "結界の巻物", nil, "床に置くと敵に攻撃されなくなる。"],
-    [:scroll, "さいごの巻物", nil, nil],
-    [:scroll, "証明の巻物", nil, nil],
-    [:scroll, "豚鼻の巻物", nil, "アイテムの位置がわかるようになる。"],
-    [:scroll, "兎耳の巻物", nil, "モンスターの位置がわかるようになる。"],
-    [:scroll, "パンの巻物", nil, "アイテムを大きなパンに変えてしまう。"],
-    [:scroll, "祈りの巻物", nil, "杖の回数を増やす。"],
-    [:scroll, "爆発の巻物", nil, "部屋の敵にダメージを与える。"],
-    [:scroll, "くちなしの巻物", nil, nil],
-    [:scroll, "時の砂の巻物", nil, nil],
-    [:scroll, "ワナの巻物", nil, nil],
-    [:scroll, "パルプンテの巻物", nil, nil],
-    [:scroll, "ワナけしの巻物", nil, nil],
-    [:scroll, "大部屋の巻物", nil, nil],
-    [:staff, "いかずちの杖", nil, "敵にダメージを与える。"],
-    [:staff, "鈍足の杖", nil, nil],
-    [:staff, "睡眠の杖", nil, "敵を眠らせる。"],
-    [:staff, "メダパニの杖", nil, nil],
-    [:staff, "封印の杖", nil, nil],
-    [:staff, "ワープの杖", nil, nil],
-    [:staff, "変化の杖", nil, "敵を別の種類のモンスターに変化させる。"],
-    [:staff, "ピオリムの杖", nil, nil],
-    [:staff, "とうめいの杖", nil, "敵をとうめい状態にする。"],
-    [:staff, "転ばぬ先の杖", nil, nil],
-    [:staff, "分裂の杖", nil, "敵を分裂させてしまう。"],
-    [:staff, "即死の杖", nil, "モンスターを即死させる。"],
-    [:staff, "もろ刃の杖", nil, "敵のHPを残り1にするが、自分のHPが半分になる。"],
-    [:staff, "大損の杖", nil, nil],
-    [:staff, "進化の杖", nil, "敵のレベルが1つ上がる。"],
-    [:staff, "退化の杖", nil, "敵のレベルが1つ下がる。"],
-    [:ring, "ちからの指輪", nil, nil],
-    [:ring, "毒けしの指輪", nil, "毒を受けなくなる。"],
-    [:ring, "眠らずの指輪", nil, "眠らなくなる。"],
-    [:ring, "ルーラの指輪", nil, nil],
-    [:ring, "ハラヘラズの指輪", nil, "腹が減らなくなる。"],
-    [:ring, "盗賊の指輪", nil, "敵を起こさずに部屋を出入りできる。"],
-    [:ring, "きれいな指輪", nil, nil],
-    [:ring, "シャドーの指輪", nil, nil],
-    [:ring, "ハラペコの指輪", nil, nil],
-    [:ring, "ワナ抜けの指輪", nil, nil],
-    [:ring, "人形よけの指輪", nil, "敵にレベルやHPを下げられなくなる。"],
-    [:ring, "ザメハの指輪", nil, nil],
-    [:ring, "退魔の指輪", nil, "敵がおびえて逃げていく。"],
-    [:food, "パン", nil, "満腹度が50%回復する。"],
-    [:food, "大きなパン", nil, "満腹度が100%回復する。"],
-    [:food, "くさったパン", nil, "満腹度100%回復。ダメージを受けてちからが減る。"],
-    [:box, "鉄の金庫", nil, nil],
-    [:box, "王様の宝石箱", nil, nil],
-    [:box, "イェンダーの魔除け", nil, "これを取ったら帰り道。"],
-    [:box, "奇妙な箱", nil, nil],
-  ]
+  ITEMS =
+[{:type=>:weapon, :name=>"鍛えた木刀", :number=>2, :nslots=>1},
+ {:type=>:weapon, :name=>"こんぼう", :number=>3, :nslots=>3},
+ {:type=>:weapon, :name=>"銅の剣", :number=>5, :nslots=>4},
+ {:type=>:weapon, :name=>"カタナ", :number=>8, :nslots=>5},
+ {:type=>:weapon, :name=>"エンドゲーム", :number=>10, :nslots=>6},
+ {:type=>:weapon, :name=>"真・エンドゲーム", :number=>18, :nslots=>6},
+ {:type=>:weapon, :name=>"成仏のカマ",         :seal=>"仏", :number=>4, :nslots=>5},
+ {:type=>:weapon, :name=>"マリンスラッシャー", :seal=>"水", :number=>5, :nslots=>5},
+ {:type=>:weapon, :name=>"一ツ目殺し",         :seal=>"目", :number=>6, :nslots=>4},
+ {:type=>:weapon, :name=>"ドレインバスター",   :seal=>"ド", :number=>6, :nslots=>5},
+ {:type=>:weapon, :name=>"三日月刀",           :seal=>"月", :number=>6, :nslots=>4},
+ {:type=>:weapon, :name=>"ドラゴンキラー",     :seal=>"竜", :number=>15, :nslots=>3},
+ {:type=>:weapon, :name=>"龍神剣",             :seal=>"龍", :number=>25, :nslots=>7},
+ {:type=>:weapon, :name=>"衰弱の枝",           :seal=>"衰", :number=>1, :nslots=>3},
+ {:type=>:weapon, :name=>"つるはし",           :seal=>"堀", :number=>2, :nslots=>5},
+ {:type=>:weapon, :name=>"妖刀かまいたち",     :seal=>"三", :number=>2, :nslots=>4},
+ {:type=>:weapon, :name=>"ガマラのムチ",       :seal=>"銭", :number=>2, :nslots=>4},
+ {:type=>:weapon, :name=>"根性の竹刀",         :seal=>"根", :number=>3, :nslots=>2},
+ {:type=>:weapon, :name=>"金の剣",             :seal=>"金", :number=>3, :nslots=>5, :rustproof=>true},
+ {:type=>:weapon, :name=>"必中の剣",           :seal=>"必", :number=>3, :nslots=>3},
+ {:type=>:weapon, :name=>"にぎりへんげの剣",   :seal=>"に", :number=>3, :nslots=>4},
+ {:type=>:weapon, :name=>"かつおぶし",         :seal=>"か", :number=>4, :nslots=>2},
+ {:type=>:weapon, :name=>"車輪のやいば",       :seal=>"車", :number=>4, :nslots=>3},
+ {:type=>:weapon, :name=>"背水の剣",           :seal=>"背", :number=>5, :nslots=>4},
+ {:type=>:weapon, :name=>"回復の剣",           :seal=>"回", :number=>6, :nslots=>3},
+ {:type=>:weapon, :name=>"ケンゴウのカタナ",   :seal=>"ケ", :number=>7, :nslots=>4},
+ {:type=>:weapon, :name=>"鉄扇",               :seal=>"扇", :number=>8, :nslots=>2},
+ {:type=>:weapon, :name=>"サトリのつるはし",   :seal=>"サ", :number=>8, :nslots=>4},
+ {:type=>:weapon, :name=>"使い捨ての剣",       :seal=>"捨", :number=>35, :nslots=>3},
+ {:type=>:weapon, :name=>"モーニングスター",   :seal=>"八", :unsealifiable=>true,
+  :two_handed=>true, :number=>5, :nslots=>6},
+ {:type=>:weapon, :name=>"如意棒",             :seal=>"棒", :unsealifiable=>true,
+  :two_handed=>true, :number=>5, :nslots=>4},
+ {:type=>:weapon, :name=>"アイアンヘッドの頭", :seal=>"頭", :unsealifiable=>true,
+  :two_handed=>true, :number=>9, :nslots=>7},
+ {:type=>:weapon, :name=>"ヤリ",               :seal=>"槍", :unsealifiable=>true,
+  :two_handed=>true, :number=>10, :nslots=>8},
+ {:type=>:weapon, :name=>"ぶっとびハンマー",   :seal=>"跳", :unsealifiable=>true,
+  :two_handed=>true, :number=>10, :nslots=>7},
+ {:type=>:weapon, :name=>"木づち",             :seal=>"木", :two_handed=>true, :number=>10, :nslots=>7},
+ {:type=>:weapon, :name=>"ミノタウロスの斧",   :seal=>"会", :two_handed=>true, :number=>20, :nslots=>8},
+ {:type=>:projectile, :name=>"木の矢"},
+ {:type=>:projectile, :name=>"鉄の矢"},
+ {:type=>:projectile, :name=>"銀の矢"},
+ {:type=>:shield, :name=>"鍛えた木の盾", :number=>2, :nslots=>1},
+ {:type=>:shield, :name=>"みやびやかな盾", :number=>2, :nslots=>7},
+ {:type=>:shield, :name=>"青銅甲の盾", :number=>5, :nslots=>5},
+ {:type=>:shield, :name=>"鉄甲の盾", :number=>9, :nslots=>5},
+ {:type=>:shield, :name=>"獣王の盾", :number=>12, :nslots=>4},
+ {:type=>:shield, :name=>"風魔の盾", :number=>16, :nslots=>6},
+ {:type=>:shield, :name=>"サトリの盾", :seal=>"サ", :number=>1, :nslots=>1},
+ {:type=>:shield, :name=>"皮の盾", :seal=>"皮", :number=>2, :nslots=>5, :rustproof=>true},
+ {:type=>:shield, :name=>"見切りの盾", :seal=>"見", :number=>2, :nslots=>5},
+ {:type=>:shield, :name=>"やまびこの盾", :seal=>"山", :number=>3, :nslots=>5},
+ {:type=>:shield, :name=>"おまつりの盾", :seal=>"祭", :number=>4, :nslots=>5},
+ {:type=>:shield, :name=>"トドの盾", :seal=>"ト", :number=>4, :nslots=>6},
+ {:type=>:shield, :name=>"金の盾", :seal=>"金", :number=>4, :nslots=>4},
+ {:type=>:shield, :name=>"ゴムバンの盾", :seal=>"ゴ", :number=>5, :nslots=>3},
+ {:type=>:shield, :name=>"ガマラの盾", :seal=>"銭", :number=>5, :nslots=>5},
+ {:type=>:shield, :name=>"地雷ナバリの盾", :seal=>"爆", :number=>5, :nslots=>5},
+ {:type=>:shield, :name=>"バトルカウンター", :seal=>"バ", :number=>5, :nslots=>6},
+ {:type=>:shield, :name=>"どんぶりの盾", :seal=>"丼", :number=>5, :nslots=>3},
+ {:type=>:shield, :name=>"身かわしの盾", :seal=>"身", :number=>5, :nslots=>4},
+ {:type=>:shield, :name=>"うろこの盾", :seal=>"う", :number=>6, :nslots=>5},
+ {:type=>:shield, :name=>"しあわせの盾", :seal=>"幸", :number=>6, :nslots=>5},
+ {:type=>:shield, :name=>"不動の盾", :seal=>"不", :number=>8, :nslots=>3},
+ {:type=>:shield, :name=>"ドラゴンシールド", :seal=>"竜", :number=>10, :nslots=>3},
+ {:type=>:shield, :name=>"重装の盾", :seal=>"重", :number=>12, :nslots=>5},
+ {:type=>:shield, :name=>"正面戦士の盾", :seal=>"正", :number=>30, :nslots=>5},
+ {:type=>:shield, :name=>"使い捨ての盾", :seal=>"捨", :number=>40, :nslots=>3},
+ {:type=>:shield, :name=>"矛の盾", :unsealifiable=>true, :seal=>"星", :number=>7, :nslots=>5},
+ {:type=>:shield, :name=>"グランドカウンター", :unsealifiable=>true, :seal=>"グ", :number=>9, :nslots=>9},
+ {:type=>:herb, :name=>"薬草", :desc=>"HPを25回復する。"},
+ {:type=>:herb, :name=>"高級薬草", :desc=>"HPを100回復する。"},
+ {:type=>:herb, :name=>"毒けし草", :desc=>"ちからが回復する。"},
+ {:type=>:herb, :name=>"ちからの種", :desc=>"ちからが満タンの時に最大値を1つ増やす。"},
+ {:type=>:herb, :name=>"幸せの種", :desc=>"レベルが1つ上がる。"},
+ {:type=>:herb, :name=>"すばやさの種"},
+ {:type=>:herb, :name=>"目薬草", :desc=>"ワナが見えるようになる。"},
+ {:type=>:herb, :name=>"毒草"},
+ {:type=>:herb, :name=>"目つぶし草"},
+ {:type=>:herb, :name=>"まどわし草"},
+ {:type=>:herb, :name=>"混乱草", :desc=>"混乱してしまう。投げて使おう。"},
+ {:type=>:herb, :name=>"睡眠草", :desc=>"眠ってしまう。投げて使おう。"},
+ {:type=>:herb, :name=>"ワープ草", :desc=>"フロアの別の場所にワープする。"},
+ {:type=>:herb, :name=>"火炎草", :desc=>"口から火をはく。敵に投げても使える。"},
+ {:type=>:scroll, :name=>"やりなおしの巻物"},
+ {:type=>:scroll, :name=>"武器強化の巻物", :desc=>"武器が少し強くなる。"},
+ {:type=>:scroll, :name=>"盾強化の巻物", :desc=>"盾が少し強くなる。"},
+ {:type=>:scroll, :name=>"メッキの巻物", :desc=>"盾が錆びなくなる。"},
+ {:type=>:scroll, :name=>"解呪の巻物", :desc=>"アイテムの呪いが解ける。"},
+ {:type=>:scroll, :name=>"同定の巻物", :desc=>"何のアイテムか判別する。"},
+ {:type=>:scroll, :name=>"あかりの巻物", :desc=>"フロア全体が見えるようになる。"},
+ {:type=>:scroll, :name=>"かなしばりの巻物", :desc=>"隣接している敵をかなしばり状態にする。"},
+ {:type=>:scroll, :name=>"結界の巻物", :desc=>"床に置くと敵に攻撃されなくなる。"},
+ {:type=>:scroll, :name=>"さいごの巻物"},
+ {:type=>:scroll, :name=>"証明の巻物"},
+ {:type=>:scroll, :name=>"豚鼻の巻物", :desc=>"アイテムの位置がわかるようになる。"},
+ {:type=>:scroll, :name=>"兎耳の巻物", :desc=>"モンスターの位置がわかるようになる。"},
+ {:type=>:scroll, :name=>"パンの巻物", :desc=>"アイテムを大きなパンに変えてしまう。"},
+ {:type=>:scroll, :name=>"祈りの巻物", :desc=>"杖の回数を増やす。"},
+ {:type=>:scroll, :name=>"爆発の巻物", :desc=>"部屋の敵にダメージを与える。"},
+ {:type=>:scroll, :name=>"くちなしの巻物"},
+ {:type=>:scroll, :name=>"時の砂の巻物"},
+ {:type=>:scroll, :name=>"ワナの巻物"},
+ {:type=>:scroll, :name=>"パルプンテの巻物"},
+ {:type=>:scroll, :name=>"ワナけしの巻物"},
+ {:type=>:scroll, :name=>"大部屋の巻物"},
+ {:type=>:staff, :name=>"いかずちの杖", :desc=>"敵にダメージを与える。"},
+ {:type=>:staff, :name=>"鈍足の杖"},
+ {:type=>:staff, :name=>"睡眠の杖", :desc=>"敵を眠らせる。"},
+ {:type=>:staff, :name=>"メダパニの杖"},
+ {:type=>:staff, :name=>"封印の杖"},
+ {:type=>:staff, :name=>"ワープの杖"},
+ {:type=>:staff, :name=>"変化の杖", :desc=>"敵を別の種類のモンスターに変化させる。"},
+ {:type=>:staff, :name=>"ピオリムの杖"},
+ {:type=>:staff, :name=>"とうめいの杖", :desc=>"敵をとうめい状態にする。"},
+ {:type=>:staff, :name=>"転ばぬ先の杖"},
+ {:type=>:staff, :name=>"分裂の杖", :desc=>"敵を分裂させてしまう。"},
+ {:type=>:staff, :name=>"即死の杖", :desc=>"モンスターを即死させる。"},
+ {:type=>:staff, :name=>"もろ刃の杖", :desc=>"敵のHPを残り1にするが、自分のHPが半分になる。"},
+ {:type=>:staff, :name=>"大損の杖"},
+ {:type=>:staff, :name=>"進化の杖", :desc=>"敵のレベルが1つ上がる。"},
+ {:type=>:staff, :name=>"退化の杖", :desc=>"敵のレベルが1つ下がる。"},
+ {:type=>:ring, :name=>"ちからの指輪"},
+ {:type=>:ring, :name=>"毒けしの指輪", :desc=>"毒を受けなくなる。"},
+ {:type=>:ring, :name=>"眠らずの指輪", :desc=>"眠らなくなる。"},
+ {:type=>:ring, :name=>"ルーラの指輪"},
+ {:type=>:ring, :name=>"ハラヘラズの指輪", :desc=>"腹が減らなくなる。"},
+ {:type=>:ring, :name=>"盗賊の指輪", :desc=>"敵を起こさずに部屋を出入りできる。"},
+ {:type=>:ring, :name=>"きれいな指輪"},
+ {:type=>:ring, :name=>"シャドーの指輪"},
+ {:type=>:ring, :name=>"ハラペコの指輪"},
+ {:type=>:ring, :name=>"ワナ抜けの指輪"},
+ {:type=>:ring, :name=>"人形よけの指輪", :desc=>"敵にレベルやHPを下げられなくなる。"},
+ {:type=>:ring, :name=>"ザメハの指輪"},
+ {:type=>:ring, :name=>"退魔の指輪", :desc=>"敵がおびえて逃げていく。"},
+ {:type=>:food, :name=>"パン", :desc=>"満腹度が50%回復する。"},
+ {:type=>:food, :name=>"大きなパン", :desc=>"満腹度が100%回復する。"},
+ {:type=>:food, :name=>"くさったパン", :desc=>"満腹度100%回復。ダメージを受けてちからが減る。"},
+ {:type=>:jar, :name=>"保存の壺", :desc=>"アイテムをこれに入れておけば呪われたりしない。"},
+ {:type=>:jar, :name=>"識別の壺", :desc=>"アイテムは同定される。"},
+ {:type=>:jar, :name=>"合成の壺", :desc=>"同種のアイテムが合成される。"},
+ {:type=>:jar, :name=>"変化の壺", :desc=>"アイテムが変化する。"},
+ {:type=>:jar, :name=>"祝福の壺", :desc=>"アイテムが祝福される。"},
+ {:type=>:jar, :name=>"換金の壺", :desc=>"アイテムが換金される。"},
+ {:type=>:jar, :name=>"弱化の壺", :desc=>"入れたアイテムが弱くなる。"},
+ {:type=>:jar, :name=>"回復の壺", :desc=>"アイテムを入れると消えて、HPが回復する。"},
+ {:type=>:jar, :name=>"手封じの壺", :desc=>"手が使えなくなる。"},
+ {:type=>:jar, :name=>"底抜けの壺", :desc=>"割ると落とし穴が出る。"},
+ {:type=>:jar, :name=>"水がめ", :desc=>"水を汲んで持ち運べる。"},
+ {:type=>:jar, :name=>"やりすごしの壺", :desc=>"中に入ってモンスターをやりすごせる。"}]
 
   CHARS = {
     :box => "􄄺􄄻",
@@ -126,11 +187,15 @@ class Item
 
   class << self
     def make_item(name)
-      row = ITEMS.find { |r| r[1] == name }
-      fail "no such item: #{name}" if row.nil?
+      definition = ITEMS.find { |r| r[:name] == name }
+      fail "no such item: #{name}" if definition.nil?
 
-      type, name, number, desc = row
-      item = Item.new(type, name, number, desc)
+      case definition[:type]
+      when :jar
+        item = Jar.new(definition)
+      else
+        item = Item.new(definition)
+      end
 
       case item.type
       when :staff
@@ -153,6 +218,13 @@ class Item
         item.cursed = r == -1
       when :ring
         item.cursed = rand(5) == 0
+      when :jar
+        case item.name
+        when "合成の壺"
+          item.capacity = rand(2..4)
+        else
+          item.capacity = rand(3..5)
+        end
       end
 
       return item
@@ -160,33 +232,35 @@ class Item
   end
 
   attr :type, :name
-  attr_accessor :number
+  attr_accessor :number, :nslots
   attr_accessor :gold_plated
   attr_accessor :stuck
   attr_accessor :mimic
   attr_accessor :cursed
   attr_accessor :inspected
   attr_accessor :correction # 武器盾の修正値
+  attr_accessor :own_seal
+  attr_accessor :unsealifiable
 
-  def initialize(type, name, number, desc)
-    @type   = type
-    @name   = name
-    @number = number
-    @desc   = desc
-    if type == :shield
-      if name == "銀の盾" || name == "皮の盾"
-        @rustproof = true
-      else
-        @rustproof = false
-      end
-    else
-      @rustproof = nil
-    end
+  def initialize(definition)
+    @type      = definition[:type]
+    @name      = definition[:name]
+    @number    = definition[:number]
+    @nslots    = definition[:nslots]
+    @desc      = definition[:desc]
+    @rustproof = definition[:rustproof] || false
+    @unsealifiable = definition[:unsealifiable] || false
     @stuck = false
     @mimic = false
     @cursed = false
     @inspected = false
     @correction = nil
+    @seals = []
+    if definition[:seal]
+      @own_seal = Seal.new(definition[:seal], :blue)
+    else
+      @own_seal = nil
+    end
   end
 
   def corrected_number
@@ -206,6 +280,7 @@ class Item
   end
 
   def to_s
+    # weapon/shield number format
     ws_num_fmt = proc do |r|
       if r.nil?
         "?"
@@ -266,8 +341,23 @@ class Item
       ["ふる"]
     when :weapon
       ["装備"]
+    when :jar
+      if two_way_jar?()
+        ["見る", "入れる", "出す"]
+      else
+        ["見る", "入れる"]
+      end
     else fail
       "uncovered case"
+    end
+  end
+
+  def two_way_jar?
+    case @name
+    when "保存の壺", "水がめ"
+      true
+    else
+      false
     end
   end
 
@@ -327,6 +417,31 @@ class Item
     else
       false
     end
+  end
+
+  def seals
+    @seals
+  end
+
+end
+
+class Jar < Item
+  attr_accessor :capacity
+  attr_accessor :contents
+  attr_accessor :unbreakable
+
+  def initialize(definition)
+    super(definition)
+    @contents = []
+    @unbreakable = false
+  end
+
+  def to_s
+    "#{name}[#{@capacity - @contents.size}]"
+  end
+
+  def char
+    "壺"
   end
 
 end
