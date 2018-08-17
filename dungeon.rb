@@ -78,9 +78,10 @@ class Dungeon
   def make_monster(level_number)
     distribution = MONSTER_TABLE.assoc(level_number)[1..-1]
     selected_monster = select(distribution)
-    if selected_monster == "ミミック"
+    if selected_monster =~ /ミミック/
       m = make_item(level_number)
       m.mimic = true
+      m.mimic_name = selected_monster
     else
       m = Monster.make_monster(selected_monster)
       case m.name

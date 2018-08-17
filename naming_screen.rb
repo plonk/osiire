@@ -101,6 +101,7 @@ module NamingScreen
     "ヌヌー",
     "ばんたけ",
     "ＯＬ",
+    "あぐん",
   ]
 
   def run(default_name = nil)

@@ -1,6 +1,9 @@
 require_relative 'monster'
+require_relative 'seal'
 
-class Hero < Struct.new(:x, :y, :hp, :max_hp, :strength, :max_strength, :gold, :exp, :fullness, :max_fullness, :lv)
+class Hero
+  attr_accessor :x, :y, :hp, :max_hp, :strength, :max_strength,
+                :gold, :exp, :fullness, :max_fullness, :lv
   attr_accessor :inventory
   attr_accessor :weapon, :shield, :ring, :projectile
   attr_accessor :name
@@ -11,7 +14,9 @@ class Hero < Struct.new(:x, :y, :hp, :max_hp, :strength, :max_strength, :gold, :
   include StatusEffectPredicates
 
   def initialize(*args)
-    super
+    @x, @y, @hp, @max_hp, @strength, @max_strength,
+    @gold, @exp, @fullness, @max_fullness, @lv = *args
+
     @inventory = []
     @status_effects = []
     @name = "名無しさん"
@@ -49,14 +54,14 @@ class Hero < Struct.new(:x, :y, :hp, :max_hp, :strength, :max_strength, :gold, :
     #   end
     # end
     case facing
-    when [ 0,-1] then "\u{104252}\u{104253}" # '↑ '
-    when [ 1,-1] then "\u{104252}\u{104253}" # '↗ '
-    when [ 1, 0] then "\u{104256}\u{104257}" # →
-    when [ 1, 1] then '􄀦􄀧'
-    when [ 0, 1] then '􄀦􄀧'
-    when [-1, 1] then '􄀦􄀧'
-    when [-1, 0] then "\u{104254}\u{104255}"
-    when [-1,-1] then "\u{104252}\u{104253}"
+    when [ 0,-1] then "\u{104252}\u{104253}" # 上
+    when [ 1,-1] then "\u{10425e}\u{10425f}" # 右上
+    when [ 1, 0] then "\u{104256}\u{104257}" # 右
+    when [ 1, 1] then "\u{10425a}\u{10425b}" # 右下
+    when [ 0, 1] then "\u{104250}\u{104251}" # 下
+    when [-1, 1] then "\u{104258}\u{104259}" # 左下
+    when [-1, 0] then "\u{104254}\u{104255}" # 左
+    when [-1,-1] then "\u{10425c}\u{10425d}" # 左上
     else
       '??'
     end

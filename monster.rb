@@ -917,6 +917,18 @@ class Monster
      asleep_rate: 0.5,
      trick_range: :reach},
     # ------------
+    {char: "\u{104360}\u{104361}",
+     name: "怪盗クジラ",
+     max_hp: 28,
+     exp: 15,
+     strength: 10,
+     defense: 11,
+     drop_rate: 0.0,
+     asleep_rate: 0.0,
+     item_eating: true,
+     capacity: 2,
+     trick_range: :reach,
+    },
     {char: "􄁖􄁗",
      name: "グール",
      max_hp: 10,
@@ -1180,6 +1192,8 @@ class Monster
   attr_accessor :action_point, :action_point_recovery_rate
   attr_accessor :group
   attr_accessor :impersonating_name, :impersonating_char
+  attr_reader :contents
+  attr_accessor :capacity
 
   include StatusEffectPredicates
 
@@ -1230,6 +1244,10 @@ class Monster
 
     @action_point = 0
     @action_point_recovery_rate = definition[:action_point_recovery_rate] || 2
+
+    # 合成モンスター。
+    @contents = []
+    @capacity = definition[:capacity]
   end
 
   # state = :awake の操作は別。モンスターの特殊な状態を解除して動き出
@@ -1320,6 +1338,8 @@ class Monster
       0.5
     when "ソーサラー"
       0.33
+    when "怪盗クジラ"
+      0.5
     else
       0.0
     end

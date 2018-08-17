@@ -1,23 +1,3 @@
-class Gold
-  attr_accessor :amount
-  attr_accessor :cursed
-
-  def initialize(amount)
-    @amount = amount
-    @cursed = false
-  end
-
-  def char; '􄀲􄀳' end
-
-  def name
-    "#{amount}ゴールド"
-  end
-
-  def to_s
-    name
-  end
-end
-
 class Item
   ITEMS =
 [{:type=>:weapon, :name=>"鍛えた木刀", :number=>2, :nslots=>1},
@@ -47,7 +27,7 @@ class Item
  {:type=>:weapon, :name=>"回復の剣",           :seal=>"回", :number=>6, :nslots=>3},
  {:type=>:weapon, :name=>"ケンゴウのカタナ",   :seal=>"ケ", :number=>7, :nslots=>4},
  {:type=>:weapon, :name=>"鉄扇",               :seal=>"扇", :number=>8, :nslots=>2},
- {:type=>:weapon, :name=>"サトリのつるはし",   :seal=>"サ", :number=>8, :nslots=>4},
+ {:type=>:weapon, :name=>"サトリのつるはし",   :seal=>"サ", :number=>8, :nslots=>4, :break_count=>Float::INFINITY},
  {:type=>:weapon, :name=>"使い捨ての剣",       :seal=>"捨", :number=>35, :nslots=>3},
  {:type=>:weapon, :name=>"モーニングスター",   :seal=>"八", :unsealifiable=>true,
   :two_handed=>true, :number=>5, :nslots=>6},
@@ -59,7 +39,7 @@ class Item
   :two_handed=>true, :number=>10, :nslots=>8},
  {:type=>:weapon, :name=>"ぶっとびハンマー",   :seal=>"跳", :unsealifiable=>true,
   :two_handed=>true, :number=>10, :nslots=>7},
- {:type=>:weapon, :name=>"木づち",             :seal=>"木", :two_handed=>true, :number=>10, :nslots=>7},
+ {:type=>:weapon, :name=>"木づち",             :seal=>"木", :two_handed=>true, :number=>10, :nslots=>4},
  {:type=>:weapon, :name=>"ミノタウロスの斧",   :seal=>"会", :two_handed=>true, :number=>20, :nslots=>8},
  {:type=>:projectile, :name=>"木の矢"},
  {:type=>:projectile, :name=>"鉄の矢"},
@@ -90,8 +70,8 @@ class Item
  {:type=>:shield, :name=>"重装の盾", :seal=>"重", :number=>12, :nslots=>5},
  {:type=>:shield, :name=>"正面戦士の盾", :seal=>"正", :number=>30, :nslots=>5},
  {:type=>:shield, :name=>"使い捨ての盾", :seal=>"捨", :number=>40, :nslots=>3},
- {:type=>:shield, :name=>"矛の盾", :unsealifiable=>true, :seal=>"星", :number=>7, :nslots=>5},
- {:type=>:shield, :name=>"グランドカウンター", :unsealifiable=>true, :seal=>"グ", :number=>9, :nslots=>9},
+ {:type=>:shield, :name=>"矛の盾", :unsealifiable=>true, :seal=>"星", :number=>7, :nslots=>5, :two_handed=>true},
+ {:type=>:shield, :name=>"グランドカウンター", :unsealifiable=>true, :seal=>"グ", :number=>9, :nslots=>9, :two_handed=>true},
  {:type=>:herb, :name=>"薬草", :desc=>"HPを25回復する。"},
  {:type=>:herb, :name=>"高級薬草", :desc=>"HPを100回復する。"},
  {:type=>:herb, :name=>"毒けし草", :desc=>"ちからが回復する。"},
@@ -236,11 +216,14 @@ class Item
   attr_accessor :gold_plated
   attr_accessor :stuck
   attr_accessor :mimic
+  attr_accessor :mimic_name
   attr_accessor :cursed
   attr_accessor :inspected
   attr_accessor :correction # 武器盾の修正値
   attr_accessor :own_seal
   attr_accessor :unsealifiable
+  attr_accessor :break_count
+  attr_accessor :two_handed
 
   def initialize(definition)
     @type      = definition[:type]
@@ -261,6 +244,9 @@ class Item
     else
       @own_seal = nil
     end
+    @mimic_name = nil
+    @break_count = definition[:break_count] || 50
+    @two_handed = definition[:two_handed]
   end
 
   def corrected_number
@@ -300,12 +286,12 @@ class Item
       end
       "#{prefix}#{name}"
     when :weapon, :shield
+      prefix = ""
       if @cursed
-        prefix = "\u{10423C}"
-      elsif @gold_plated
-        prefix = "★"
-      else
-        prefix = ""
+        prefix += "\u{10423C}"
+      end
+      if has_gold_seal?
+        prefix += "\u{10423D}"
       end
       "#{prefix}#{name}#{ws_num_fmt.(@correction)}"
     when :staff
@@ -340,7 +326,11 @@ class Item
     when :staff
       ["ふる"]
     when :weapon
-      ["装備"]
+      if effective_seals.any? { |s| s.char == "か" }
+        ["装備", "かじる"]
+      else
+        ["装備"]
+      end
     when :jar
       if two_way_jar?()
         ["見る", "入れる", "出す"]
@@ -350,6 +340,10 @@ class Item
     else fail
       "uncovered case"
     end
+  end
+
+  def effective_seals
+    [*self.own_seal, *self.seals]
   end
 
   def two_way_jar?
@@ -362,7 +356,11 @@ class Item
   end
 
   def rustproof?
-    @rustproof || @gold_plated
+    @rustproof || has_gold_seal?
+  end
+
+  def has_gold_seal?
+    @seals.any? {|s|s.char=="金"}
   end
 
   def sort_priority
@@ -412,7 +410,7 @@ class Item
     return false unless @type == :scroll
 
     case @name
-    when "同定の巻物", "パンの巻物", "祈りの巻物"
+    when "同定の巻物", "パンの巻物", "祈りの巻物", "メッキの巻物"
       true
     else
       false
@@ -445,3 +443,28 @@ class Jar < Item
   end
 
 end
+
+class Gold < Item
+  attr_accessor :amount
+  attr_accessor :cursed
+
+  def initialize(amount)
+    @amount = amount
+    @cursed = false
+  end
+
+  def type
+    :gold
+  end
+
+  def char; '􄀲􄀳' end
+
+  def name
+    "#{amount}ゴールド"
+  end
+
+  def to_s
+    name
+  end
+end
+

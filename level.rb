@@ -7,12 +7,14 @@ require_relative 'charlevel'
 
 class Cell
   attr_accessor :lit, :explored, :type, :objects
+  attr_accessor :unbreakable
 
   def initialize type
     @type = type
     @lit = false
     @explored = false
     @objects = [].freeze
+    @unbreakable = false
   end
 
   def first_visible_object(globally_lit, visible_p)
@@ -360,6 +362,19 @@ class Level
     @turn = 0
 
     @tileset = tileset
+
+    harden_perimeter
+  end
+
+  def harden_perimeter
+    (0...@dungeon.size).each do |y|
+      (0...@dungeon[0].size).each do |x|
+        if (x == 0 || x == @dungeon[0].size-1) ||
+           (y == 0 || y == @dungeon.size-1)
+          @dungeon[y][x].unbreakable = true
+        end
+      end
+    end
   end
 
   def make_maze(room)
@@ -595,6 +610,8 @@ class Level
   end
 
   def cell(x, y)
+    fail TypeError unless x.is_a?(Integer) && y.is_a?(Integer)
+    fail RangeError unless in_dungeon?(x, y)
     @dungeon[y][x]
   end
 

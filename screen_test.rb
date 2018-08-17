@@ -282,11 +282,34 @@ class Program
     end
   end
 
+  def calculate_weapon_part(weapon)
+    if weapon.nil?
+      return 0
+    else
+      base = weapon.number
+      base += effective_seals(@weapon).count { |seal| seal.char=="ち" } * 2
+      corr = weapon.correction
+
+      slope = Math.log(base+1, 1.6)**2 / 50.0
+      intercept = Math.log(base.fdiv(5)+1, 1.6)**2
+      if corr >= 0
+        return corr*slope + intercept
+      else
+        return intercept * (base + corr).fdiv(base)
+      end
+    end
+  end
+
   # ヒーローの攻撃力。(Lvと武器)
   def get_hero_attack
-    basic = lv_to_attack(exp_to_lv(@hero.exp))
-    weapon_score = @hero.weapon ? @hero.weapon.number : 0
-    (basic + basic * (weapon_score + @hero.strength - 8)/16.0).round
+    level_part = Math.log(@hero.lv.fdiv(2)+1, 1.6)**2
+    strength_part = if @hero.strength < 8 then
+                      Math.log(3,1.6)**2 * @hero.strength
+                    else
+                      Math.log(@hero.strength.fdiv(2)-1, 1.6)**2
+                    end
+    weapon_part = calculate_weapon_part(@hero.weapon)
+    return  (level_part + strength_part + weapon_part).round
   end
 
   # ヒーローの投擲攻撃力。
@@ -295,9 +318,36 @@ class Program
     (basic + basic * (projectile_strength - 8)/16.0).round
   end
 
+  def effective_seals(weapon_or_shield)
+    if weapon_or_shield.nil?
+      return []
+    else
+      return weapon_or_shield.effective_seals
+    end
+  end
+
   # ヒーローの防御力。
   def get_hero_defense
-    @hero.shield ? @hero.shield.number : 0
+    base = @hero.shield&.number || 0
+    base += effective_seals(@hero.weapon).count { |seal| seal.char=="扇" } * 3
+    base += effective_seals(@hero.shield).count { |seal| seal.char=="命" } * 3
+    slope = Math.log(base+1, 1.6)**2 / 50.0 + 0.5
+    intercept = Math.log(base/3.0+1, 1.6)**2
+    correction = @hero.shield&.correction || 0
+    if correction >= 0
+      raw = correction * slope + intercept
+    else
+      raw = intercept * (base + correction) / base.to_f
+    end
+    if correction >= 0
+      if correction % 2 == 0
+        raw.round
+      else
+        raw.floor
+      end
+    else
+      raw.round
+    end
   end
 
   # モンスターの攻撃力。
@@ -367,16 +417,40 @@ class Program
     if !@hero.no_miss? && rand() < HERO_TERON_RATE
       log("#{@hero.name}の攻撃は 外れた。")
     else
-      attack = get_hero_attack
-      damage = ( ( attack * (15.0/16.0)**monster.defense ) * (112 + rand(32))/128.0 ).to_i
+      damage = attack_to_damage(get_hero_attack(), monster.defense)
       if monster.name == "竜" && @hero.weapon&.name == "ドラゴンキラー"
         damage *= 2
       end
-      if @hero.critical? && rand() < 0.25
+      if rand() < critical_hit_rate(@hero)
         log("会心の一撃！")
         damage *= 2
       end
       monster_take_damage(monster, damage, cell)
+      if monster.hp < 1.0 &&
+         rand() < food_drop_probability(@hero.weapon)
+        food = Item.make_item("パン")
+        item_land(food, *@level.coordinates_of_cell(cell))
+      end
+    end
+  end
+
+  def critical_hit_rate(hero)
+    if effective_seals(hero.weapon).any? { |s| s.char == "会" }
+      0.25
+    else
+      0
+    end
+  end
+
+  FOOD_DROP_SEAL_SERIES = [0.0, 0.19, 0.30, 0.59, 0.82, 0.96, 1.0]
+
+  def food_drop_probability(weapon)
+    if weapon.nil?
+      return 0
+    else
+      n = effective_seals(weapon).count { |seal| seal.char == "に" }
+      n = n % FOOD_DROP_SEAL_SERIES.size
+      return FOOD_DROP_SEAL_SERIES[n]
     end
   end
 
@@ -396,16 +470,18 @@ class Program
 
       cell.remove_object(monster)
 
-      if monster.item
-        thing = monster.item
+      if monster.contents.any?
+        things = monster.contents
+      elsif monster.item
+        things = [monster.item]
       elsif rand() < monster.drop_rate
-        thing = @dungeon.make_random_item_or_gold(@level_number)
+        things = [@dungeon.make_random_item_or_gold(@level_number)]
       else
-        thing = nil
+        things = []
       end
 
-      if thing
-        x, y = @level.coordinates_of_cell(cell)
+      x, y = @level.coordinates_of_cell(cell)
+      things.each do |thing|
         item_land(thing, x, y)
       end
 
@@ -527,8 +603,7 @@ class Program
 
     cell = @level.cell(*target)
     if cell.monster
-      hero_attack(cell, cell.monster)
-      return :action
+      return :nothing
     else
       if @hero.held?
         log("その場に とらえられて 動けない！ ")
@@ -544,14 +619,13 @@ class Program
   end
 
   def hero_walk(x1, y1, picking)
-    if @level.cell(x1, y1).item&.mimic
-      item = @level.cell(x1, y1).item
-      log(display_item(item), "は ミミックだった!")
-      m = Monster.make_monster("ミミック")
+    if (item = @level.cell(x1, y1).item)&.mimic
+      m = Monster.make_monster(item.mimic_name)
       m.state = :awake
       m.action_point = m.action_point_recovery_rate # このターンに攻撃させる
       @level.cell(x1, y1).remove_object(item)
       @level.cell(x1, y1).put_object(m)
+      log(display_item(item), "は ", m.name, "だった!")
       stop_dashing
       return
     end
@@ -618,7 +692,7 @@ class Program
   def take_damage_shield
     if @hero.shield
       if @hero.shield.rustproof?
-        log("しかし #{@hero.shield}は錆びなかった。")
+        log("しかし ", display_item(@hero.shield), "は錆びなかった。")
       else
         if @hero.shield.number > @hero.shield.correction
           @hero.shield.correction -= 1
@@ -865,7 +939,7 @@ class Program
   end
 
   def describe_trap(trap)
-    message_window(trap.desc, y: 1, x: 15)
+    one_line_message_box(trap.desc, y: 1, x: 15)
   end
 
   def trap_menu(trap)
@@ -935,6 +1009,8 @@ class Program
   # String → :action | :move | :nothing
   def dispatch_command(c)
     case c
+    when '.'
+      :action
     when ','
       underfoot_menu
     when '!'
@@ -981,6 +1057,8 @@ class Program
          '7', '8', '9', '4', '6', '1', '2', '3',
          Curses::KEY_SLEFT, Curses::KEY_SRIGHT, Curses::KEY_SR, Curses::KEY_SF
       hero_move(c)
+    when 'z'
+      return hero_swing
     when 16 # ^P
       open_history_window
       :nothing
@@ -995,6 +1073,7 @@ class Program
         load(File.dirname(__FILE__) + "/shop.rb")
         load(File.dirname(__FILE__) + "/trap.rb")
         load(File.dirname(__FILE__) + "/menu.rb")
+        load(File.dirname(__FILE__) + "/hero.rb")
       end
       render
       :nothing
@@ -1013,6 +1092,12 @@ class Program
       else
         :nothing
       end
+    when 'a'
+      dir = ask_for_direction
+      if dir
+        @hero.facing = dir
+      end
+      :nothing
     when 's'
       status_window
       :nothing
@@ -1023,11 +1108,45 @@ class Program
         log("投げ物を装備していない。")
         :nothing
       end
-    when '.'
-      search
     else
       log("[#{c}]なんて 知らない。[?]でヘルプ。")
       :nothing
+    end
+  end
+
+  def hero_swing
+    if @hero.confused?
+      vec = DIRECTIONS.sample
+    else
+      vec = @hero.facing
+    end
+
+    target = Vec.plus(@hero.pos, vec)
+    unless @level.in_dungeon?(*target)
+      log("Error: target = #{target.inspect}")
+      return
+    end
+    cell = @level.cell(*target)
+    if cell.wall? &&
+       vec[0]*vec[1] == 0 && # ナナメを向いていない。
+       effective_seals(@hero.weapon).any? { |s| s.char == "堀" || s.char == "サ"  }
+      if cell.unbreakable
+        log("この壁は 硬くて掘れない。")
+      else
+        cell.type = :PASSAGE
+        @hero.weapon.break_count -= 1
+        if @hero.weapon.break_count <= 0
+          log(display_item(@hero.weapon), "は 壊れてしまった!")
+          @hero.remove_from_inventory(@hero.weapon)
+        end
+        return :action
+      end
+    elsif cell.monster
+      hero_attack(cell, cell.monster)
+      return :action
+    else
+      reveal_trap(*target)
+      return :action
     end
   end
 
@@ -1036,47 +1155,65 @@ class Program
     win.run
   end
 
+  NEXT_PAGE = "\u{104146}\u{104147}"
   def cheat_get_item
     item_kinds = {
       "武器" => :weapon,
-      "投げ物" => :projectile,
       "盾" => :shield,
+      "指輪" => :ring,
+      "投げ物" => :projectile,
       "草" => :herb,
       "巻物" => :scroll,
       "杖" => :staff,
-      "指輪" => :ring,
       "食べ物" => :food,
-      "箱" => :box,
       "壺" => :jar,
+      "箱" => :box,
     }
 
-    menu = Menu.new(item_kinds.keys)
+    menu = Menu.new(item_kinds.keys, cols: 10)
     begin
-      c, arg = menu.choose
-      case c
-      when :chosen
-        kind = item_kinds[arg]
-        names = Item::ITEMS.select { |i| i[:type] == kind }.map { |i| i[:name] }
-        menu2 = Menu.new(names)
-        begin
-          c2, arg2 = menu2.choose
-          case c2
-          when :chosen
-            item = Item::make_item(arg2)
-            if @hero.add_to_inventory(item)
-              log(display_item(item), "を 手に入れた。")
-              return
-            else
-              item_land(item, @hero.x, @hero.y)
-            end
+      while true
+        render
+        c, arg = menu.choose
+        case c
+        when :chosen
+          kind = item_kinds[arg]
+          names = Item::ITEMS.select { |i| i[:type] == kind }.map { |i| i[:name] }
+          names.sort!
+          if names.size > 20
+            pages = names.each_slice(20).map { |page| page + [NEXT_PAGE] }
           else
-            return
+            pages = [names]
           end
-        ensure
-          menu2.close
+          i = 0
+          while true
+            menu2 = Menu.new(pages[i], x: 10)
+            begin
+              c2, arg2 = menu2.choose
+              case c2
+              when :chosen
+                if arg2 == NEXT_PAGE
+                  i = (i + 1) % pages.size
+                  next
+                else
+                  item = Item::make_item(arg2)
+                  if @hero.add_to_inventory(item)
+                    log(display_item(item), "を 手に入れた。")
+                    return
+                  else
+                    item_land(item, @hero.x, @hero.y)
+                  end
+                end
+              else
+                break
+              end
+            ensure
+              menu2.close
+            end
+          end
+        else
+          return
         end
-      else
-        return
       end
     ensure
       menu.close
@@ -1100,14 +1237,15 @@ class Program
      i       道具一覧を開く。
      >       階段を降りる。足元のワナを踏む、
              アイテムを拾う。
-     ,       足元を調べる。
-     .       周りを調べる。
+     ,       足元メニュー。
+     .       足踏み。
      ?       このヘルプを表示。
      Ctrl+P  メッセージ履歴。
      s       主人公のステータスを表示。
      t       装備している投げ物を使う。
      q       キャンセル。
      Q       冒険をあきらめる。
+     z       攻撃。
 EOD
 
     win = Curses::Window.new(23, 50, 1, 4) # lines, cols, y, x
@@ -1145,11 +1283,11 @@ EOD
 
   def add_to_rankings(data)
     if add_to_ranking(data, SCORE_RANKING_FILE_NAME, method(:sort_ranking_by_score))
-      message_window("スコア番付に載りました。")
+      one_line_message_box("スコア番付に載りました。")
     end
 
     if cleared?(data) && add_to_ranking(data, TIME_RANKING_FILE_NAME, method(:sort_ranking_by_time))
-      message_window("タイム番付に載りました。")
+      one_line_message_box("タイム番付に載りました。")
     end
 
     add_to_ranking(data, RECENT_GAMES_FILE_NAME, method(:sort_ranking_by_timestamp))
@@ -1304,23 +1442,44 @@ EOD
     end
   end
 
-  def synthesize_weapon(weapon1, weapon2)
-    if weapon2.unsealifiable
-      [weapon1, weapon2]
+  def transmute(item)
+    post_process = lambda { |i|
+      i.correction = 0
+      i.cursed = item.cursed
+      i.inspected = true
+      return i
+    }
+    if item.name == "つるはし" &&
+       item.seals.count { |s| s.char == "堀" } == 5
+      post_process.(Item.make_item("サトリのつるはし"))
+    elsif item.name == "木づち" &&
+          item.seals.count { |s| s.char == "木" } == 4
+      post_process.(Item.make_item("ぶっとびハンマー"))
+    elsif item.name == "ドラゴンキラー" &&
+       item.seals.count { |s| s.char == "竜" } == 3
+      post_process.(Item.make_item("龍神剣"))
     else
-      seals =
-        [*weapon1.seals, *weapon2.own_seal, *weapon2.seals]
-        .take(weapon1.nslots)
-
-      weapon1.seals.replace(seals)
-      weapon1.correction += weapon2.correction
-      weapon1.cursed ||= weapon2.cursed
-      [weapon1]
+      # 変化なし。
+      item
     end
   end
 
-  def synthesize_shield(item1, item2)
-    [item1, item2]
+  def synthesize_weapon_or_shield(item1, item2)
+    fail unless item1.type == item2.type
+
+    if item2.unsealifiable
+      [item1, item2]
+    else
+      seals =
+        [*item1.seals, *item2.own_seal, *item2.seals]
+        .take(item1.nslots)
+
+      item1.seals.replace(seals)
+      item1.correction += item2.correction
+      item1.cursed ||= item2.cursed
+      item1.inspected = true
+      [transmute(item1)]
+    end
   end
 
   def synthesize_staff(item1, item2)
@@ -1328,13 +1487,17 @@ EOD
   end
 
   # (Item, Item) -> [Item]
-  def synthesize(item1, item2)
+  def synthesize(item1, item2, green_seals = false)
     if item1.type != item2.type
-      [item1, item2]
+      if green_seals
+        [item1, item2] # TODO: 緑印合成実装。
+      else
+        [item1, item2] # 合成されない。
+      end
     elsif item1.type == :weapon
-      synthesize_weapon(item1, item2)
+      synthesize_weapon_or_shield(item1, item2)
     elsif item1.type == :shield
-      synthesize_shield(item1, item2)
+      synthesize_weapon_or_shield(item1, item2)
     elsif item1.type == :staff
       synthesize_staff(item1, item2)
     else
@@ -1354,6 +1517,7 @@ EOD
       log(display_item(item), "は 呪われていて外れない！")
       return :action
     else
+      log(display_item(jar), "に ", display_item(target), "を入れた。")
       case jar.name
       when "合成の壺"
         new_contents = []
@@ -1383,6 +1547,7 @@ EOD
         log("#{jar.name}の入れるは実装してないよ。")
         return :nothing
       end
+      return :action
     end
   end
 
@@ -1424,6 +1589,8 @@ EOD
       return take_herb(item)
     when "装備"
       equip(item)
+    when "かじる"
+      nibble(item)
     when "読む"
       return read_scroll(item)
     when "ふる"
@@ -1432,6 +1599,18 @@ EOD
       log("case not covered: #{item}を#{action}。")
     end
     return :action
+  end
+
+  def nibble(item)
+    if item.cursed && @hero.equipped?(item)
+      log(display_item(item), "は 呪われていてかじれない。")
+    elsif item.number + item.correction > 0
+      log("#{@hero.name}は ", display_item(item), "をかじった。")
+      item.correction -= 1
+      @hero.increase_fullness(30.0)
+    else
+      log(display_item(item), "は もうかじれない。")
+    end
   end
 
   # 持ち物メニューを開く。
@@ -1466,7 +1645,6 @@ EOD
           return :nothing
         when :chosen
           action = item_action_menu(item)
-          render
           if action.nil?
             next
           end
@@ -1567,7 +1745,19 @@ EOD
     else
       desc = item.desc
     end
-    message_window(desc, y: 1, x: 27)
+    cols = [24, desc.size * 2].max + 2
+    lines = []
+    lines << desc
+    case item.type
+    when :weapon
+      lines << ""
+      lines << ["span", "印 ", display_seals(item)]
+    when :shield
+      lines << ""
+      lines << ["span", "印 ", display_seals(item)]
+    end
+    text_message_box(lines,
+                     cols: cols, y: 1, x: 27)
   end
 
   # 投げられたアイテムが着地する。
@@ -1870,7 +2060,7 @@ EOD
   end
 
   # 方向を入力させて、その方向のベクトルを返す。
-  def ask_direction
+  def ask_for_direction(title = "方向")
     text = <<EOD
 y k u
 h   l
@@ -1881,7 +2071,7 @@ EOD
     win.clear
     win.rounded_box
     win.setpos(0, 1)
-    win.addstr("方向")
+    win.addstr(title)
     text.each_line.with_index(1) do |line, y|
       win.setpos(y, 1)
       win.addstr(line.chomp)
@@ -1913,10 +2103,7 @@ EOD
       return :action
     end
 
-    dir = ask_direction()
-    if dir.nil?
-      return :nothing
-    end
+    dir = @hero.facing
 
     if item.type == :projectile && item.number > 1
       one = Item.make_item(item.name)
@@ -1935,7 +2122,7 @@ EOD
   def zap_staff(item)
     fail if item.type != :staff
 
-    dir = ask_direction()
+    dir = ask_for_direction()
     if dir.nil?
       return :nothing
     else
@@ -2253,6 +2440,20 @@ EOD
       else
         log("しかし 何も起こらなかった。")
       end
+    when "メッキの巻物"
+      case target.type
+      when :shield, :weapon
+        if !target.has_gold_seal? &&
+           target.seals.size < target.nslots
+          target.inspected = true
+          log(display_item(target), "に メッキがほどこされた！ ")
+          target.seals.push(Seal.new("金", :red))
+        else
+          log("しかし ", display_item(target), "はすでにメッキされている。")
+        end
+      else
+        log("しかし 何も起こらなかった。")
+      end
     else
       log("実装してない「どれを」巻物だよ。")
     end
@@ -2310,7 +2511,7 @@ EOD
       log("ダンジョンが あかるくなった。")
     when "武器強化の巻物"
       if @hero.weapon
-        @hero.weapon.number += 1
+        @hero.weapon.correction += 1
         log("#{@hero.weapon.name}が 少し強くなった。")
         if @hero.weapon.cursed
           @hero.weapon.cursed = false
@@ -2321,7 +2522,7 @@ EOD
       end
     when "盾強化の巻物"
       if @hero.shield
-        @hero.shield.number += 1
+        @hero.shield.correction += 1
         log("#{@hero.shield.name}が 少し強くなった。")
         if @hero.shield.cursed
           @hero.shield.cursed = false
@@ -2329,17 +2530,6 @@ EOD
         end
       else
         log("しかし 何も起こらなかった。")
-      end
-    when "メッキの巻物"
-      if @hero.shield && !@hero.shield.rustproof?
-        log("#{@hero.shield}に メッキがほどこされた！ ")
-        @hero.shield.gold_plated = true
-      else
-        log("しかし 盾はすでにメッキされている。")
-      end
-      if @hero.shield&.cursed
-        @hero.shield.cursed = false
-        log("盾の呪いが 解けた。")
       end
     when "シャナクの巻物"
       log("呪いなんて信じてるの？")
@@ -2482,7 +2672,7 @@ EOD
     fail "not a herb" unless item.type == :herb
 
     if item.name == "火炎草"
-      vec = ask_direction
+      vec = ask_for_direction
       if vec.nil?
         return :nothing
       end
@@ -2647,10 +2837,25 @@ EOD
     elsif @hero.weapon.equal?(item) # coreferential?
       @hero.weapon = nil
       log("武器を 外した。")
+    elsif item.two_handed && @hero.shield&.cursed
+      log(display_item(@hero.shield), "は 呪われていて 外れない！")
     else
+      # 両手盾を装備していれば、まず外すことが必要。
+      if @hero.shield&.two_handed
+        if @hero.shield.cursed
+          log(display_item(@hero.shield), "は 呪われていて 外れない！")
+          return
+        else
+          @hero.shield = nil
+        end
+      end
+
       @hero.weapon = item
       unless item.inspected
         item.inspected = true
+      end
+      if item.two_handed
+        @hero.shield = nil
       end
       log(display_item(item), "を 装備した。")
       if item.cursed
@@ -2668,10 +2873,25 @@ EOD
     elsif @hero.shield.equal?(item)
       @hero.shield = nil
       log("盾を 外した。")
+    elsif item.two_handed && @hero.weapon&.cursed
+      log(display_item(@hero.weapon), "は 呪われていて 外れない！")
     else
+      # 両手武器を装備していれば、まず外すことが必要。
+      if @hero.weapon&.two_handed
+        if @hero.weapon.cursed
+          log(display_item(@hero.weapon), "は 呪われていて 外れない！")
+          return
+        else
+          @hero.weapon = nil
+        end
+      end
+
       @hero.shield = item
       unless item.inspected
         item.inspected = true
+      end
+      if item.two_handed
+        @hero.weapon = nil
       end
       log(display_item(item), "を 装備した。")
       if item.cursed
@@ -2821,7 +3041,7 @@ EOD
   def shop_interaction
     Curses.stdscr.clear
     Curses.stdscr.refresh
-    message_window("階段の途中で行商人に出会った。")
+    one_line_message_box("階段の途中で行商人に出会った。")
     Curses.stdscr.clear
     Curses.stdscr.refresh
     shop = Shop.new(@hero, method(:display_item), method(:addstr_ml))
@@ -3142,7 +3362,7 @@ EOD
   end
 
   def display_seals(item)
-    return "なし" if item.nil?
+    return "" if item.nil?
     ["span", "["] + item.seals.map { |seal| display_seal(seal) } + ["・" * (item.nslots - item.seals.size)] + ["]"]
   end
 
@@ -3161,7 +3381,7 @@ EOD
         ["span", "ちから %d/%d" % [@hero.strength, @hero.max_strength]],
         ["span", "経験値 %d" % [@hero.exp]],
         ["span", "つぎのLvまで %s" % [until_next_lv]],
-        ["span", "満腹度 %d%%/%d%%" % [@hero.fullness.ceil, @hero.max_fullness]]
+        ["span", "満腹度 %d/%d" % [@hero.fullness.ceil, @hero.max_fullness]]
       ]
 
     win = Curses::Window.new(text.size+2, 31, 1, 0) # lines, cols, y, x
@@ -3173,7 +3393,9 @@ EOD
       win.setpos(y, 1)
       addstr_ml(win, line)
     end
+    Curses.curs_set(0)
     win.getch
+    Curses.curs_set(1)
     win.close
   end
 
@@ -3213,6 +3435,8 @@ EOD
              !@hero.held?
            when "どろぼう猫"
              !m.hallucinating?
+           when "怪盗クジラ"
+             m.capacity > 0
            else
              true
            end
@@ -3403,9 +3627,19 @@ EOD
     end
   end
 
-  # 敵の攻撃力から、実際にヒーローが受けるダメージを計算する。
   def attack_to_hero_damage(attack)
-    return ( ( attack * (15.0/16.0)**get_hero_defense ) * (112 + rand(32))/128.0 ).to_i
+    attack_to_damage(attack, get_hero_defense())
+  end
+
+  # 攻撃力から、実際のダメージを計算する。
+  def attack_to_damage(attack, defense)
+    random_factor = rand(0.875 .. 1.125)
+    raw = attack * random_factor - defense
+    if raw < 0.5
+      [1,1,1,2].sample # 1が出るの確率が75%
+    else
+      raw.round
+    end
   end
 
   def monster_attacks_hero(m)
@@ -3554,8 +3788,27 @@ EOD
       wait_delay
       hero_teleport
 
+    when "怪盗クジラ"
+      item = @hero.inventory.reject { |i| @hero.equipped?(i) }.sample
+      if item
+        @hero.remove_from_inventory(item)
+        contents = heterogeneous_synthesis(m.contents, item)
+        m.contents.replace(contents)
+        m.capacity -= 1
+        log("#{m.name}は ", display_item(item), "を吸い込んだ！")
+      else
+        log("#{m.name}は 何も吸い込めなかった。")
+      end
     else
       fail
+    end
+  end
+
+  def heterogeneous_synthesis(contents, item)
+    if contents.empty?
+      [item]
+    else
+      contents[0...-1] + synthesize(contents[-1], item, true)
     end
   end
 
@@ -3758,7 +4011,7 @@ EOD
   end
 
   # メッセージボックス。
-  def message_window(message, opts = {})
+  def one_line_message_box(message, opts = {})
     cols = opts[:cols] || message.size * 2 + 2
     y = opts[:y] || (Curses.lines - 3)/2
     x = opts[:x] || (Curses.cols - cols)/2
@@ -3769,6 +4022,28 @@ EOD
 
     win.setpos(1, 1)
     win.addstr(message.chomp)
+
+    Curses.flushinp
+    win.getch
+    win.clear
+    win.refresh
+    win.close
+  end
+
+  def text_message_box(text, opts = {})
+    cols = opts[:cols] || fail
+    y    = opts[:y] || fail
+    x    = opts[:x] || fail
+    lm   = opts[:left_margin] || 1
+
+    win = Curses::Window.new(2 + text.size, cols + lm, y, x) # lines, cols, y, x
+    win.clear
+    win.rounded_box
+
+    text.each.with_index(+1) do |line, i|
+      win.setpos(i, 1 + lm)
+      addstr_ml(win, line)
+    end
 
     Curses.flushinp
     win.getch
@@ -3810,7 +4085,7 @@ EOD
       f.flock(File::LOCK_SH)
       ranking = JSON.parse(f.read)
       unless validate_ranking(ranking)
-        message_window("番付ファイルが壊れています。")
+        one_line_message_box("番付ファイルが壊れています。")
         return
       end
     rescue Errno::ENOENT
@@ -3820,7 +4095,7 @@ EOD
     end
 
     if ranking.empty?
-      message_window("まだ記録がありません。")
+      one_line_message_box("まだ記録がありません。")
     else
       menu = Menu.new(ranking, y: 0, x: 5, cols: 70, dispfunc: dispfunc, title: title)
       while true
