@@ -136,7 +136,6 @@ class Item
  {:type=>:ring, :name=>"ワナ抜けの指輪"},
  {:type=>:ring, :name=>"人形よけの指輪", :desc=>"敵にレベルやHPを下げられなくなる。"},
  {:type=>:ring, :name=>"ザメハの指輪"},
- {:type=>:ring, :name=>"退魔の指輪", :desc=>"敵がおびえて逃げていく。"},
  {:type=>:food, :name=>"パン", :desc=>"満腹度が50%回復する。"},
  {:type=>:food, :name=>"大きなパン", :desc=>"満腹度が100%回復する。"},
  {:type=>:food, :name=>"くさったパン", :desc=>"満腹度100%回復。ダメージを受けてちからが減る。"},

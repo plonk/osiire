@@ -662,7 +662,7 @@ class Program
       stop_dashing
       unless @hero.ring&.name == "ワナ抜けの指輪"
         if rand() < activation_rate
-          trap.activated = true
+          trap.trodden = true # 敵の移動後に発動を予約する。
         else
           log("#{trap.name}は 発動しなかった。")
         end
@@ -765,6 +765,8 @@ class Program
 
   # ヒーローに踏まれた罠が発動する。
   def trap_do_activate(trap)
+    trap.active_count += 1
+
     case trap.name
     when "ワープゾーン"
       log("ワープゾーンだ！ ")
@@ -800,12 +802,26 @@ class Program
       wait_delay
       new_level(+1)
       return # ワナ破損処理をスキップする
+    when "呪いの罠"
+      log("呪いの罠を踏んだ！")
+      curse_trap_activate(trap)
     else fail
     end
 
     tx, ty = @level.coordinates_of(trap)
     if rand() < 0.5
       @level.remove_object(trap, tx, ty)
+    end
+  end
+
+  def curse_trap_activate(trap)
+    uncursed = @hero.inventory.select { |i| !i.cursed }
+    if uncursed.empty?
+      log("しかし なんともなかった。")
+    else
+      item = uncursed.sample
+      log(display_item(item), "は 呪われてしまった。")
+      item.cursed = true
     end
   end
 
@@ -909,7 +925,7 @@ class Program
       log("#{gold.amount}G を拾った。")
       return :action
     elsif cell.trap
-      cell.trap.activated = true
+      trap_do_activate(cell.trap)
       return :action
     else
       log("足元には何もない。")
@@ -955,7 +971,7 @@ class Program
         when :chosen
           case label
           when "ふむ"
-            trap.activated = true
+            trap_do_activate(trap)
             return :action
           when "説明"
             describe_trap(trap)
@@ -1383,6 +1399,14 @@ EOD
       else
         display_uninspected_item(item)
       end
+    when :food
+      if item.cursed
+        ["cursed", "\u{10423C}", item.to_s]
+      else
+        item.to_s
+      end
+    when :scroll
+      display_uninspected_item(item)
     else
       display_uninspected_item(item)
     end
@@ -1399,18 +1423,27 @@ EOD
   end
 
   def display_uninspected_item(item)
+    if item.type != :ring && item.cursed
+      cursed = "\u{10423C}" # ドクロ
+    else
+      cursed = ""
+    end
     if @naming_table.include?(item.name)
       case @naming_table.state(item.name)
       when :identified
         if item.type == :staff # 杖の種類は判別しているが回数がわからない状態。
-          ["unidentified", item.name]
+          ["span", cursed, ["unidentified", item.name]]
         else
-          item.to_s
+          if item.cursed
+            ["cursed", cursed, item.to_s]
+          else
+            ["span", item.to_s]
+          end
         end
       when :nicknamed
-        display_item_by_nickname(item)
+        ["span", cursed, display_item_by_nickname(item)]
       when :unidentified
-        ["unidentified", @naming_table.false_name(item.name)]
+        ["span", cursed, ["unidentified", @naming_table.false_name(item.name)]]
       else fail
       end
     else
@@ -2122,20 +2155,17 @@ EOD
   def zap_staff(item)
     fail if item.type != :staff
 
-    dir = ask_for_direction()
-    if dir.nil?
-      return :nothing
+    if item.cursed
+      log(display_item(item), "は 呪われていて使えない。")
+    elsif item.number == 0
+      log("しかし なにも起こらなかった。")
+    elsif item.number > 0
+      item.number -= 1
+      do_zap_staff(item, @hero.facing)
     else
-      if item.number == 0
-        log("しかしなにも起こらなかった。")
-      elsif item.number > 0
-        item.number -= 1
-        do_zap_staff(item, dir)
-      else
-        fail "negative staff number"
-      end
-      return :action
+      fail "negative staff number"
     end
+    return :action
   end
 
   # モンスターが睡眠状態になる。
@@ -2366,6 +2396,11 @@ EOD
   def read_scroll(item)
     fail "not a scroll" unless item.type == :scroll
 
+    if item.cursed
+      log(display_item(item), "は 呪われていて読めない！")
+      return :nothing
+    end
+
     if item.stuck
       log(display_item(item), "は 床にはりついて 読めない。")
       return :action
@@ -2531,8 +2566,6 @@ EOD
       else
         log("しかし 何も起こらなかった。")
       end
-    when "シャナクの巻物"
-      log("呪いなんて信じてるの？")
     when "かなしばりの巻物"
       monsters = []
       rect = @level.surroundings(@hero.x, @hero.y)
@@ -2671,11 +2704,9 @@ EOD
   def take_herb(item)
     fail "not a herb" unless item.type == :herb
 
-    if item.name == "火炎草"
-      vec = ask_for_direction
-      if vec.nil?
-        return :nothing
-      end
+    if item.cursed
+      log(display_item(item), "は 呪われていて飲めない！")
+      return :nothing
     end
 
     # 副作用として満腹度5%回復。
@@ -2749,6 +2780,7 @@ EOD
     when "火炎草"
       log("#{@hero.name}は 口から火を はいた！ ")
 
+      vec = @hero.facing
       tx, ty = Vec.plus([@hero.x, @hero.y], vec)
       fail unless @level.in_dungeon?(tx, ty)
       cell = @level.cell(tx, ty)
@@ -4321,7 +4353,8 @@ EOD
 
   def traps_deactivate
     @level.all_traps_with_position.each do |trap, x, y|
-      trap.activated = false
+      fail if trap.trodden
+      trap.trodden = false
       trap.active_count = 0
     end
   end
@@ -4346,12 +4379,15 @@ EOD
     }
   end
 
+  # 移動によって踏まれた罠が発動する。
   def traps_activate
     @level.all_traps_with_position.each do |trap, x, y|
-      if trap.activated && trap.active_count == 0
-        trap_do_activate(trap)
+      if trap.trodden
+        if trap.active_count == 0
+          trap_do_activate(trap)
+        end
+        trap.trodden = false
       end
-      trap.active_count += 1
     end
   end
 
@@ -4383,8 +4419,6 @@ EOD
         m.action_point -= 2
       end
     end
-
-    traps_activate
   end
 
   # ダンジョンのプレイ。
@@ -4398,26 +4432,13 @@ EOD
     begin
       until @quitting
         if @hero.action_point >= 2
-          old = @hero.action_point
-          @hero.action_point -= 2
           case hero_phase
           when :move, :action
-          when :nothing
-            @hero.action_point = old
+            @hero.action_point -= 2
           end
         elsif all_monsters_moved?
           next_turn
         else
-          if @hero.ring&.name == "退魔の指輪"
-            rect = @level.fov(@hero.x, @hero.y)
-            rect.each_coords do |x, y|
-              next unless @level.in_dungeon?(x, y)
-              m = @level.cell(x, y).monster
-              if m && !m.hallucinating?
-                m.status_effects << StatusEffect.new(:hallucination, Float::INFINITY)
-              end
-            end
-          end
           monster_phase
         end
       end

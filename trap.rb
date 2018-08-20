@@ -9,6 +9,7 @@ class Trap
     "毒矢",
     "地雷",
     "落とし穴",
+    "呪いの罠",
   ]
 
   NAME_TO_CHAR = {
@@ -21,6 +22,7 @@ class Trap
     "毒矢" => "􄄲􄄳",
     "地雷" => "􄄴􄄵",
     "落とし穴" => "􄄶􄄷",
+    "呪いの罠" => "\u{104370}\u{104371}",
   }
 
   NAME_TO_DESC     = {
@@ -33,18 +35,19 @@ class Trap
     "毒矢"         => "どこからともなく毒の矢が飛んでくる",
     "地雷"         => "爆発がおこり、HPが半分になってしまう",
     "落とし穴"     => "下のフロアへ落ちてしまう",
+    "呪いの罠"     => "アイテムが呪われてしまう",
   }
 
   attr_reader :name
   attr_accessor :visible
   attr_accessor :active_count
-  attr_accessor :activated
+  attr_accessor :trodden
 
   def initialize(name, visible = false)
     @name = name
     @visible = visible
     @active_count = 0
-    @activated = false
+    @trodden = false
   end
 
   def char

@@ -221,9 +221,9 @@ class Dungeon
   def place_traps(level, level_number)
     case level_number
     when 1..2
-      n = 0
+      n = rand(3..5)
     when 3..10
-      n = rand(1..3)
+      n = rand(3..5)
     when 11..20
       n = rand(3..5)
     when 21..30
