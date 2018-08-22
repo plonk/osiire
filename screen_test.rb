@@ -113,6 +113,7 @@ class Program
     if debug?
       @hero.inventory << Item.make_item("エンドゲーム")
       @hero.inventory << Item.make_item("風魔の盾")
+      @hero.inventory << Item.make_item("壁抜けの指輪")
       @hero.inventory << Item.make_item("目薬草")
       @hero.inventory << Item.make_item("薬草")
       @hero.inventory << Item.make_item("高級薬草")
@@ -142,6 +143,14 @@ class Program
     @last_message_shown_at = Time.at(0)
 
     @naming_table = create_naming_table()
+    if debug?
+      @hero.inventory.each do |item|
+        if @naming_table.include?(item.name) && !@naming_table.identified?(item.name)
+          @naming_table.identify!(item.name)
+        end
+        item.inspected = true
+      end
+    end
 
     @overlayed_tiles = []
   end
@@ -560,14 +569,19 @@ class Program
 
   def hero_can_move_to?(target)
     return false unless Vec.chess_distance(@hero.pos, target) == 1
+    return false unless @level.in_dungeon?(*target)
 
-    dx, dy = Vec.minus(target, @hero.pos)
-    if dx * dy != 0
-      return @level.passable?(@hero.x + dx, @hero.y + dy) &&
-        @level.uncornered?(@hero.x + dx, @hero.y) &&
-        @level.uncornered?(@hero.x, @hero.y + dy)
+    if @hero.kabenuke?
+      return true
     else
-      return @level.passable?(@hero.x + dx, @hero.y + dy)
+      dx, dy = Vec.minus(target, @hero.pos)
+      if dx * dy != 0
+        return @level.passable?(@hero.x + dx, @hero.y + dy) &&
+          @level.uncornered?(@hero.x + dx, @hero.y) &&
+          @level.uncornered?(@hero.x, @hero.y + dy)
+      else
+        return @level.passable?(@hero.x + dx, @hero.y + dy)
+      end
     end
   end
 
@@ -2932,6 +2946,12 @@ EOD
     end
   end
 
+  def resolve_position
+    if !@hero.kabenuke? && @level.cell(*@hero.pos).wall?
+      hero_teleport
+    end
+  end
+
   # 指輪を装備する。
   def equip_ring(item)
     fail 'not in inventory' unless @hero.in_inventory?(item)
@@ -2941,6 +2961,7 @@ EOD
     elsif @hero.ring.equal?(item)
       @hero.ring = nil
       log(display_item(item), "を 外した。")
+      resolve_position()
     else
       @hero.ring = item
       log(display_item(item), "を 装備した。")
@@ -4359,6 +4380,14 @@ EOD
     end
   end
 
+  def kabe_damage
+    if @level.cell(*@hero.pos).wall?
+      if @hero.kabenuke?
+        take_damage((@hero.max_hp * 0.05).round)
+      end
+    end
+  end
+
   def next_turn
     @level.turn += 1
     @hero.action_point += @hero.action_point_recovery_rate
@@ -4367,6 +4396,7 @@ EOD
     hero_fullness_decrease
 
     traps_deactivate
+    kabe_damage
 
     if @level.turn % 64 == 0 && @level.monster_count < 25
       spawn_monster

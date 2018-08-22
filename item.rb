@@ -127,7 +127,7 @@ class Item
  {:type=>:ring, :name=>"ちからの指輪"},
  {:type=>:ring, :name=>"毒けしの指輪", :desc=>"毒を受けなくなる。"},
  {:type=>:ring, :name=>"眠らずの指輪", :desc=>"眠らなくなる。"},
- {:type=>:ring, :name=>"ルーラの指輪"},
+ {:type=>:ring, :name=>"ワープの指輪", :desc=>"攻撃を受けるとワープする。"},
  {:type=>:ring, :name=>"ハラヘラズの指輪", :desc=>"腹が減らなくなる。"},
  {:type=>:ring, :name=>"盗賊の指輪", :desc=>"敵を起こさずに部屋を出入りできる。"},
  {:type=>:ring, :name=>"きれいな指輪"},
@@ -136,6 +136,7 @@ class Item
  {:type=>:ring, :name=>"ワナ抜けの指輪"},
  {:type=>:ring, :name=>"人形よけの指輪", :desc=>"敵にレベルやHPを下げられなくなる。"},
  {:type=>:ring, :name=>"ザメハの指輪"},
+ {:type=>:ring, :name=>"壁抜けの指輪", :desc=>"壁に入れる。", :attrs=>[:kabenuke]},
  {:type=>:food, :name=>"パン", :desc=>"満腹度が50%回復する。"},
  {:type=>:food, :name=>"大きなパン", :desc=>"満腹度が100%回復する。"},
  {:type=>:food, :name=>"くさったパン", :desc=>"満腹度100%回復。ダメージを受けてちからが減る。"},
@@ -223,6 +224,7 @@ class Item
   attr_accessor :unsealifiable
   attr_accessor :break_count
   attr_accessor :two_handed
+  attr :attrs
 
   def initialize(definition)
     @type      = definition[:type]
@@ -246,6 +248,7 @@ class Item
     @mimic_name = nil
     @break_count = definition[:break_count] || 50
     @two_handed = definition[:two_handed]
+    @attrs = definition[:attrs] || []
   end
 
   def corrected_number

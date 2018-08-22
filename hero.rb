@@ -180,4 +180,8 @@ class Hero
     weapon&.name == "必中会心剣"
   end
 
+  def kabenuke?
+    ring&.attrs&.any?(&:kabenuke.method(:==)) || false
+  end
+
 end
