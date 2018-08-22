@@ -2,7 +2,7 @@ MIMIC_TABLE = eval IO.read File.join File.dirname(__FILE__),'mimic_definition.rb
 SPECIES = eval IO.read File.join File.dirname(__FILE__),'monster_definition.rb'
 
 MONSTER_TABLE = SPECIES.map { |s|
-  [s[:name], 1..99]
+  [s[:name], s[:habitat]||fail]
 }
 MONSTER_TABLE.concat(MIMIC_TABLE.map.with_index(1) { |s,n| [s[:name], n] })
 
