@@ -574,14 +574,21 @@ class Program
     if @hero.kabenuke?
       return true
     else
-      dx, dy = Vec.minus(target, @hero.pos)
-      if dx * dy != 0
-        return @level.passable?(@hero.x + dx, @hero.y + dy) &&
-          @level.uncornered?(@hero.x + dx, @hero.y) &&
-          @level.uncornered?(@hero.x, @hero.y + dy)
-      else
-        return @level.passable?(@hero.x + dx, @hero.y + dy)
-      end
+      return hero_can_move_to_normally?(target)
+    end
+  end
+
+  def hero_can_move_to_normally?(target)
+    return false unless Vec.chess_distance(@hero.pos, target) == 1
+    return false unless @level.in_dungeon?(*target)
+
+    dx, dy = Vec.minus(target, @hero.pos)
+    if dx * dy != 0
+      return @level.passable?(@hero.x + dx, @hero.y + dy) &&
+        @level.uncornered?(@hero.x + dx, @hero.y) &&
+        @level.uncornered?(@hero.x, @hero.y + dy)
+    else
+      return @level.passable?(@hero.x + dx, @hero.y + dy)
     end
   end
 
@@ -4312,7 +4319,7 @@ EOD
     # if @hero.status_effects.any?
     #   return false
     # els
-    if !hero_can_move_to?(target)
+    if !hero_can_move_to_normally?(target)
       return false
     elsif @level.cell(*target).monster # ありえなくない？
       return false
