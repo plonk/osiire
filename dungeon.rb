@@ -363,10 +363,7 @@ class Dungeon
   def make_level(level_number, hero)
     fail unless level_number.is_a? Integer and level_number >= 1
 
-    case level_number
-    when 40
-      type = :bigmaze
-    when 50, 60, 70, 80, 90, 99
+    if rand() < 0.01
       type = :bigmaze
     else
       type = [*[:grid10, :grid9]*4, :grid4, :grid2].sample
