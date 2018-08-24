@@ -875,6 +875,14 @@ class Program
     rect.each_coords do |x, y|
       if @level.in_dungeon?(x, y)
         cell = @level.cell(x, y)
+        if cell.wall?
+          cell.type = :PASSAGE
+        end
+      end
+    end
+    rect.each_coords do |x, y|
+      if @level.in_dungeon?(x, y)
+        cell = @level.cell(x, y)
         if cell.item
           log(display_item(cell.item), "は 消し飛んだ。")
           cell.remove_object(cell.item)
