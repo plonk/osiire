@@ -1085,8 +1085,11 @@ class Program
       end
     when 'p'
       if debug?
-        cheat_get_item()
+        cheat_menu()
       end
+      :nothing
+    when 'o'
+      look_out
       :nothing
     when '`'
       if debug?
@@ -1156,6 +1159,208 @@ class Program
     else
       log("[#{c}]なんて 知らない。[?]でヘルプ。")
       :nothing
+    end
+  end
+
+  class Placard
+    class << self
+      def open(text, opts = {}, &block)
+        fail 'block not given' unless block
+
+        placard = Placard.new(text, opts)
+        begin
+          block.(placard)
+        ensure
+          placard.close
+        end
+      end
+    end
+
+    attr_accessor :text
+
+    def initialize(text, opts = {})
+      @text = text
+      y = opts[:y] || 0
+      x = opts[:x] || 0
+      @win = Curses::Window.new(3, text.size*2+4, y, x)
+    end
+
+    def refresh
+      @win.clear
+      @win.rounded_box
+      @win.setpos(1, 2)
+      @win.addstr(@text)
+      @win.refresh
+    end
+
+    def close
+      @win.close
+    end
+  end
+
+  def describe_tile(x, y)
+    hidden = if !@level.in_dungeon?(x, y)
+               if @level.whole_level_lit
+                 false
+               else
+                 true
+               end
+             else
+               if @level.whole_level_lit
+                 false
+               else
+                 !@level.cell(x, y).explored
+               end
+             end
+
+    if hidden
+      "未探索"
+    else
+      if !@level.in_dungeon?(x, y)
+        "壁"
+      else
+        cell = @level.cell(x, y)
+        case cell.type
+        when :VERTICAL_WALL, :HORIZONTAL_WALL, :WALL
+          "壁"
+        when :PASSAGE
+          "通路"
+        when :FLOOR
+          "床"
+        when :STATUE
+          "石像"
+        else
+          "????"
+        end
+      end
+    end
+  end
+
+  def item_type_string(type)
+    case type
+    when :box then "箱"
+    when :food then "食物"
+    when :herb then "草"
+    when :projectile then "矢"
+    when :ring then "指輪"
+    when :scroll then "巻物"
+    when :shield then "盾"
+    when :staff then "杖"
+    when :weapon then "剣"
+    when :gold then "ゴールド"
+    else
+      "不明アイテム"
+    end
+  end
+
+  def describe_position(x, y)
+    res = []
+    res << describe_tile(x, y)
+    if @level.in_dungeon?(x, y)
+      cell = @level.cell(x, y)
+      if cell.trap&.visible
+        res << cell.trap.name
+      end
+      if cell.item
+        res << item_type_string(cell.item.type)
+      end
+      if cell.monster
+        res << display_character(cell.monster)
+      end
+      if @hero.pos == [x,y]
+        res << @hero.name
+      end
+    end
+    return res.join(" \u{00bb} ") # raquo
+  end
+
+  def look_out()
+    Curses.timeout = -1
+    cx, cy = @hero.x, @hero.y
+    Placard.open("みわたす", x: 0, y: 0) do |title|
+      Placard.open(" " * 20, x: 12, y: 0) do |desc|
+        while true
+          render_map(cx, cy)
+          Curses.stdscr.refresh
+
+          desc.text = describe_position(cx, cy)
+          title.refresh
+          desc.refresh
+          Curses.setpos(Curses.lines/2, Curses.cols/2)
+
+          c = Curses.getch
+          if KEY_TO_DIRVEC[c]
+            dx, dy = KEY_TO_DIRVEC[c]
+            cx += dx
+            cy += dy
+          else
+            case c
+            when 'q'
+              return
+            end
+          end
+        end
+      end
+    end
+  end
+
+  def cheat_menu()
+    menu = Menu.new(["アイテム入手", "モンスター発生"],
+                    cols: 20, y: 8, x: 30)
+    type, item = menu.choose
+    case type
+    when :chosen
+      case item
+      when "アイテム入手"
+        cheat_get_item()
+        return
+      when "モンスター発生"
+        cheat_spawn_monster()
+        return
+      else fail
+      end
+    when :cancel
+      return
+    else fail
+    end
+  end
+
+  def cheat_spawn_monster
+    names = Monster::SPECIES.map { |m| m[:name] }
+    if names.size > 20
+      pages = names.each_slice(20).map { |page| page + [NEXT_PAGE] }
+    else
+      pages = [names]
+    end
+
+    dispfunc = lambda { |win, name|
+      if name == NEXT_PAGE
+        win.addstr(NEXT_PAGE)
+      else
+        s = Monster::SPECIES.find { |m| m[:name] == name } or fail "no monster named #{name}"
+        win.addstr("#{s[:char]} #{s[:name]}")
+      end
+    }
+
+    i = 0
+    while true
+      menu = Menu.new(pages[i], x: 0, y: 1, dispfunc: dispfunc)
+      begin
+        c, arg = menu.choose
+        case c
+        when :chosen
+          if arg == NEXT_PAGE
+            i = (i + 1) % pages.size
+            next
+          else
+            log(arg)
+          end
+        else
+          break
+        end
+      ensure
+        menu.close
+      end
     end
   end
 
@@ -3232,14 +3437,14 @@ EOD
   end
 
   # マップを表示。
-  def render_map
+  def render_map(cx, cy)
     # マップの描画
     (0 ... (Curses.lines)).each do |y|
       (0 ... (Curses.cols/2)).each do |x|
         Curses.setpos(y, x*2)
         # 画面座標から、レベル座標に変換する。
-        y1 = y + @hero.y - Curses.lines/2
-        x1 = x + @hero.x - Curses.cols/4
+        y1 = y + cy - Curses.lines/2
+        x1 = x + cx - Curses.cols/4
         if y1 >= 0 && y1 < @level.height &&
            x1 >= 0 && x1 < @level.width
           tile = @overlayed_tiles.find { |t| t.x == x1 && t.y == y1 }
@@ -3286,10 +3491,10 @@ EOD
   DELAY_SECONDS = 0.4
 
   # 画面の表示。
-  def render
+  def render(cx = @hero.x, cy = @hero.y)
     wait_delay
 
-    render_map()
+    render_map(cx, cy)
     render_status()
     render_message()
     Curses.refresh
