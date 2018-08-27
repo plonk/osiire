@@ -438,7 +438,7 @@ class Program
       if monster.hp < 1.0 &&
          rand() < food_drop_probability(@hero.weapon)
         food = Item.make_item("パン")
-        item_land(food, *@level.coordinates_of_cell(cell))
+        item_land(food, *@level.coordinates_of_cell(cell), false)
       end
     end
   end
@@ -491,7 +491,7 @@ class Program
 
       x, y = @level.coordinates_of_cell(cell)
       things.each do |thing|
-        item_land(thing, x, y)
+        item_land(thing, x, y, false)
       end
 
       @hero.exp += monster.exp
@@ -787,6 +787,10 @@ class Program
   # ヒーローに踏まれた罠が発動する。
   def trap_do_activate(trap)
     trap.active_count += 1
+    if trap.active_count > 1
+      # 1ターンに1回までしか発動しない。
+      return
+    end
 
     case trap.name
     when "ワープゾーン"
@@ -807,15 +811,15 @@ class Program
     when "石ころ"
       log("石にけつまずいた！ ")
       strew_items
-    when "矢"
-      log("矢が飛んできた！ ")
-      take_damage(5)
+    when "矢の罠"
+      wooden_arrow_trap_activate(trap)
     when "毒矢"
       log("矢が飛んできた！ ")
       take_damage(5)
       take_damage_strength(1)
     when "地雷"
-      mine_explosion_effect(@hero.x, @hero.y)
+      x, y = @level.coordinates_of(trap)
+      mine_explosion_effect(x, y)
       log("足元で爆発が起こった！ ")
       mine_activate(trap)
     when "落とし穴"
@@ -830,9 +834,27 @@ class Program
     end
 
     tx, ty = @level.coordinates_of(trap)
-    if rand() < 0.5
+    if rand() < trap.break_rate
       @level.remove_object(trap, tx, ty)
     end
+  end
+
+  def wooden_arrow_trap_activate(trap)
+    dx, dy = Vec.rotate_clockwise_45(@hero.facing, 2)
+    tx, ty = @level.coordinates_of(trap)
+    x, y = tx, ty
+    while true
+      if @level.cell(x + dx, y + dy).wall?
+        break
+      else
+        x += dx
+        y += dy
+      end
+    end
+
+    arrow = Item.make_item("木の矢")
+    arrow.number = 1
+    do_throw_item(arrow, [x,y], [-dx,-dy], :trap, Float::INFINITY)
   end
 
   def curse_trap_activate(trap)
@@ -868,8 +890,6 @@ class Program
 
   # 地雷が発動する。
   def mine_activate(mine)
-    take_damage([(@hero.hp / 2.0).floor, 1.0].max)
-
     tx, ty = @level.coordinates_of(mine)
     rect = @level.surroundings(tx, ty)
     rect.each_coords do |x, y|
@@ -897,6 +917,18 @@ class Program
           cell.monster.hp = 0
           render
           check_monster_dead(cell, cell.monster)
+        end
+        if @hero.pos == [x, y]
+          take_damage([(@hero.hp / 2.0).floor, 1.0].max)
+        end
+      end
+    end
+    rect.each_coords do |x, y|
+      if @level.in_dungeon?(x, y)
+        cell = @level.cell(x, y)
+        if cell.trap&.name == "地雷"
+          cell.trap.visible = true
+          trap_do_activate(cell.trap)
         end
       end
     end
@@ -1451,7 +1483,7 @@ class Program
                     log(display_item(item), "を 手に入れた。")
                     return
                   else
-                    item_land(item, @hero.x, @hero.y)
+                    item_land(item, @hero.x, @hero.y, false)
                   end
                 end
               else
@@ -2028,17 +2060,25 @@ EOD
   end
 
   # 投げられたアイテムが着地する。
-  def item_land(item, x, y)
+  def item_land(item, x, y, activate_trap = false)
     if item.type == :jar && !item.unbreakable
       log(display_item(item), "は 割れた！")
       item.contents.each do |subitem|
-        item_land(subitem, x, y)
+        item_land(subitem, x, y, false)
       end
     else
       cell = @level.cell(x, y)
 
-      if cell.trap && !cell.trap.visible
+      if cell.trap
         cell.trap.visible = true
+        cell.put_object(item)
+        trap_do_activate(cell.trap)
+        if cell.item
+          cell.remove_object(cell.item)
+        else
+          # アイテムは罠の作用により無くなった。
+          return
+        end
       end
 
       LAND_POSITIONS.each do |dx, dy|
@@ -2216,14 +2256,28 @@ EOD
   end
 
   # アイテムがヒーローに当たる。(今のところ矢しか当たらない？)
-  def item_hits_hero(item, monster)
+  # (Item, Monster | :trap) -> ()
+  def item_hits_hero(item, thrower)
     log(display_item(item), "が #{@hero.name}に当たった。")
-    if item.type == :projectile
-      take_damage(attack_to_hero_damage(item.projectile_strength))
-    elsif item.type == :weapon || item.type == :shield
-      take_damage(attack_to_hero_damage(item.number))
-    else
-      take_damage(attack_to_hero_damage(1))
+    case thrower
+    when :trap
+      case item.name
+      when "木の矢"
+        take_damage(5)
+      when "鉄の矢"
+        take_damage(10)
+      else
+        log("実装されていない罠由来の投擲。#{item.name}")
+      end
+    when Monster
+      if item.type == :projectile
+        take_damage(attack_to_hero_damage(item.projectile_strength))
+      elsif item.type == :weapon || item.type == :shield
+        take_damage(attack_to_hero_damage(item.number))
+      else
+        take_damage(attack_to_hero_damage(1))
+      end
+    else fail
     end
   end
 
@@ -2298,13 +2352,17 @@ EOD
 
   # ヒーローがアイテムを投げる。
   # (Item, Array)
-  def do_throw_item(item, dir)
+  def do_throw_item(item, origin, dir, actor, range = 10)
     dx, dy = dir
-    x, y = @hero.x, @hero.y
+    x, y = origin
 
     while true
       fail unless @level.in_dungeon?(x+dx, y+dy)
 
+      if range <= 0
+        item_land(item, x, y)
+        break
+      end
       cell = @level.cell(x+dx, y+dy)
       case cell.type
       when :WALL, :HORIZONTAL_WALL, :VERTICAL_WALL, :STATUE
@@ -2313,9 +2371,18 @@ EOD
       when :FLOOR, :PASSAGE
         if cell.monster
           if rand() < 0.125
+            log(display_item(item), "は 外れた。")
             item_land(item, x+dx, y+dy)
           else
             item_hits_monster(item, cell.monster, cell)
+          end
+          break
+        elsif @hero.pos == [x+dx, y+dy]
+          if rand() < 0.125
+            log(display_item(item), "は 外れた。")
+            item_land(item, x+dx, y+dy)
+          else
+            item_hits_hero(item, actor)
           end
           break
         end
@@ -2323,6 +2390,7 @@ EOD
         fail "case not covered"
       end
       x, y = x+dx, y+dy
+      range -= 1
     end
   end
 
@@ -2376,10 +2444,10 @@ EOD
       one = Item.make_item(item.name)
       one.number = 1
       item.number -= 1
-      do_throw_item(one, dir)
+      do_throw_item(one, @hero.pos, dir, @hero)
     else
       remove_item_from_hero(item)
-      do_throw_item(item, dir)
+      do_throw_item(item, @hero.pos, dir, @hero)
     end
     return :action
   end
@@ -2471,7 +2539,7 @@ EOD
     monster.drop_rate = 0
 
     if item
-      item_land(item, x, y)
+      item_land(item, x, y, false)
     end
 
     monster_take_damage(monster, 5, cell)
@@ -4633,9 +4701,7 @@ EOD
   def traps_activate
     @level.all_traps_with_position.each do |trap, x, y|
       if trap.trodden
-        if trap.active_count == 0
-          trap_do_activate(trap)
-        end
+        trap_do_activate(trap)
         trap.trodden = false
       end
     end
