@@ -235,7 +235,7 @@ class Dungeon
     n.times do
       cell = level.cell(*level.get_random_place(:FLOOR))
       if cell.can_place?
-        cell.put_object(Trap.new(Trap::TRAPS.sample, false))
+        cell.put_object(Trap.new(Trap::TRAPS.keys.sample, false))
       end
     end
   end
@@ -253,7 +253,7 @@ class Dungeon
 
     n = [(cells.size * 0.3).round, 50].min
     cells.sample(n).each do |cell|
-      cell.put_object(Trap.new(Trap::TRAPS.sample, false))
+      cell.put_object(Trap.new(Trap::TRAPS.keys.sample, false))
     end
   end
 

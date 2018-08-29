@@ -811,12 +811,12 @@ class Program
     when "石ころ"
       log("石にけつまずいた！ ")
       strew_items
-    when "矢の罠"
-      wooden_arrow_trap_activate(trap)
-    when "毒矢"
-      log("矢が飛んできた！ ")
-      take_damage(5)
-      take_damage_strength(1)
+    when "木の矢のワナ"
+      arrow_trap_activate(trap, "木の矢")
+    when "鉄の矢のワナ"
+      arrow_trap_activate(trap, "鉄の矢")
+    when "毒矢のワナ"
+      arrow_trap_activate(trap, "毒矢")
     when "地雷"
       x, y = @level.coordinates_of(trap)
       mine_explosion_effect(x, y)
@@ -830,7 +830,8 @@ class Program
     when "呪いの罠"
       log("呪いの罠を踏んだ！")
       curse_trap_activate(trap)
-    else fail
+    else
+      fail "trap behaviour not defined: #{trap.name}"
     end
 
     tx, ty = @level.coordinates_of(trap)
@@ -839,7 +840,7 @@ class Program
     end
   end
 
-  def wooden_arrow_trap_activate(trap)
+  def arrow_trap_activate(trap, name)
     dx, dy = Vec.rotate_clockwise_45(@hero.facing, 2)
     tx, ty = @level.coordinates_of(trap)
     x, y = tx, ty
@@ -852,7 +853,7 @@ class Program
       end
     end
 
-    arrow = Item.make_item("木の矢")
+    arrow = Item.make_item(name)
     arrow.number = 1
     do_throw_item(arrow, [x,y], [-dx,-dy], :trap, Float::INFINITY)
   end
@@ -2224,16 +2225,41 @@ EOD
     monster_take_damage(monster, damage, cell)
   end
 
-  # 魔法弾がモンスターに当たる。
-  def projectile_hits_monster(item, monster, cell)
+  def monster_strength_zero(monster)
+    monster.strength = 0
+    log(display_character(monster), "のちからが 0 になった。")
+  end
+
+  # 投擲武器がモンスターに当たる。
+  def projectile_hits_monster(item, monster, cell, thrower)
     on_monster_attacked(monster)
-    attack = get_hero_projectile_attack(item.projectile_strength)
-    damage = ( (attack * (15.0/16.0)**monster.defense) * (112 + rand(32))/128.0 ).to_i
-    monster_take_damage(monster, damage, cell)
+    case thrower
+    when @hero
+      attack = get_hero_projectile_attack(item.projectile_strength)
+      damage = attack_to_damage(attack, monster.defense)
+      monster_take_damage(monster, damage, cell)
+    when Monster
+    when :trap
+      case item.name
+      when "木の矢"
+        monster_take_damage(monster, 5, cell)
+      when "鉄の矢"
+        monster_take_damage(monster, 10, cell)
+      when "毒矢"
+        monster_take_damage(monster, 10, cell)
+        unless monster.hp < 1.0
+          monster_strength_zero(monster)
+        end
+      when "丸太"
+        log("実装してないよ。")
+      else fail "unknown projectile #{item.name} originating from a trap"
+      end
+    else fail
+    end
   end
 
   # アイテムがモンスターに当たる。
-  def item_hits_monster(item, monster, cell)
+  def item_hits_monster(item, monster, cell, thrower)
     log(display_item(item), "は ", monster.name, "に当たった。")
     case item.type
     when :box, :food, :scroll, :ring
@@ -2249,7 +2275,7 @@ EOD
     when :weapon
       weapon_hits_monster(item, monster, cell)
     when :projectile
-      projectile_hits_monster(item, monster, cell)
+      projectile_hits_monster(item, monster, cell, thrower)
     else
       fail "case not covered"
     end
@@ -2266,6 +2292,9 @@ EOD
         take_damage(5)
       when "鉄の矢"
         take_damage(10)
+      when "毒矢"
+        take_damage(10)
+        take_damage_strength(1)
       else
         log("実装されていない罠由来の投擲。#{item.name}")
       end
@@ -2307,7 +2336,7 @@ EOD
           if rand() < 0.125
             item_land(item, x+dx, y+dy)
           else
-            item_hits_monster(item, cell.monster, cell)
+            item_hits_monster(item, cell.monster, cell, monster)
           end
           break
         end
@@ -2350,11 +2379,11 @@ EOD
     end
   end
 
-  # ヒーローがアイテムを投げる。
-  # (Item, Array)
+  # (Item, Array, Array, Hero|:trap, Integer)
   def do_throw_item(item, origin, dir, actor, range = 10)
     dx, dy = dir
     x, y = origin
+    miss_rate = (actor==:trap ? 0.0 : 0.125)
 
     while true
       fail unless @level.in_dungeon?(x+dx, y+dy)
@@ -2370,15 +2399,15 @@ EOD
         break
       when :FLOOR, :PASSAGE
         if cell.monster
-          if rand() < 0.125
+          if rand() < miss_rate
             log(display_item(item), "は 外れた。")
             item_land(item, x+dx, y+dy)
           else
-            item_hits_monster(item, cell.monster, cell)
+            item_hits_monster(item, cell.monster, cell, actor)
           end
           break
         elsif @hero.pos == [x+dx, y+dy]
-          if rand() < 0.125
+          if rand() < miss_rate
             log(display_item(item), "は 外れた。")
             item_land(item, x+dx, y+dy)
           else

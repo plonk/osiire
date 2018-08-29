@@ -43,6 +43,7 @@ class Item
  {:type=>:weapon, :name=>"ミノタウロスの斧",   :seal=>"会", :two_handed=>true, :number=>20, :nslots=>8},
  {:type=>:projectile, :name=>"木の矢"},
  {:type=>:projectile, :name=>"鉄の矢"},
+ {:type=>:projectile, :name=>"毒矢"},
  {:type=>:projectile, :name=>"銀の矢"},
  {:type=>:shield, :name=>"鍛えた木の盾", :number=>2, :nslots=>1},
  {:type=>:shield, :name=>"みやびやかな盾", :number=>2, :nslots=>7},
