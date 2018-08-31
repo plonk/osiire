@@ -1856,7 +1856,7 @@ EOD
 
   # ヒーローのちからが回復する。
   def recover_strength
-    @hero.strength = @hero.max_strength
+    @hero.raw_strength = @hero.raw_max_strength
     log("ちからが 回復した。")
   end
 
@@ -2195,11 +2195,11 @@ EOD
       end
     when "ちからの種"
       if @hero.strength_maxed?
-        @hero.max_strength += 1
-        @hero.strength = @hero.max_strength
+        @hero.raw_max_strength += 1
+        @hero.raw_strength = @hero.raw_max_strength
         log("ちからの最大値が 1 ポイント ふえた。")
       else
-        @hero.strength += 1
+        @hero.raw_strength += 1
         log("ちからが 1 ポイント 回復した。")
       end
     when "幸せの種"
@@ -2426,11 +2426,11 @@ EOD
   def take_damage_strength(amount)
     return if @hero.poison_resistent?
 
-    decrement = [amount, @hero.strength].min
-    if @hero.strength > 0
+    decrement = [amount, @hero.raw_strength].min
+    if @hero.raw_strength > 0
       log("ちからが %d ポイント下がった。" %
                [decrement])
-      @hero.strength -= decrement
+      @hero.raw_strength -= decrement
     else
       # ちから 0 だから平気だもん。
     end
@@ -3308,11 +3308,11 @@ EOD
   # ヒーローがちからの最大値にダメージを受ける。
   def take_damage_max_strength(amount)
     fail unless amount == 1
-    if @hero.max_strength <= 1
+    if @hero.raw_max_strength <= 1
       log("#{@hero.name}の ちからは これ以上さがらない。")
     else
-      @hero.max_strength -= 1
-      @hero.strength = [@hero.strength, @hero.max_strength].min
+      @hero.raw_max_strength -= 1
+      @hero.raw_strength = [@hero.raw_strength, @hero.raw_max_strength].min
       log("#{@hero.name}の ちからの最大値が 下がった。")
     end
   end
