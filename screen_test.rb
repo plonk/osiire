@@ -65,6 +65,7 @@ class Program
 
   def initialize
     @debug = ARGV.include?("-d")
+    @hard_mode = false
     @default_name = nil
 
     load_softfonts
@@ -191,7 +192,23 @@ class Program
     end
   end
 
-  def create_naming_table()
+  def create_naming_table
+    if @hard_mode
+      create_naming_table_hard_mode
+    else
+      create_naming_table_easy_mode
+    end
+  end
+
+  def create_naming_table_easy_mode
+    table = create_naming_table_hard_mode
+    table.true_names.each do |name|
+      table.identify!(name)
+    end
+    return table
+  end
+
+  def create_naming_table_hard_mode
     get_item_names_by_kind = proc { |specified|
       Item::ITEMS.select { |kind, name, number, desc| kind == specified }.map { |_, name, _, _| name }
     }
@@ -205,9 +222,6 @@ class Program
     scrolls_false = ["αの巻物", "βの巻物", "γの巻物", "δの巻物", "εの巻物", "ζの巻物", "ηの巻物", "θの巻物",
                      "ιの巻物", "κの巻物", "λの巻物", "μの巻物", "νの巻物", "ξの巻物", "οの巻物", "πの巻物",
                      "ρの巻物", "σの巻物", "τの巻物", "υの巻物", "φの巻物", "χの巻物", "ψの巻物", "ωの巻物"]
-    # scrolls_false = ["巻物I", "巻物II", "巻物III", "巻物IV", "巻物V", "巻物VI", "巻物VII", "巻物VIII",
-    #                  "巻物IX", "巻物X", "巻物XI", "巻物XII", "巻物XIII", "巻物XIV", "巻物XV", "巻物XVI",
-    #                  "巻物XVII", "巻物XVIII", "巻物XIX", "巻物XX", "巻物XXI", "巻物XXII"]
     staves_false = ["鉄の杖", "銅の杖", "鉛の杖", "銀の杖", "金の杖", "アルミの杖", "真鍮の杖",
                     "ヒノキの杖", "杉の杖", "桜の杖", "松の杖", "キリの杖", "ナラの杖", "ビワの杖"]
     rings_false = ["金剛石の指輪", "翡翠の指輪", "猫目石の指輪", "水晶の指輪", # "タイガーアイの指輪",
