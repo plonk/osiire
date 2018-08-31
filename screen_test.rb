@@ -891,7 +891,7 @@ class Program
         log("投げ物を装備していない。")
         :nothing
       end
-    when '.'
+    when '.', 10 # Enter
       search
     else
       log("[#{c}]なんて 知らない。[?]でヘルプ。")
