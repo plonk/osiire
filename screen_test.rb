@@ -1209,8 +1209,7 @@ class Program
       end
       :nothing
     when 's'
-      status_window
-      :nothing
+      main_menu
     when 't'
       if @hero.projectile
         return throw_item(@hero.projectile)
@@ -3782,7 +3781,6 @@ EOD
     end
   end
 
-
   SEAL_COLOR_TAG_MAP = {
     :red => "red-seal",
     :blue => "blue-seal",
@@ -3798,25 +3796,78 @@ EOD
     ["span", "["] + item.seals.map { |seal| display_seal(seal) } + ["・" * (item.nslots - item.seals.size)] + ["]"]
   end
 
-  def status_window
+  def main_menu
+    menu = Menu.new(["道具",
+                     "足元",
+                     "メッセージ履歴",
+                     "あきらめる",
+                    ],
+                    cols: 18, y: 1, x: 0)
+    while true
+      render
+      status = create_status_window(11, 0)
+      status.refresh
+      command, arg = menu.choose
+      status.close
+      status = nil
+      case command
+      when :chosen
+        case arg
+        when "道具"
+          result = open_inventory
+          if result == :nothing
+            next
+          else
+            return result
+          end
+        when "足元"
+          result = underfoot_menu
+          if result == :nothing
+            next
+          else
+            return result
+          end
+        when "メッセージ履歴"
+          open_history_window
+          next
+        when "あきらめる"
+          if confirm_give_up?
+            give_up_message
+            @quitting = true
+            return :nothing
+          else
+            next
+          end
+        end
+      when :cancel
+        return :nothing
+      end
+    end
+  ensure
+    status&.close
+    menu&.close
+  end
+
+  # Returns: Curses::Window
+  def create_status_window(winy = 1, winx = 0)
     until_next_lv = exp_until_next_lv ? exp_until_next_lv.to_s : "∞"
     disp = proc { |item| item.nil? ? 'なし' : display_item(item) }
     text =
       [
-        ["span", "攻撃力 %d" % [get_hero_attack]],
-        ["span", "防御力 %d" % [get_hero_defense]],
-        ["span", "  武器 ", disp.(@hero.weapon)],
-        ["span", "       ", display_seals(@hero.weapon)],
-        ["span", "    盾 ", disp.(@hero.shield)],
-        ["span", "       ", display_seals(@hero.shield)],
-        ["span", "  指輪 ", disp.(@hero.ring)],
-        ["span", "ちから %d/%d" % [@hero.strength, @hero.max_strength]],
-        ["span", "経験値 %d" % [@hero.exp]],
-        ["span", "つぎのLvまで %s" % [until_next_lv]],
-        ["span", "満腹度 %d/%d" % [@hero.fullness.ceil, @hero.max_fullness]]
+        ["span", "   攻撃力 %d" % [get_hero_attack]],
+        ["span", "   防御力 %d" % [get_hero_defense]],
+        ["span", "     武器 ", disp.(@hero.weapon)],
+        ["span", "          ", display_seals(@hero.weapon)],
+        ["span", "       盾 ", disp.(@hero.shield)],
+        ["span", "          ", display_seals(@hero.shield)],
+        ["span", "     指輪 ", disp.(@hero.ring)],
+        ["span", "   ちから %d/%d" % [@hero.strength, @hero.max_strength]],
+        ["span", "   経験値 %d" % [@hero.exp]],
+        ["span", " 次のLv迄 %s" % [until_next_lv]],
+        ["span", "   満腹度 %d/%d" % [@hero.fullness.ceil, @hero.max_fullness]]
       ]
 
-    win = Curses::Window.new(text.size+2, 31, 1, 0) # lines, cols, y, x
+    win = Curses::Window.new(text.size + 2, 34, winy, winx) # lines, cols, y, x
     win.clear
     win.rounded_box
     win.setpos(0, 1)
@@ -3825,10 +3876,16 @@ EOD
       win.setpos(y, 1)
       addstr_ml(win, line)
     end
-    Curses.curs_set(0)
-    win.getch
-    Curses.curs_set(1)
-    win.close
+    return win
+  end
+
+  def status_window
+    win = create_status_window
+    begin
+      win.getch
+    ensure
+      win.close
+    end
   end
 
   # 位置 v1 と v2 は縦・横・ナナメのいずれかの線が通っている。
