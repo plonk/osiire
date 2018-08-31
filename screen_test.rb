@@ -2012,7 +2012,7 @@ EOD
         log("しかし 何も起こらなかった。")
       end
     when "メッキの巻物"
-      if @hero.shield && !@hero.shield.rustproof?
+      if @hero.shield && !@hero.shield.gold_plated
         log("#{@hero.shield}に メッキがほどこされた！ ")
         @hero.shield.gold_plated = true
       else
