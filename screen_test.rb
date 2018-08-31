@@ -75,7 +75,7 @@ class Program
     Curses.init_pair(HEALTH_BAR_COLOR_PAIR, Curses::COLOR_GREEN, Curses::COLOR_RED)
     Curses.init_pair(UNIDENTIFIED_ITEM_COLOR_PAIR, Curses::COLOR_YELLOW, Curses::COLOR_BLACK)
     Curses.init_pair(NICKNAMED_ITEM_COLOR_PAIR, Curses::COLOR_GREEN, Curses::COLOR_BLACK)
-    Curses.init_pair(CURSED_ITEM_COLOR_PAIR, Curses::COLOR_BLUE, Curses::COLOR_BLACK)
+    Curses.init_pair(CURSED_ITEM_COLOR_PAIR, Curses::COLOR_WHITE, Curses::COLOR_BLUE)
     Curses.init_pair(SPECIAL_DUNGEON_COLOR_PAIR, Curses::COLOR_MAGENTA, Curses::COLOR_BLACK)
 
     Curses.noecho
@@ -1115,6 +1115,8 @@ EOD
       case @naming_table.state(item.name)
       when :identified
         if item.type == :staff # 杖の種類は判別しているが回数がわからない状態。
+          ["unidentified", item.name]
+        elsif item.type == :ring
           ["unidentified", item.name]
         else
           item.to_s
@@ -2353,6 +2355,9 @@ EOD
       log(display_item(item), "を 外した。")
     else
       @hero.ring = item
+      unless item.inspected
+        item.inspected = true
+      end
       log(display_item(item), "を 装備した。")
       if item.cursed
         log("なんと！ ", display_item(item), "は呪われていた！")
