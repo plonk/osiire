@@ -2022,8 +2022,6 @@ EOD
         @hero.shield.cursed = false
         log("盾の呪いが 解けた。")
       end
-    when "シャナクの巻物"
-      log("呪いなんて信じてるの？")
     when "かなしばりの巻物"
       monsters = []
       rect = @level.surroundings(@hero.x, @hero.y)
