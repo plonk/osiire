@@ -3452,9 +3452,13 @@ EOD
   end
 
   # キー入力。
-  def read_command
+  def read_command(message_status)
     Curses.flushinp
-    Curses.timeout = 1000 # milliseconds
+    if message_status == :no_message
+      Curses.timeout = -1
+    else
+      Curses.timeout = 1000 # milliseconds
+    end
     Curses.curs_set(0)
     c = Curses.getch
     Curses.curs_set(1)
@@ -3593,10 +3597,11 @@ EOD
 
     render_map(cx, cy)
     render_status()
-    render_message()
+    message_status = render_message()
     Curses.refresh
 
     @last_rendered_at = Time.now
+    return message_status
   end
 
   def wait_delay
@@ -3673,10 +3678,14 @@ EOD
       @log.lines.clear
       @last_message = msg
       @last_message_shown_at = Time.now
+      :message_displayed
     elsif Time.now - @last_message_shown_at < DELAY_SECONDS
       Curses.setpos(Curses.lines-1, 0)
       addstr_ml(Curses, @last_message)
       Curses.clrtoeol
+      :last_message_redisplayed
+    else
+      :no_message
     end
   end
 
@@ -4671,10 +4680,10 @@ EOD
       while true
         # 画面更新
         cancel_delay
-        render
+        message_status = render
         cancel_delay
 
-        c = read_command
+        c = read_command(message_status)
 
         if c
           return dispatch_command(c)
