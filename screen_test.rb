@@ -4810,6 +4810,10 @@ EOD
   end
 
   def intrude_party_room
+    unless @hero.audition_enhanced?
+      @hero.status_effects << StatusEffect.new(:audition_enhancement)
+    end
+
     log("魔物の巣窟だ！ ")
     SoundEffects.partyroom
     render
