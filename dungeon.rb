@@ -158,7 +158,12 @@ class Dungeon
 
   # モンスターを配置する。通常配置。
   def place_monsters(level, level_number)
-    5.times do
+    if level_number <= 27
+      n = 5 + (5.fdiv(27)*(level_number - 1)).round
+    else
+      n = 10
+    end
+    n.times do
       cell = level.cell(*level.get_random_place(:FLOOR))
       m = make_monster(level_number)
       spawn_monster(m, cell, level)
