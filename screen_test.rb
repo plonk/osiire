@@ -84,6 +84,8 @@ class Program
     @debug = ARGV.include?("-d")
     @default_name = nil
 
+    load_softfonts
+
     Curses.init_screen
     Curses.start_color
 
@@ -104,6 +106,13 @@ class Program
     }
 
     reset()
+  end
+
+  def load_softfonts
+    pattern = File.join(File.dirname(__FILE__), "font*.txt")
+    Dir.glob(pattern).each do |font|
+      STDOUT.write(File.read(font))
+    end
   end
 
   # ゲームの状態をリセット。
