@@ -3822,11 +3822,8 @@ EOD
           end
         when "足元"
           result = underfoot_menu
-          if result == :nothing
-            next
-          else
-            return result
-          end
+          # 階段を降りる場合があるので、何もなくてもメニューを閉じる。
+          return result
         when "メッセージ履歴"
           open_history_window
           next
