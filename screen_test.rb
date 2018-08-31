@@ -2738,32 +2738,32 @@ EOD
   def render_status
     low_hp   = @hero.hp.floor <= (@hero.max_hp / 10.0).ceil
     starving = @hero.fullness <= 0.0
-    dungeon = "special"
+    dungeon = @hard_mode ? "special" : "span"
 
     Curses.setpos(0, 0)
     Curses.clrtoeol
-    addstr_ml(Curses, ["span", "%d" % [@level_number], ["special", "F"], "  "])
+    addstr_ml(Curses, ["span", "%d" % [@level_number], [dungeon, "F"], "  "])
     addstr_ml(Curses, ["span", [dungeon, "Lv"], " %d  " % [@hero.lv]])
     Curses.attron(Curses::A_BLINK) if low_hp
     addstr_ml(Curses, [dungeon, "HP"])
     Curses.attroff(Curses::A_BLINK) if low_hp
     Curses.addstr(" %3d" % [@hero.hp])
-    addstr_ml(Curses, ["special", "/"])
+    addstr_ml(Curses, [dungeon, "/"])
     Curses.addstr("%d  " % [@hero.max_hp])
     Curses.attron(Curses::color_pair(HEALTH_BAR_COLOR_PAIR))
     Curses.addstr(render_health_bar)
     Curses.attroff(Curses::color_pair(HEALTH_BAR_COLOR_PAIR))
     Curses.addstr("  %d" % [@hero.gold])
-    addstr_ml(["span", ["special", "G"], "  "])
+    addstr_ml(["span", [dungeon, "G"], "  "])
     Curses.attron(Curses::A_BLINK) if starving
-    addstr_ml(Curses, ["special", "満"])
+    addstr_ml(Curses, [dungeon, "満"])
     Curses.attroff(Curses::A_BLINK) if starving
     Curses.addstr(" %d"   % [@hero.fullness.ceil])
-    addstr_ml(["special", "% "])
+    addstr_ml([dungeon, "% "])
     Curses.addstr("%s "     % [@hero.status_effects.map(&:name).join(' ')])
-    addstr_ml(["special", "["])
+    addstr_ml([dungeon, "["])
     Curses.addstr("%04d"  % [@level.turn])
-    addstr_ml(["special", "]"])
+    addstr_ml([dungeon, "]"])
   end
 
   # メッセージの表示。
