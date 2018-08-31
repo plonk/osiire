@@ -372,7 +372,7 @@ class Dungeon
     when 50, 60, 70, 80, 90, 99
       type = :bigmaze
     else
-      type = [*[:grid10, :grid9]*4, :grid4, :grid2].sample
+      type = [*[:grid10, :grid9]*8, :grid4, :grid2].sample
     end
 
     case type
