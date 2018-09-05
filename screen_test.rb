@@ -1415,7 +1415,11 @@ EOD
         log("#{display_character(monster)}の 足はもう速くない。")
       else fail
       end
-    # when "目つぶし草"
+    when "目つぶし草"
+      unless monster.blind?
+        log("#{display_character(monster)}は 目が見えなくなった。")
+        monster.status_effects << StatusEffect.new(:blindness, 50)
+      end
     when "まどわし草"
       unless monster.hallucinating?
         log("#{display_character(monster)}は おびえだした。")
@@ -1826,6 +1830,11 @@ EOD
     when "とうめいの杖"
       unless monster.invisible
         monster.invisible = true
+      end
+    when "混乱の杖"
+      unless monster.confused?
+        monster.status_effects.push(StatusEffect.new(:confused, 10))
+        log("#{display_character(monster)}は 混乱した。")
       end
     else
       fail "case not covered"
@@ -2268,7 +2277,10 @@ EOD
       remove_status_effect(@hero, :confused)
       remove_status_effect(@hero, :hallucination)
     when "目つぶし草"
-      log("実装してないよ。")
+      unless @hero.blind?
+        @hero.status_effects << StatusEffect.new(:blindness, 50)
+        log(@hero.name, "の 目が見えなくなった。")
+      end
     when "まどわし草"
       unless @hero.hallucinating?
         @hero.status_effects << StatusEffect.new(:hallucination, 50)
@@ -2648,6 +2660,15 @@ EOD
   def dungeon_char(x, y)
     if @hero.x == x && @hero.y == y
       @hero.char
+    elsif @hero.blind?
+      "　"
+    elsif !(y >= 0 && y < @level.height &&
+            x >= 0 && x < @level.width)
+      if @level.whole_level_lit
+        @level.tileset[:WALL]
+      else
+        "　"
+      end
     else
       obj = @level.first_visible_object(x, y, method(:visible_to_hero?))
 
@@ -2695,16 +2716,7 @@ EOD
         # 画面座標から、レベル座標に変換する。
         y1 = y + @hero.y - Curses.lines/2
         x1 = x + @hero.x - Curses.cols/4
-        if y1 >= 0 && y1 < @level.height &&
-           x1 >= 0 && x1 < @level.width
-          Curses.addstr(dungeon_char(x1, y1))
-        else
-          if @level.whole_level_lit
-            Curses.addstr(@level.tileset[:WALL])
-          else
-            Curses.addstr("　")
-          end
-        end
+        Curses.addstr(dungeon_char(x1, y1))
       end
     end
   end
@@ -3140,6 +3152,45 @@ EOD
     end
   end
 
+  def monster_blind_action(m, mx, my)
+    target = nil
+    dx, dy = m.facing
+    applicable_p = lambda { |x, y|
+      if @level.in_dungeon?(x,y) &&
+         (@level.cell(x,y).type==:FLOOR || @level.cell(x,y).type==:PASSAGE) &&
+         @level.can_move_to_terrain?(m, mx, my, x, y) &&
+         @level.cell(x,y).item&.name != "結界の巻物"
+        true
+      else
+        false
+      end
+    }
+    attack_or_move = lambda { |x, y|
+      if [x,y] == @hero.pos || @level.cell(x,y).monster
+        return Action.new(:attack, [x-mx, y-my])
+      else
+        return Action.new(:move, [x-mx, y-my])
+      end
+    }
+
+    if applicable_p.(mx+dx, my+dy)
+      return attack_or_move.(mx+dx, my+dy)
+    else
+      candidates = []
+      @level.surroundings(mx, my).each_coords do |x, y|
+        if applicable_p.(x, y)
+          candidates << [x,y]
+        end
+      end
+
+      if candidates.any?
+        x, y = candidates.sample
+        m.facing = [x-mx, y-my]
+      end
+      return Action.new(:rest, nil)
+    end
+  end
+
   def adjacent?(v1, v2)
     return Vec.chess_distance(v1, v2) == 1
   end
@@ -3171,6 +3222,8 @@ EOD
           return Action.new(:rest, nil)
         elsif m.confused?
           return monster_confused_action(m, mx, my)
+        elsif m.blind?
+          return monster_blind_action(m, mx, my)
         elsif !m.nullified? && m.hallucinating? # まどわし状態では攻撃しない。
           return monster_move_action(m, mx, my)
         elsif !m.nullified? && m.tipsy? && rand() < 0.5 # ちどり足。

@@ -31,6 +31,8 @@ class StatusEffect
       "豚鼻"
     when :nullification
       "封印"
+    when :blindness
+      "盲目"
     else
       type.to_s
     end
@@ -78,6 +80,10 @@ module StatusEffectPredicates
 
   def olfaction_enhanced?
     @status_effects.any? { |e| e.type == :olfaction_enhancement }
+  end
+
+  def blind?
+    @status_effects.any? { |e| e.type == :blindness }
   end
 
 end
