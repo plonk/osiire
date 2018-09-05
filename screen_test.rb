@@ -1570,31 +1570,46 @@ EOD
 
   # ヒーローがアイテムを投げる。
   # (Item, Array)
-  def do_throw_item(item, dir)
+  def do_throw_item(item, dir, penetrating, momentum)
     dx, dy = dir
     x, y = @hero.x, @hero.y
 
     while true
-      fail unless @level.in_dungeon?(x+dx, y+dy)
+      if momentum == 0
+        item_land(item, x, y)
+        break
+      end
+      unless @level.in_dungeon?(x+dx, y+dy)
+        log(display_item(item), "は どこかに消えてしまった…。")
+        break
+      end
 
       cell = @level.cell(x+dx, y+dy)
       case cell.type
       when :WALL, :HORIZONTAL_WALL, :VERTICAL_WALL, :STATUE
-        item_land(item, x, y)
-        break
+        unless penetrating
+          item_land(item, x, y)
+          break
+        end
       when :FLOOR, :PASSAGE
         if cell.monster
           if rand() < 0.125
-            item_land(item, x+dx, y+dy)
+            if penetrating
+              log(display_item(item), "は外れた。")
+            else
+              item_land(item, x+dx, y+dy)
+              break
+            end
           else
             item_hits_monster(item, cell.monster, cell)
+            break unless penetrating
           end
-          break
         end
       else
         fail "case not covered"
       end
       x, y = x+dx, y+dy
+      momentum -= 1
     end
   end
 
@@ -1642,14 +1657,16 @@ EOD
       return :nothing
     end
 
+    penetrating = (item.name == "銀の矢")
+    momentum = (item.name == "銀の矢") ? Float::INFINITY : 10
     if item.type == :projectile && item.number > 1
       one = Item.make_item(item.name)
       one.number = 1
       item.number -= 1
-      do_throw_item(one, dir)
+      do_throw_item(one, dir, penetrating, momentum)
     else
       @hero.remove_from_inventory(item)
-      do_throw_item(item, dir)
+      do_throw_item(item, dir, penetrating, momentum)
     end
     return :action
   end

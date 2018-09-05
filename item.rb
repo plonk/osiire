@@ -28,9 +28,9 @@ class Item
     [:weapon, "メタルヨテイチの剣", 7, nil],
     [:weapon, "エンドゲーム", 10, nil],
     [:weapon, "必中会心剣", 20, "必ず当たり、会心の一撃が出る事もある強さ20の剣。"],
-    [:projectile, "木の矢", nil, nil],
-    [:projectile, "鉄の矢", nil, nil],
-    [:projectile, "銀の矢", nil, nil],
+    [:projectile, "木の矢", nil, "強さ4の矢。"],
+    [:projectile, "鉄の矢", nil, "強さ12の矢。"],
+    [:projectile, "銀の矢", nil, "強さ12の矢。後ろの敵にも貫通する。"],
     [:shield, "皮の盾", 3, "強さ3の盾。腹が減りにくくなる。"],
     [:shield, "青銅の盾", 3, nil],
     [:shield, "うろこの盾", 4, "強さ4の盾。毒を受けなくなる。"],
@@ -140,7 +140,17 @@ class Item
           item.number = 3 + rand(5)
         end
       when :projectile
-        item.number = rand(5..15)
+        case item.name
+        when "木の矢"
+          item.number = rand(10..20)
+        when "鉄の矢"
+          item.number = rand(5..15)
+        when "銀の矢"
+          item.number = rand(5..10)
+        else
+          # fail
+          item.number = 1
+        end
       when :weapon
         r = rand(-1..+3)
         item.number = item.number + r
@@ -313,7 +323,16 @@ class Item
 
   def projectile_strength
     fail unless type == :projectile
-    return 5
+    case @name
+    when "木の矢"
+      4
+    when "鉄の矢"
+      12
+    when "銀の矢"
+      12
+    else
+      fail "projectile strength not defined: #{@name}"
+    end
   end
 
   def desc
