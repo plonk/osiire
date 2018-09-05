@@ -29,6 +29,8 @@ class StatusEffect
       "兎耳"
     when :olfaction_enhancement
       "豚鼻"
+    when :nullification
+      "封印"
     else
       type.to_s
     end

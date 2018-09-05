@@ -1890,6 +1890,11 @@ EOD
   def read_scroll(item)
     fail "not a scroll" unless item.type == :scroll
 
+    if @hero.nullified?
+      log(@hero.name, "の 口は封じられていて使えない!")
+      return :action
+    end
+
     if item.targeted_scroll?
       return read_targeted_scroll(item)
     else
@@ -2004,7 +2009,9 @@ EOD
 
   def read_nontargeted_scroll(item)
     @hero.remove_from_inventory(item)
+
     log(display_item(item), "を 読んだ。")
+
     unless @naming_table.identified?(item.name)
       @naming_table.identify!(item.name)
       log("なんと！ #{item.name}だった！")
@@ -2126,6 +2133,12 @@ EOD
         @hero.status_effects << StatusEffect.new(:olfaction_enhancement)
         log("アイテムを 嗅ぎ付けられるようになった。")
       end
+    when "封印の巻物"
+      if @hero.nullified?
+        log("しかし 何も起こらなかった。")
+      else
+        @hero.status_effects << StatusEffect.new(:nullification)
+      end
     else
       log("実装してないよ。")
     end
@@ -2186,6 +2199,11 @@ EOD
   # Item -> :nothing | :action
   def take_herb(item)
     fail "not a herb" unless item.type == :herb
+
+    if @hero.nullified?
+      log(@hero.name, "の 口は封じられていて使えない!")
+      return :action
+    end
 
     if item.name == "火炎草"
       vec = ask_direction
@@ -2462,6 +2480,11 @@ EOD
   # パンを食べる。
   def eat_food(food)
     fail "not a food" unless food.type == :food
+
+    if @hero.nullified?
+      log(@hero.name, "の 口は封じられていて使えない!")
+      return :action
+    end
 
     @hero.remove_from_inventory(food)
     log("#{@hero.name}は #{food.name}を 食べた。")

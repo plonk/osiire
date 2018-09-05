@@ -68,7 +68,7 @@ class Item
     [:scroll, "パンの巻物", nil, "アイテムを大きなパンに変えてしまう。"],
     [:scroll, "祈りの巻物", nil, "杖の回数を増やす。"],
     [:scroll, "爆発の巻物", nil, "部屋の敵にダメージを与える。"],
-    [:scroll, "くちなしの巻物", nil, nil],
+    [:scroll, "封印の巻物", nil, "口が使えなくなる。"],
     [:scroll, "時の砂の巻物", nil, nil],
     [:scroll, "ワナの巻物", nil, nil],
     [:scroll, "パルプンテの巻物", nil, nil],
