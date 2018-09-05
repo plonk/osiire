@@ -569,6 +569,14 @@ class Program
     if cell.staircase
       stop_dashing
     end
+
+    if @hero.ring&.name == "ワープの指輪"
+      if rand() < 1.0/16
+        log(@hero.name, "は ワープした！")
+        stop_dashing # 駄目押し
+        hero_teleport
+      end
+    end
   end
 
   def stop_dashing
