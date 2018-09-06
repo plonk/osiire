@@ -752,7 +752,6 @@ class Program
     trap = cell.trap
     if trap && !trap.visible
       trap.visible = true
-      log("#{trap.name}を 見つけた。")
     end
   end
 
@@ -2235,8 +2234,10 @@ EOD
     case item.name
     when "薬草"
       use_health_item(@hero, 25, 2)
+      remove_status_effect(@hero, :blindness)
     when "高級薬草"
       use_health_item(@hero, 100, 4)
+      remove_status_effect(@hero, :blindness)
       remove_status_effect(@hero, :confused)
       remove_status_effect(@hero, :hallucination)
     when "毒けし草"
@@ -2264,13 +2265,11 @@ EOD
         @hero.action_point = 2
       end
     when "目薬草"
-      @level.each_coords do |x, y|
-        trap = @level.cell(x, y).trap
-        if trap
-          trap.visible = true
-        end
+      unless @hero.trap_detecting?
+        @hero.status_effects.push(StatusEffect.new(:trap_detection))
+        log("ワナが見えるようになった。")
       end
-      log("ワナが見えるようになった。")
+      remove_status_effect(@hero, :blindness)
     when "毒草"
       take_damage(5)
       take_damage_strength(3)
@@ -2637,7 +2636,7 @@ EOD
   def visible_to_hero?(obj, lit, globally_lit, explored)
     case obj
     when Trap
-      obj.visible && (explored || globally_lit)
+      (explored || globally_lit) && (@hero.trap_detecting? || @hero.ring&.name == "よくみえの指輪" || obj.visible)
     when Monster
       if @hero.audition_enhanced? || lit || globally_lit
         invisible = obj.invisible && !globally_lit

@@ -33,6 +33,8 @@ class StatusEffect
       "封印"
     when :blindness
       "盲目"
+    when :trap_detection
+      "ワナ感知"
     else
       type.to_s
     end
@@ -84,6 +86,10 @@ module StatusEffectPredicates
 
   def blind?
     @status_effects.any? { |e| e.type == :blindness }
+  end
+
+  def trap_detecting?
+    @status_effects.any? { |e| e.type == :trap_detection }
   end
 
 end
