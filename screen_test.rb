@@ -366,7 +366,7 @@ class Program
   def check_monster_dead(cell, monster)
     if monster.hp < 1.0
       if monster.invisible && !@level.whole_level_lit
-        old = monster.name
+        old = display_character(monster)
         monster.invisible = false
         monster.hp = 1
         log("#{old}は #{display_character(monster)}だった!")
