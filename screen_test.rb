@@ -2645,7 +2645,7 @@ EOD
       (explored || globally_lit) && trap_visible_to_hero(obj)
     when Monster
       if @hero.audition_enhanced? || lit || globally_lit
-        invisible = obj.invisible && !globally_lit
+        invisible = obj.invisible && !globally_lit && !(@hero.trap_detecting? || @hero.ring&.name == "よくみえの指輪")
         if invisible
           false
         else
@@ -2676,13 +2676,6 @@ EOD
       end
     else
       obj = @level.first_visible_object(x, y, method(:visible_to_hero?))
-
-      if @hero.audition_enhanced?
-        obj ||= @level.cell(x, y).monster
-      end
-      if @hero.olfaction_enhanced?
-        obj ||= @level.cell(x, y).item || @level.cell(x, y).gold
-      end
 
       if obj
         if @hero.hallucinating?
