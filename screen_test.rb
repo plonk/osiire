@@ -2633,10 +2633,16 @@ EOD
     end
   end
 
+  def trap_visible_to_hero(trap)
+    fail TypeError unless trap.is_a?(Trap)
+
+    (@hero.trap_detecting? || @hero.ring&.name == "よくみえの指輪" || trap.visible)
+  end
+
   def visible_to_hero?(obj, lit, globally_lit, explored)
     case obj
     when Trap
-      (explored || globally_lit) && (@hero.trap_detecting? || @hero.ring&.name == "よくみえの指輪" || obj.visible)
+      (explored || globally_lit) && trap_visible_to_hero(obj)
     when Monster
       if @hero.audition_enhanced? || lit || globally_lit
         invisible = obj.invisible && !globally_lit
@@ -3840,7 +3846,12 @@ EOD
       return false
     elsif forward_area.any? { |x,y|
       cell = @level.cell(x,y)
-      cell.staircase || cell.item || cell.gold || cell.trap&.visible || cell.monster || cell.type == :STATUE
+      cell.staircase ||
+        cell.item ||
+        cell.gold ||
+        (cell.trap && trap_visible_to_hero(cell.trap)) ||
+        cell.monster ||
+        cell.type == :STATUE
     }
       return false
     elsif current_room && @level.first_cells_in(current_room).include?(@hero.pos)
