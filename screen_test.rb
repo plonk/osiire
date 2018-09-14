@@ -12,6 +12,7 @@ require_relative 'naming_screen'
 require_relative 'shop'
 require_relative 'history_window'
 require_relative 'naming_table'
+require_relative 'sound'
 
 class HeroDied < Exception
 end
@@ -254,9 +255,13 @@ class Program
   end
 
   # 経験値が溜まっていればヒーローのレベルアップをする。
-  def check_level_up
+  def check_level_up(silent = false)
     while @hero.lv < exp_to_lv(@hero.exp)
       log("#{@hero.name}の レベルが 上がった。")
+      unless silent
+        SoundEffects.fanfare
+        render
+      end
       @hero.lv += 1
       hp_increase = 5
       @hero.max_hp = [@hero.max_hp + 5, 999].min
@@ -347,8 +352,10 @@ class Program
     log("#{@hero.name}の攻撃！ ")
     on_monster_attacked(monster)
     if !@hero.no_miss? && rand() < 0.125
+      SoundEffects.miss
       log("#{@hero.name}の攻撃は 外れた。")
     else
+      SoundEffects.hit
       attack = get_hero_attack
       damage = ( ( attack * (15.0/16.0)**monster.defense ) * (112 + rand(32))/128.0 ).to_i
       if monster.name == "竜" && @hero.weapon&.name == "ドラゴンキラー"
@@ -527,6 +534,8 @@ class Program
       return
     end
 
+    #SoundEffects.footstep
+
     hero_change_position(x1, y1)
     cell = @level.cell(x1, y1)
 
@@ -643,6 +652,8 @@ class Program
 
   # ヒーローがワープする。
   def hero_teleport
+    SoundEffects.teleport
+
     fov = @level.fov(@hero.x, @hero.y)
     x, y = @level.find_random_place { |cell, x, y|
       cell.type == :FLOOR && !cell.monster && !fov.include?(x, y)
@@ -691,6 +702,7 @@ class Program
       mine_activate(trap)
     when "落とし穴"
       log("落とし穴だ！ ")
+      SoundEffects.trapdoor
       wait_delay
       new_level(+1, false)
       return # ワナ破損処理をスキップする
@@ -825,7 +837,7 @@ class Program
       :nothing
     when '\\'
       if debug?
-        hero_levels_up
+        hero_levels_up(true)
       end
       :nothing
     when ']'
@@ -999,6 +1011,8 @@ EOD
 
   # ダンジョンをクリアしたリザルト画面。
   def clear_message
+    SoundEffects.fanfare3
+
     item = @hero.inventory.find { |item| item.name == Dungeon::OBJECTIVE_NAME }
     message = "#{item&.number || '??'}階から魔除けを持って無事帰る！"
     data = ResultScreen.to_data(@hero)
@@ -1345,6 +1359,7 @@ EOD
   end
 
   def use_health_item(character, amount, amount_maxhp)
+    SoundEffects.heal
     if character.hp_maxed?
       increase_max_hp(character, amount_maxhp)
     else
@@ -1713,6 +1728,8 @@ EOD
 
   # モンスターがワープする。
   def monster_teleport(monster, cell)
+    SoundEffects.teleport
+
     fov = @level.fov(@hero.x, @hero.y)
     x, y = @level.find_random_place { |cell, x, y|
       cell.type == :FLOOR && !cell.monster && !(x==@hero.x && y==@hero.y) && !fov.include?(x, y)
@@ -1916,6 +1933,8 @@ EOD
 
     @hero.remove_from_inventory(scroll)
     log(display_item(scroll), "を 読んだ。")
+    SoundEffects.magic
+
     unless @naming_table.identified?(scroll.name)
       @naming_table.identify!(scroll.name)
       log("なんと！ #{scroll.name}だった！")
@@ -2019,6 +2038,7 @@ EOD
     @hero.remove_from_inventory(item)
 
     log(display_item(item), "を 読んだ。")
+    SoundEffects.magic
 
     unless @naming_table.identified?(item.name)
       @naming_table.identify!(item.name)
@@ -2320,11 +2340,11 @@ EOD
   end
 
   # ヒーローのレベルが上がる効果。
-  def hero_levels_up
+  def hero_levels_up(silent = false)
     required_exp = lv_to_exp(@hero.lv + 1)
     if required_exp
       @hero.exp = required_exp
-      check_level_up
+      check_level_up(silent)
     else
       log("しかし 何も起こらなかった。")
     end
@@ -2341,6 +2361,7 @@ EOD
       @hero.max_hp = [@hero.max_hp - 5, 1].max
       @hero.hp = [@hero.hp, @hero.max_hp].min
       log("#{@hero.name}の レベルが下がった。")
+      SoundEffects.fanfare2
     end
   end
 
@@ -2386,6 +2407,7 @@ EOD
         item.inspected = true
       end
       log(display_item(item), "を 装備した。")
+      SoundEffects.weapon
       if item.cursed
         log("なんと！ ", display_item(item), "は呪われていた！")
       end
@@ -2405,6 +2427,7 @@ EOD
         item.inspected = true
       end
       log(display_item(item), "を 装備した。")
+      SoundEffects.weapon
       if item.cursed
         log("なんと！ ", display_item(item), "は呪われていた！")
       end
@@ -2424,6 +2447,7 @@ EOD
         item.inspected = true
       end
       log(display_item(item), "を 装備した。")
+      SoundEffects.weapon
       if item.cursed
         log("なんと！ ", display_item(item), "は呪われていた！")
       end
@@ -2438,6 +2462,7 @@ EOD
     else
       @hero.projectile = item
       log(display_item(item), "を 装備した。")
+      SoundEffects.weapon
     end
   end
 
@@ -2546,6 +2571,7 @@ EOD
   def go_downstairs
     st = @level.cell(@hero.x, @hero.y).staircase
     if st
+      SoundEffects.staircase
       new_level(st.upwards ? -1 : +1, true)
     else
       log("ここに 階段は ない。")
@@ -2844,6 +2870,8 @@ EOD
 
   # 死んだ時のリザルト画面。
   def gameover_message
+    SoundEffects.gameover
+
     if @dungeon.on_return_trip?(@hero)
       message = "魔除けを持って#{@level_number}階で力尽きる。"
     else
@@ -3259,8 +3287,10 @@ EOD
     else
       log("#{display_character(m)}の こうげき！ ")
       if rand() < 0.125
+        SoundEffects.miss
         log("#{@hero.name}は ひらりと身をかわした。")
       else
+        SoundEffects.hit
         damage = attack_to_hero_damage(attack)
         take_damage(damage)
       end
@@ -3295,6 +3325,7 @@ EOD
     case m.name
     when '催眠術師'
       log("#{m.name}は 手に持っている物を 揺り動かした。")
+      SoundEffects.magic
       hero_fall_asleep
     when 'ファンガス'
       log("#{m.name}は 毒のこなを 撒き散らした。")
@@ -3394,6 +3425,7 @@ EOD
 
     when "ソーサラー"
       log("#{m.name}は ワープの杖を振った。")
+      SoundEffects.magic
       wait_delay
       hero_teleport
 
@@ -3759,6 +3791,7 @@ EOD
     end
 
     log("魔物の巣窟だ！ ")
+    SoundEffects.partyroom
     render
 
     if @hero.ring&.name != "盗賊の指輪"
