@@ -246,6 +246,8 @@ module SoundEffects
   end
 
   def partyroom
+    print "\e[0;60;8-~" # 無音
+
     print "\e[50;30;8-~"
     print "\e[50;30;252-~"
     print "\e[50;30;7-~"
@@ -274,7 +276,7 @@ module SoundEffects
   end
 
   def hit
-    print "\e[0;30;247-~"
+    print "\e[0;60;247-~"
     print "\e[50;30;247-~"
     print "\e[0;30;247-~"
     print "\e[50;30;3-~"
@@ -304,6 +306,8 @@ module SoundEffects
   end
 
   def teleport
+    print "\e[0;60;0-~"
+
     tune = compile([
                      [:note, 15, 'a3', 40],
                      [:note, 15, 'b3', 40],
@@ -326,6 +330,8 @@ module SoundEffects
   end
 
   def magic
+    print "\e[0;60;0-~"
+
     tune = compile([
                      [:note, 100, 'a4', 40],
                      [:note, 100, 'c5', 40],
@@ -338,6 +344,8 @@ module SoundEffects
   end
 
   def weapon
+    print "\e[0;60;0-~"
+
     tune = compile([
                      [:note, 20, 'c5', 40],
                      [:note, 20, 'c#6', 40],
