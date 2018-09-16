@@ -1541,16 +1541,20 @@ EOD
       when :FLOOR, :PASSAGE
         if [x+dx, y+dy] == [@hero.x, @hero.y]
           if rand() < 0.125
+            SoundEffects.miss
             item_land(item, x+dx, y+dy)
           else
+            SoundEffects.hit
             item_hits_hero(item, monster)
           end
           break
         elsif cell.monster
           # FIXME: これだと主人公に経験値が入ってしまうな
           if rand() < 0.125
+            SoundEffects.miss
             item_land(item, x+dx, y+dy)
           else
+            SoundEffects.hit
             item_hits_monster(item, cell.monster, cell)
           end
           break
@@ -1620,6 +1624,7 @@ EOD
       when :FLOOR, :PASSAGE
         if cell.monster
           if rand() < 0.125
+            SoundEffects.miss
             if penetrating
               log(display_item(item), "は外れた。")
             else
@@ -1627,6 +1632,7 @@ EOD
               break
             end
           else
+            SoundEffects.hit
             item_hits_monster(item, cell.monster, cell)
             break unless penetrating
           end
