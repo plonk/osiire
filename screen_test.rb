@@ -2386,16 +2386,20 @@ EOD
       when :FLOOR, :PASSAGE
         if [x+dx, y+dy] == [@hero.x, @hero.y]
           if rand() < 0.125
+            SoundEffects.miss
             item_land(item, x+dx, y+dy)
           else
+            SoundEffects.hit
             item_hits_hero(item, monster)
           end
           break
         elsif cell.monster
           # FIXME: これだと主人公に経験値が入ってしまうな
           if rand() < 0.125
+            SoundEffects.miss
             item_land(item, x+dx, y+dy)
           else
+            SoundEffects.hit
             item_hits_monster(item, cell.monster, monster)
           end
           break
@@ -2460,17 +2464,21 @@ EOD
       when :FLOOR, :PASSAGE
         if cell.monster
           if rand() < miss_rate
+            SoundEffects.miss
             log(display_item(item), "は 外れた。")
             item_land(item, x+dx, y+dy)
           else
+            SoundEffects.hit
             item_hits_monster(item, cell.monster, actor)
           end
           break
         elsif @hero.pos == [x+dx, y+dy]
           if rand() < miss_rate
+            SoundEffects.miss
             log(display_item(item), "は 外れた。")
             item_land(item, x+dx, y+dy)
           else
+            SoundEffects.hit
             item_hits_hero(item, actor)
           end
           break
