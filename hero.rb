@@ -30,9 +30,9 @@ class Hero < Struct.new(:x, :y, :hp, :max_hp,
 
   def max_strength
     if ring&.name == "ちからの指輪"
-      raw_strength + (3 * (ring.cursed ? -1 : +1))
+      raw_max_strength + (3 * (ring.cursed ? -1 : +1))
     else
-      raw_strength
+      raw_max_strength
     end
   end
 
