@@ -3394,6 +3394,7 @@ EOD
       end
 
     when "目玉"
+      log("目玉は#{@hero.name}を睨んだ！")
       unless @hero.confused?
         @hero.status_effects.push(StatusEffect.new(:confused, 10))
         log("#{@hero.name}は 混乱した。")
