@@ -38,30 +38,15 @@ class Hero
   end
 
   def char
-    # if hp < 1.0
-    #   '􄅂􄅃' # 倒れている
-    # elsif asleep?
-    #   '􄅂􄅃' # 倒れている
-    # else
-    #   if weapon && shield
-    #     '􄀦􄀧' # 武器・盾
-    #   elsif weapon
-    #     '􄄾􄄿' # 武器のみ
-    #   elsif shield
-    #     '􄄼􄄽' # 盾のみ
-    #   else
-    #     '􄅀􄅁' # 装備なし
-    #   end
-    # end
     case facing
-    when [ 0,-1] then "\u{104252}\u{104253}" # 上
-    when [ 1,-1] then "\u{10425e}\u{10425f}" # 右上
-    when [ 1, 0] then "\u{104256}\u{104257}" # 右
-    when [ 1, 1] then "\u{10425a}\u{10425b}" # 右下
-    when [ 0, 1] then "\u{104250}\u{104251}" # 下
-    when [-1, 1] then "\u{104258}\u{104259}" # 左下
-    when [-1, 0] then "\u{104254}\u{104255}" # 左
-    when [-1,-1] then "\u{10425c}\u{10425d}" # 左上
+    when [ 0,-1] then "\u{104368}\u{104369}" # 上
+    when [ 1,-1] then "\u{10436c}\u{10436d}" # 右上
+    when [ 1, 0] then "\u{10436a}\u{10436b}" # 右
+    when [ 1, 1] then "\u{10435e}\u{10435f}" # 右下
+    when [ 0, 1] then "\u{104358}\u{104359}" # 下
+    when [-1, 1] then "\u{10435c}\u{10435d}" # 左下
+    when [-1, 0] then "\u{10435a}\u{10435b}" # 左
+    when [-1,-1] then "\u{10436e}\u{10436f}" # 左上
     else
       '??'
     end
