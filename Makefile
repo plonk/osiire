@@ -15,5 +15,9 @@ all:
 	drcssixel-test -c C -q -d 8x16 ./tileset16-4.six > font-4.txt
 	cat font-4.txt
 
+	ruby png2sixel.rb tileset16-5.png  > tileset16-5.six
+	drcssixel-test -c D -q -d 8x16 ./tileset16-5.six > font-5.txt
+	cat font-5.txt
+
 	ruby gen_monster_table.rb > monster_table.rb
 	ruby gen_item_table.rb > item_table.rb
