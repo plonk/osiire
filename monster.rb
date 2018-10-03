@@ -317,7 +317,7 @@ class Monster
   end
 
   PHYLOGENY = [
-    ["スライム", "緑スライム", "紫スライム"]
+    ["スライム", "スライム2", "スライム3"]
   ]
 
   def descendant
