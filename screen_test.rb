@@ -1167,7 +1167,7 @@ class Program
          '7', '8', '9', '4', '6', '1', '2', '3',
          Curses::KEY_SLEFT, Curses::KEY_SRIGHT, Curses::KEY_SR, Curses::KEY_SF
       hero_move(c)
-    when 'z'
+    when 'z', ' '
       return hero_swing
     when 16 # ^P
       open_history_window
