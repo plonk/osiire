@@ -1319,13 +1319,16 @@ class Program
     res << describe_tile(x, y)
     if @level.in_dungeon?(x, y)
       cell = @level.cell(x, y)
+      if cell.staircase
+        res << "階段"
+      end
       if cell.trap&.visible
         res << cell.trap.name
       end
       if cell.item
         res << item_type_string(cell.item.type)
       end
-      if cell.monster
+      if cell.monster&.visible
         res << display_character(cell.monster)
       end
       if @hero.pos == [x,y]
@@ -3800,6 +3803,7 @@ EOD
     menu = Menu.new(["道具",
                      "足元",
                      "メッセージ履歴",
+                     "みわたす",
                      "あきらめる",
                     ],
                     cols: 18, y: 1, x: 0)
@@ -3835,6 +3839,9 @@ EOD
           else
             next
           end
+        when "みわたす"
+          look_out
+          next
         end
       when :cancel
         return :nothing

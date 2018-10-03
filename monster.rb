@@ -173,6 +173,10 @@ class Monster
     @capacity = definition[:capacity]
   end
 
+  def visible
+    !@invisible
+  end
+
   # state = :awake の操作は別。モンスターの特殊な状態を解除して動き出
   # させる。
   def on_party_room_intrusion
