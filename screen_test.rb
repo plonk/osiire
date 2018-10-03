@@ -3403,6 +3403,13 @@ EOD
       @hero.hp = 0.0
       raise HeroDied
     end
+
+    # 生きのこった時の処理。
+    if @hero.ring&.name == "ワープの指輪"
+      if rand() < 0.5
+        hero_teleport
+      end
+    end
   end
 
   # ちからの現在値にダメージを受ける。
