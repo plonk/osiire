@@ -1558,31 +1558,27 @@ class Program
   # () → :nothing
   def help
     text = <<EOD
-★ キャラクターの移動
+ ★ キャラクターの移動
 
      y k u
      h @ l
      b j n
 
-★ コマンドキー
+ ★ コマンドキー
 
      [Enter] 決定。
-     [Shift] ダッシュ。アイテムの上に乗る。
-     i       道具一覧を開く。
-     >       階段を降りる。足元のワナを踏む、
-             アイテムを拾う。
-     ,       足元メニュー。
-     .       足踏み。
-     ?       このヘルプを表示。
-     Ctrl+P  メッセージ履歴。
-     s       主人公のステータスを表示。
-     t       装備している投げ物を使う。
      q       キャンセル。
+     [Shift] ダッシュ。アイテムの上に乗る。
+     [Space] 武器を振る。
+     a       その場で方向を変える。
+     .       足踏み。
+     s       メインメニューを開く。
+     t       装備している投げ物を使う。
      Q       冒険をあきらめる。
-     z       攻撃。
+     ?       このヘルプを表示。
 EOD
 
-    win = Curses::Window.new(23, 50, 1, 4) # lines, cols, y, x
+    win = Curses::Window.new(text.each_line.count + 2, 50, 1, 4) # lines, cols, y, x
     win.clear
     win.rounded_box
     text.each_line.with_index(1) do |line, y|
