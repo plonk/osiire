@@ -1417,7 +1417,27 @@ class Program
             i = (i + 1) % pages.size
             next
           else
-            log(arg)
+            m = Monster.make_monster(arg)
+            # このターンに行動できるようにする。
+            m.action_point = m.action_point_recovery_rate
+            placed = false
+            rect = @level.surroundings(@hero.x, @hero.y)
+            rect.each_coords do |x, y|
+              cell = @level.cell(x, y)
+              if (cell.type == :PASSAGE || cell.type == :FLOOR) &&
+                 !cell.monster &&
+                 !(x==@hero.x && y==@hero.y)
+                @level.put_object(m, x, y)
+                placed = true
+                break
+              end
+            end
+            if placed
+              log("#{display_character(m)}が 発生した。 ")
+            else
+              log("#{display_character(m)}は 発生できなかった。")
+            end
+            break
           end
         else
           break
