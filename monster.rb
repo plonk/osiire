@@ -11,6 +11,8 @@ class StatusEffect
 
   def name
     case type
+    when :zawazawa
+      "ざわざわ"
     when :sleep
       "睡眠"
     when :paralysis
@@ -76,6 +78,10 @@ module StatusEffectPredicates
 
   def olfaction_enhanced?
     @status_effects.any? { |e| e.type == :olfaction_enhancement }
+  end
+
+  def zawazawa?
+    @status_effects.any? { |e| e.type == :zawazawa }
   end
 
 end

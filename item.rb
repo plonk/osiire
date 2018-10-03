@@ -109,6 +109,7 @@ class Item
  {:type=>:scroll, :name=>"パルプンテの巻物"},
  {:type=>:scroll, :name=>"ワナけしの巻物"},
  {:type=>:scroll, :name=>"大部屋の巻物"},
+ {:type=>:scroll, :name=>"ざわざわの巻物", :desc=>"ざわ… ざわ…"},
  {:type=>:staff, :name=>"いかずちの杖", :desc=>"敵にダメージを与える。"},
  {:type=>:staff, :name=>"鈍足の杖"},
  {:type=>:staff, :name=>"睡眠の杖", :desc=>"敵を眠らせる。"},

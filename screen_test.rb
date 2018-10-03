@@ -131,8 +131,7 @@ class Program
       @hero.inventory << Item.make_item("あかりの巻物")
       @hero.inventory << Item.make_item("結界の巻物")
       @hero.inventory << Item.make_item("同定の巻物")
-      @hero.inventory << Item.make_item("進化の杖")
-      @hero.inventory << Item.make_item("退化の杖")
+      @hero.inventory << Item.make_item("ざわざわの巻物")
     end
     @level_number = 0
     @dungeon = Dungeon.new
@@ -373,19 +372,19 @@ class Program
     m.strength
   end
 
-  def on_monster_taking_damage(monster, cell)
+  def on_monster_taking_damage(monster)
     unless monster.nullified?
       if monster.divide? && rand() < 0.5
         x, y = @level.coordinates_of(monster)
-        monster_split(monster, cell, x, y)
+        monster_split(monster)
       elsif monster.teleport_on_attack?
         log("#{display_character(monster)}は ワープした。")
-        monster_teleport(monster, cell)
+        monster_teleport(monster)
       end
     end
   end
 
-  def monster_explode(monster, ground_zero_cell)
+  def monster_explode(monster)
     log("#{display_character(monster)}は 爆発した！")
 
     mx, my = @level.coordinates_of(monster)
@@ -409,7 +408,7 @@ class Program
   end
 
   # モンスターにダメージを与える。
-  def monster_take_damage(monster, damage, cell)
+  def monster_take_damage(monster, damage)
     if monster.damage_capped?
       damage = [damage, 1].min
     end
@@ -419,17 +418,17 @@ class Program
     log("#{display_character(monster)}に #{damage} のダメージを与えた。")
     if monster.hp >= 1.0 # 生きている
       if set_to_explode
-        monster_explode(monster, cell)
+        monster_explode(monster)
         return
       end
 
-      on_monster_taking_damage(monster, cell)
+      on_monster_taking_damage(monster)
     end
-    check_monster_dead(cell, monster)
+    check_monster_dead(monster)
   end
 
   # ヒーローがモンスターを攻撃する。
-  def hero_attack(cell, monster)
+  def hero_attack(monster)
     log("#{@hero.name}の攻撃！ ")
     on_monster_attacked(monster)
     if !@hero.no_miss? && rand() < HERO_TERON_RATE
@@ -443,11 +442,11 @@ class Program
         log("会心の一撃！")
         damage *= 2
       end
-      monster_take_damage(monster, damage, cell)
+      monster_take_damage(monster, damage)
       if monster.hp < 1.0 &&
          rand() < food_drop_probability(@hero.weapon)
         food = Item.make_item("パン")
-        item_land(food, *@level.coordinates_of_cell(cell), false)
+        item_land(food, *@level.coordinates_of(monster), false)
       end
     end
   end
@@ -472,8 +471,14 @@ class Program
     end
   end
 
+  def remove_object_from_board(object)
+    x, y = @level.coordinates_of(object)
+    cell = @level.cell(x, y)
+    cell.remove_object(object)
+  end
+
   # モンスターが死んでいたら、その場合の処理を行う。
-  def check_monster_dead(cell, monster)
+  def check_monster_dead(monster)
     if monster.hp < 1.0
       if monster.invisible && !@level.whole_level_lit
         old = monster.name
@@ -486,7 +491,7 @@ class Program
       end
       monster.reveal_self! # 化けの皮を剥ぐ。
 
-      cell.remove_object(monster)
+      remove_object_from_board(monster)
 
       if monster.contents.any?
         things = monster.contents
@@ -926,7 +931,7 @@ class Program
         if cell.monster
           cell.monster.hp = 0
           render
-          check_monster_dead(cell, cell.monster)
+          check_monster_dead(cell.monster)
         end
         if @hero.pos == [x, y]
           take_damage([(@hero.hp / 2.0).floor, 1.0].max)
@@ -1434,7 +1439,7 @@ class Program
         return :action
       end
     elsif cell.monster
-      hero_attack(cell, cell.monster)
+      hero_attack(cell.monster)
       return :action
     else
       reveal_trap(*target)
@@ -2124,25 +2129,25 @@ EOD
   end
 
   # 草がモンスターに当たった時の効果。
-  def herb_hits_monster(item, monster, cell)
+  def herb_hits_monster(item, monster)
     on_monster_attacked(monster)
 
     case item.name
     when "薬草"
       if monster.undead?
-        monster_take_damage(monster, 25, cell)
+        monster_take_damage(monster, 25)
       else
         use_health_item(monster, 25, 2)
       end
     when "高級薬草"
       if monster.undead?
-        monster_take_damage(monster, 100, cell)
+        monster_take_damage(monster, 100)
       else
         use_health_item(monster, 100, 4)
       end
     when "毒けし草"
       if monster.poisonous?
-        monster_take_damage(monster, 50, cell)
+        monster_take_damage(monster, 50)
       else
         log("しかし 何も 起こらなかった。")
       end
@@ -2199,16 +2204,16 @@ EOD
     when "睡眠草"
       monster_fall_asleep(monster)
     when "ワープ草"
-      monster_teleport(monster, cell)
+      monster_teleport(monster)
     when "火炎草"
-      monster_take_damage(monster, rand(30...40), cell)
+      monster_take_damage(monster, rand(30...40))
     else
       log("しかし 何も 起こらなかった。")
     end
   end
 
   # 杖がモンスターに当たった時の効果。
-  def staff_hits_monster(item, monster, cell)
+  def staff_hits_monster(item, monster)
     mx, my = [nil, nil]
     @level.all_monsters_with_position.each do |m, x, y|
       if m.equal?(monster)
@@ -2217,21 +2222,21 @@ EOD
     end
 
     fail if mx.nil?
-    magic_bullet_hits_monster(item, monster, cell, mx, my)
+    magic_bullet_hits_monster(item, monster, mx, my)
   end
 
   # 盾がモンスターに当たる。
-  def shield_hits_monster(item, monster, cell)
+  def shield_hits_monster(item, monster)
     on_monster_attacked(monster)
     damage = item.number
-    monster_take_damage(monster, damage, cell)
+    monster_take_damage(monster, damage)
   end
 
   # 武器がモンスターに当たる。
-  def weapon_hits_monster(item, monster, cell)
+  def weapon_hits_monster(item, monster)
     on_monster_attacked(monster)
     damage = item.number
-    monster_take_damage(monster, damage, cell)
+    monster_take_damage(monster, damage)
   end
 
   def monster_strength_zero(monster)
@@ -2240,22 +2245,22 @@ EOD
   end
 
   # 投擲武器がモンスターに当たる。
-  def projectile_hits_monster(item, monster, cell, thrower)
+  def projectile_hits_monster(item, monster, thrower)
     on_monster_attacked(monster)
     case thrower
     when @hero
       attack = get_hero_projectile_attack(item.projectile_strength)
       damage = attack_to_damage(attack, monster.defense)
-      monster_take_damage(monster, damage, cell)
+      monster_take_damage(monster, damage)
     when Monster
     when :trap
       case item.name
       when "木の矢"
-        monster_take_damage(monster, 5, cell)
+        monster_take_damage(monster, 5)
       when "鉄の矢"
-        monster_take_damage(monster, 10, cell)
+        monster_take_damage(monster, 10)
       when "毒矢"
-        monster_take_damage(monster, 10, cell)
+        monster_take_damage(monster, 10)
         unless monster.hp < 1.0
           monster_strength_zero(monster)
         end
@@ -2268,23 +2273,23 @@ EOD
   end
 
   # アイテムがモンスターに当たる。
-  def item_hits_monster(item, monster, cell, thrower)
+  def item_hits_monster(item, monster, thrower)
     log(display_item(item), "は ", monster.name, "に当たった。")
     case item.type
     when :box, :food, :scroll, :ring
       on_monster_attacked(monster)
       damage = 1 + rand(1)
-      monster_take_damage(monster, damage, cell)
+      monster_take_damage(monster, damage)
     when :herb
-      herb_hits_monster(item, monster, cell)
+      herb_hits_monster(item, monster)
     when :staff
-      staff_hits_monster(item, monster, cell)
+      staff_hits_monster(item, monster)
     when :shield
-      shield_hits_monster(item, monster, cell)
+      shield_hits_monster(item, monster)
     when :weapon
-      weapon_hits_monster(item, monster, cell)
+      weapon_hits_monster(item, monster)
     when :projectile
-      projectile_hits_monster(item, monster, cell, thrower)
+      projectile_hits_monster(item, monster, thrower)
     else
       fail "case not covered"
     end
@@ -2345,7 +2350,7 @@ EOD
           if rand() < 0.125
             item_land(item, x+dx, y+dy)
           else
-            item_hits_monster(item, cell.monster, cell, monster)
+            item_hits_monster(item, cell.monster, monster)
           end
           break
         end
@@ -2378,7 +2383,7 @@ EOD
           break
         elsif cell.monster
           # FIXME: これだと主人公に経験値が入ってしまうな
-          monster_take_damage(cell.monster, rand(17..23), cell)
+          monster_take_damage(cell.monster, rand(17..23))
           break
         end
       else
@@ -2412,7 +2417,7 @@ EOD
             log(display_item(item), "は 外れた。")
             item_land(item, x+dx, y+dy)
           else
-            item_hits_monster(item, cell.monster, cell, actor)
+            item_hits_monster(item, cell.monster, actor)
           end
           break
         elsif @hero.pos == [x+dx, y+dy]
@@ -2517,7 +2522,8 @@ EOD
   end
 
   # モンスターがワープする。
-  def monster_teleport(monster, cell)
+  def monster_teleport(monster)
+    cell = @level.cell(*@level.coordinates_of(monster))
     fov = @level.fov(@hero.x, @hero.y)
     x, y = @level.find_random_place { |cell, x, y|
       cell.type == :FLOOR && !cell.monster && !(x==@hero.x && y==@hero.y) && !fov.include?(x, y)
@@ -2534,21 +2540,23 @@ EOD
   end
 
   # モンスターが変化す。
-  def monster_metamorphose(monster, cell, x, y)
+  def monster_metamorphose(monster, x, y)
     while true
       m = @dungeon.make_monster_from_dungeon
       break if m.name != monster.name
       # 病的なケースで無限ループになる。
     end
     m.state = :awake
-    cell.remove_object(monster)
+    remove_object_from_board(monster)
     @level.put_object(m, x, y)
     m.action_point = m.action_point_recovery_rate
     log("#{display_character(monster)}は #{m.name}に変わった！ ")
   end
 
   # モンスターが分裂する。
-  def monster_split(monster, cell, x, y)
+  def monster_split(monster)
+    x, y = @level.coordinates_of(monster)
+    cell = @level.cell(x, y)
     m = Monster.make_monster(monster.name)
     m.state = :awake
     rect = @level.surroundings(x, y)
@@ -2570,7 +2578,7 @@ EOD
     end
   end
 
-  def monster_fall_over(monster, cell, x, y)
+  def monster_fall_over(monster, x, y)
     item = monster.item || (if monster.drop_rate > 0 then @dungeon.make_item(@level_number) else nil end)
 
     monster.item = nil
@@ -2580,25 +2588,25 @@ EOD
       item_land(item, x, y, false)
     end
 
-    monster_take_damage(monster, 5, cell)
+    monster_take_damage(monster, 5)
   end
 
   # 魔法弾がモンスターに当たる。
-  def magic_bullet_hits_monster(staff, monster, cell, x, y)
+  def magic_bullet_hits_monster(staff, monster, x, y)
     on_monster_attacked(monster)
     case staff.name
     when "いかずちの杖"
-      monster_take_damage(monster, rand(18...22), cell)
+      monster_take_damage(monster, rand(18...22))
     when "睡眠の杖"
       monster_fall_asleep(monster)
     when "ワープの杖"
-      monster_teleport(monster, cell)
+      monster_teleport(monster)
     when "変化の杖"
-      monster_metamorphose(monster, cell, x, y)
+      monster_metamorphose(monster, x, y)
     when "転ばぬ先の杖"
-      monster_fall_over(monster, cell, x, y)
+      monster_fall_over(monster, x, y)
     when "分裂の杖"
-      monster_split(monster, cell, x, y)
+      monster_split(monster)
     when "もろ刃の杖"
       monster.hp = 1
       @hero.hp = @hero.hp - (@hero.hp / 2.0).ceil
@@ -2630,21 +2638,22 @@ EOD
       end
     when "即死の杖"
       monster.hp = 0
-      check_monster_dead(cell, monster)
+      check_monster_dead(monster)
     when "とうめいの杖"
       unless monster.invisible
         monster.invisible = true
       end
     when "進化の杖"
-      level_up_monster(cell, monster)
+      level_up_monster(monster)
     when "退化の杖"
-      level_down_monster(cell, monster)
+      level_down_monster(monster)
     else
       fail "case not covered"
     end
   end
 
-  def level_up_monster(cell, monster)
+  def level_up_monster(monster)
+    cell = @level.cell(*@level.coordinates_of(monster))
     descendant = monster.descendant
     if descendant
       m = Monster.make_monster(descendant)
@@ -2661,7 +2670,8 @@ EOD
     end
   end
 
-  def level_down_monster(cell, monster)
+  def level_down_monster(monster)
+    cell = @level.cell(*@level.coordinates_of(monster))
     ancestor = monster.ancestor
     if ancestor
       m = Monster.make_monster(ancestor)
@@ -2696,7 +2706,7 @@ EOD
         break
       when :FLOOR, :PASSAGE
         if cell.monster
-          magic_bullet_hits_monster(staff, cell.monster, cell, x+dx, y+dy)
+          magic_bullet_hits_monster(staff, cell.monster, x+dx, y+dy)
           break
         end
       else
@@ -2906,6 +2916,25 @@ EOD
       else
         log("しかし 何も起こらなかった。")
       end
+    when "ざわざわの巻物"
+      monsters = []
+      rect = @level.surroundings(@hero.x, @hero.y)
+      rect.each_coords do |x, y|
+        if @level.in_dungeon?(x, y)
+          m = @level.cell(x, y).monster
+          monsters << m if m
+        end
+      end
+      if monsters.any?
+        monsters.each do |m|
+          unless m.zawazawa?
+            m.status_effects.push(StatusEffect.new(:zawazawa, 10))
+          end
+        end
+        log("まわりの モンスターの 背中がざわざわし始めた。")
+      else
+        log("しかし 何も起こらなかった。")
+      end
     when "かなしばりの巻物"
       monsters = []
       rect = @level.surroundings(@hero.x, @hero.y)
@@ -3033,7 +3062,7 @@ EOD
         monster = cell.monster
         if monster
           on_monster_attacked(monster)
-          monster_take_damage(monster, rand(range), cell)
+          monster_take_damage(monster, rand(range))
         end
       end
     end
@@ -3132,7 +3161,7 @@ EOD
       end
 
       if cell.monster
-        monster_take_damage(cell.monster, rand(65...75), cell)
+        monster_take_damage(cell.monster, rand(65...75))
       end
     when "混乱草"
       unless @hero.confused?
@@ -4046,25 +4075,32 @@ EOD
     end
   end
 
+  def get_character(pos)
+    @level.cell(*pos).monster ||
+      ((@hero.pos == pos) ? @hero : nil)
+  end
+
   # モンスターが攻撃する。
   def monster_attack(assailant, dir)
     mx, my = @level.coordinates_of(assailant)
-    target = Vec.plus([mx, my], dir)
-    defender = @level.cell(*target).monster
-    if @hero.pos == target
+    dir_ = assailant.zawazawa? ? Vec.negate(dir) : dir
+    target = Vec.plus([mx, my], dir_)
+    defender = get_character(target)
+    if defender.is_a?(Hero)
       monster_attacks_hero(assailant)
     elsif defender
       attack = get_monster_attack(assailant)
       damage = ( ( attack * (15.0/16.0)**defender.defense ) * (112 + rand(32))/128.0 ).to_i
 
       if attack == 0
-        log("#{assailant.name}は 様子を見ている。")
+        log("#{display_character(assailant)}は 様子を見ている。")
       else
-        log("#{assailant.name}の こうげき！ ")
+        log("#{display_character(assailant)}の こうげき！ ")
         on_monster_attacked(defender)
-        monster_take_damage(defender, damage, @level.cell(*target))
+        monster_take_damage(defender, damage)
       end
     else
+      log("#{display_character(assailant)}の攻撃は むなしく 空を切った。")
       # 誰もいない
     end
   end
