@@ -1084,6 +1084,7 @@ class Program
                     title: "#{staircase.char} #{staircase.name}")
     begin
       loop do
+        render
         command, label = menu.choose
         case command
         when :chosen
@@ -1096,7 +1097,6 @@ class Program
         when :cancel
           return :nothing
         else fail end
-        render
       end
     rescue
       menu.close
