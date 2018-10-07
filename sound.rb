@@ -377,4 +377,29 @@ module SoundEffects
     sleep 0.48
   end
 
+  def earthquake1
+    print "[30;1000;196-~"
+    print "[25;1000;196-~"
+    print "[20;1000;196-~"
+    print "[15;500;196-~"
+    sleep 3.5
+  end
+
+  def earthquake2
+    print "[30;1000;196-~"
+    print "[40;1000;196-~"
+    print "[30;1000;196-~"
+    print "[15;1000;196-~"
+    sleep 4.0
+  end
+
+  def earthquake3
+    print "[25;1000;196-~"
+    print "[50;1000;196-~"
+    print "[80;1000;196-~"
+    print "[80;2000;196-~"
+    print "[100;1000;196-~"
+    sleep 6.0
+  end
+
 end

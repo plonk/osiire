@@ -4982,6 +4982,24 @@ EOD
     end
   end
 
+  # 地震判定
+  def earthquake
+    case @level.turn
+    when 1000
+      @level.whole_level_lit = true
+      SoundEffects.earthquake1
+      log("…ゆれない。")
+    when 1300
+      SoundEffects.earthquake2
+      log("…地震とかどこの田舎だよ。")
+    when 1500
+      SoundEffects.earthquake3
+      SoundEffects.trapdoor
+      wait_delay
+      new_level(+1)
+    end
+  end
+
   # ダンジョンのプレイ。
   def play
     @start_time = Time.now
@@ -4989,6 +5007,8 @@ EOD
 
     new_level(+1)
     render
+
+    earthquake
 
     begin
       until @quitting
@@ -4999,6 +5019,7 @@ EOD
           end
         elsif all_monsters_moved?
           next_turn
+          earthquake
         else
           monster_phase
         end
