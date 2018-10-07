@@ -1997,6 +1997,7 @@ EOD
 
       loop do
         item = action = nil
+        render
         command, item = menu.choose
 
         case command
