@@ -443,11 +443,6 @@ class Program
         damage *= 2
       end
       monster_take_damage(monster, damage, @hero)
-      if monster.hp < 1.0 &&
-         rand() < food_drop_probability(@hero.weapon)
-        food = Item.make_item("パン")
-        item_land(food, *@level.coordinates_of(monster), false)
-      end
     end
   end
 
@@ -518,6 +513,11 @@ class Program
       things = [@dungeon.make_random_item_or_gold(@level_number)]
     else
       things = []
+    end
+
+    if causer.equal?(@hero) &&
+       rand() < food_drop_probability(@hero.weapon)
+      things.unshift(Item.make_item("パン"))
     end
 
     things.each do |thing|
