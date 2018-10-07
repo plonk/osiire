@@ -2443,11 +2443,13 @@ EOD
     end
   end
 
+  PROJECTILE_TERON_RATE = 0.125
+
   # (Item, Array, Array, Hero|:trap, Integer)
   def do_throw_item(item, origin, dir, actor, range = 10)
     dx, dy = dir
     x, y = origin
-    miss_rate = (actor==:trap ? 0.0 : 0.125)
+    miss_rate = (actor==:trap ? 0.0 : PROJECTILE_TERON_RATE)
 
     while true
       fail unless @level.in_dungeon?(x+dx, y+dy)
