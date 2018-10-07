@@ -2016,6 +2016,7 @@ EOD
         break if item and action
       end
 
+      # render # ディレイかかって微妙。
       return try_do_action_on_item(action, item)
     ensure
       menu.close
