@@ -356,4 +356,25 @@ module SoundEffects
     play(tune)
   end
 
+  def strew
+    print "\e[0;30;3-~"
+    print "\e[50;30;3-~"
+    print "\e[0;30;3-~"
+    print "\e[50;30;15-~"
+    print "\e[0;30;3-~"
+    print "\e[50;30;3-~"
+    print "\e[0;30;3-~"
+    print "\e[50;30;15-~"
+    print "\e[0;30;3-~"
+    print "\e[50;30;3-~"
+    print "\e[0;30;3-~"
+    print "\e[50;30;15-~"
+    print "\e[0;30;3-~"
+    print "\e[50;30;3-~"
+    print "\e[0;30;3-~"
+    print "\e[50;30;15-~"
+
+    sleep 0.48
+  end
+
 end

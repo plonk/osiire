@@ -807,6 +807,7 @@ class Program
     end
 
     if count > 0
+      SoundEffects.strew
       log("アイテムを #{count}個 ばらまいてしまった！ ")
     end
   end
