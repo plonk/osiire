@@ -195,9 +195,15 @@ class Item
         item.correction = r
         item.cursed = r == -1
       when :shield
-        r = rand(-1..+3)
-        item.correction = r
-        item.cursed = r == -1
+        if item.name == "鍛えた木の盾"
+          r = [-1, +4, +5, +6, +7, +8].sample
+          item.correction = r
+          item.cursed = (r == -1)
+        else
+          r = rand(-1..+3)
+          item.correction = r
+          item.cursed = r == -1
+        end
       when :ring
         item.cursed = rand(5) == 0
       when :jar
