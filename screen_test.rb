@@ -757,6 +757,17 @@ class Program
           log("盾が錆びてしまった！ ")
         else
           log("しかし 何も起こらなかった。")
+
+  def take_damage_weapon
+    if @hero.weapon
+      if @hero.weapon.rustproof?
+        log("しかし ", display_item(@hero.weapon), "は錆びなかった。")
+      else
+        if @hero.weapon.number + @hero.weapon.correction > 0
+          @hero.weapon.correction -= 1
+          log("武器が錆びてしまった！ ")
+        else
+          log("しかし ", display_item(@hero.weapon), "はもう錆びない。")
         end
       end
     else
@@ -838,6 +849,7 @@ class Program
       hero_teleport
     when "硫酸"
       log("足元から酸がわき出ている！ ")
+      take_damage_weapon
       take_damage_shield
     when "トラばさみ"
       log("トラばさみに かかってしまった！ ")
