@@ -437,6 +437,7 @@ class Program
     log("#{@hero.name}の攻撃！ ")
     on_monster_attacked(monster)
     if !@hero.no_miss? && rand() < HERO_TERON_RATE
+      SoundEffects.miss
       log("#{@hero.name}の攻撃は 外れた。")
     else
       SoundEffects.hit
