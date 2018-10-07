@@ -390,7 +390,7 @@ class Dungeon
       mazes << r
     end
 
-    place_statues(level, level_number)
+    # place_statues(level, level_number)
 
     place_staircase(level)
     place_items(level, level_number)
