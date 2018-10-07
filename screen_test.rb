@@ -752,11 +752,17 @@ class Program
       if @hero.shield.rustproof?
         log("しかし ", display_item(@hero.shield), "は錆びなかった。")
       else
-        if @hero.shield.number > @hero.shield.correction
+        if @hero.shield.number + @hero.shield.correction > 0
           @hero.shield.correction -= 1
           log("盾が錆びてしまった！ ")
         else
-          log("しかし 何も起こらなかった。")
+          log("しかし ", display_item(@hero.shield), "はもう錆びない。")
+        end
+      end
+    else
+      log("しかし なんともなかった。")
+    end
+  end
 
   def take_damage_weapon
     if @hero.weapon
