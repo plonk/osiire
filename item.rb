@@ -143,7 +143,7 @@ class Item
  {:type=>:food, :name=>"大きなパン", :desc=>"満腹度が100%回復する。"},
  {:type=>:food, :name=>"くさったパン", :desc=>"満腹度100%回復。ダメージを受けてちからが減る。"},
  {:type=>:jar, :name=>"保存の壺", :desc=>"アイテムをこれに入れておけば呪われたりしない。"},
- {:type=>:jar, :name=>"識別の壺", :desc=>"アイテムは同定される。"},
+ {:type=>:jar, :name=>"識別の壺", :desc=>"入れたアイテムが同定される。"},
  {:type=>:jar, :name=>"合成の壺", :desc=>"同種のアイテムが合成される。"},
  {:type=>:jar, :name=>"変化の壺", :desc=>"アイテムが変化する。"},
  {:type=>:jar, :name=>"祝福の壺", :desc=>"アイテムが祝福される。"},
@@ -391,8 +391,10 @@ class Item
       7
     when :staff
       8
-    when :box
+    when :jar
       9
+    when :box
+      10
     else
       fail "unknown item type #{type}"
     end
@@ -433,6 +435,7 @@ class Item
 
 end
 
+# 壺
 class Jar < Item
   attr_accessor :capacity
   attr_accessor :contents
@@ -449,7 +452,7 @@ class Jar < Item
   end
 
   def char
-    "壺"
+    "\u{10432e}\u{10432f}"
   end
 
 end

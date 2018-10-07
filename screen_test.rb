@@ -263,19 +263,28 @@ class Program
     rings_false = ["金剛石の指輪", "翡翠の指輪", "猫目石の指輪", "水晶の指輪", # "タイガーアイの指輪",
                    "瑪瑙の指輪", "天河石の指輪","琥珀の指輪","孔雀石の指輪","珊瑚の指輪","電気石の指輪",
                    "真珠の指輪","葡萄石の指輪","蛍石の指輪","紅玉の指輪","フォーダイトの指輪", "黒曜石の指輪"]
+    rings_false = ["金剛石の指輪", "翡翠の指輪", "猫目石の指輪", "水晶の指輪", # "タイガーアイの指輪",
+                   "瑪瑙の指輪", "天河石の指輪","琥珀の指輪","孔雀石の指輪","珊瑚の指輪","電気石の指輪",
+                   "真珠の指輪","葡萄石の指輪","蛍石の指輪","紅玉の指輪","フォーダイトの指輪", "黒曜石の指輪"]
+    jars_false = ["ツルツルの壺", "黒光りする壺", "ゴリゴリの壺", "お高そうな壺",
+                  "妙な匂いの壺", "ヨーロピアンな壺", "骨壺っぽい壺",
+                  "ヒビの入った壺", "壺っぽくない壺", "釉薬したたる壺",
+                  "素焼きの壺", "大きな壺", "小さな壺"]
 
     herbs_true = get_item_names_by_kind.(:herb)
     scrolls_true = get_item_names_by_kind.(:scroll)
     staves_true = get_item_names_by_kind.(:staff)
     rings_true = get_item_names_by_kind.(:ring)
+    jars_true = get_item_names_by_kind.(:jar)
 
     herbs_false   = take_strict.(herbs_true.size, herbs_false.shuffle)
     scrolls_false = take_strict.(scrolls_true.size, scrolls_false.shuffle)
     staves_false  = take_strict.(staves_true.size, staves_false.shuffle)
     rings_false   = take_strict.(rings_true.size, rings_false.shuffle)
+    jars_false    = take_strict.(jars_true.size, jars_false.shuffle)
 
-    NamingTable.new(herbs_false + scrolls_false + staves_false + rings_false,
-                    herbs_true + scrolls_true + staves_true + rings_true)
+    NamingTable.new(herbs_false + scrolls_false + staves_false + rings_false + jars_false,
+                    herbs_true + scrolls_true + staves_true + rings_true + jars_true)
   end
 
   # デバッグモードで動作中？
@@ -1803,6 +1812,7 @@ EOD
                  when :scroll then "巻物"
                  when :ring then "指輪"
                  when :staff then "杖"
+                 when :jar then "壺"
                  else "？"
                  end
     ["nicknamed", kind_label, ":", @naming_table.nickname(item.name)]
