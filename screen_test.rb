@@ -3146,7 +3146,7 @@ EOD
         monster = cell.monster
         if monster
           on_monster_attacked(monster)
-          monster_take_damage(monster, rand(range))
+          monster_take_damage(monster, rand(range), @hero)
         end
       end
     end
