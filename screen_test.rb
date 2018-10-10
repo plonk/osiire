@@ -4998,10 +4998,10 @@ EOD
     when 1000
       @level.whole_level_lit = true
       SoundEffects.earthquake1
-      log("…ゆれない。")
+      log("…ゆれない。(´･ω･`)")
     when 1300
       SoundEffects.earthquake2
-      log("…地震とかどこの田舎だよ。")
+      log("…地震とかどこの田舎だよ。((´´･･ωω･･``))")
     when 1500
       SoundEffects.earthquake3
       SoundEffects.trapdoor
