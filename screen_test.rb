@@ -3995,6 +3995,12 @@ EOD
              !m.hallucinating?
            when "怪盗クジラ"
              m.capacity > 0
+           when "カエル"
+             Vec.chess_distance([mx,my], @hero.pos).between?(2,3)
+           when "カエル2"
+             Vec.chess_distance([mx,my], @hero.pos).between?(2,5)
+           when "カエル3"
+             Vec.chess_distance([mx,my], @hero.pos).between?(2,10)
            else
              true
            end
@@ -4381,6 +4387,20 @@ EOD
         w.degree = 0
         @hero.status_effects.push(w)
         log("#{@hero.name}は 具合がわるくなった。")
+      end
+
+    when "カエル", "カエル2", "カエル3"
+      log(display_character(m), "は ", display_character(@hero), "を ひきよせた。")
+      render
+
+      mpos = @level.coordinates_of(m)
+      dir = Vec.normalize(Vec.minus(@hero.pos, mpos))
+      tpos = Vec.plus(mpos, dir)
+      hero_change_position(*tpos)
+
+      case m.name
+      when "カエル2", "カエル3"
+        monster_attack(m, dir)
       end
 
     else
