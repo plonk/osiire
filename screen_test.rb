@@ -2402,47 +2402,6 @@ EOD
     end
   end
 
-  # モンスターがアイテムを投げる。矢を撃つ敵の行動。
-  def monster_throw_item(monster, item, mx, my, dir)
-    dx, dy = dir
-    x, y = mx, my
-
-    while true
-      fail unless @level.in_dungeon?(x+dx, y+dy)
-
-      cell = @level.cell(x+dx, y+dy)
-      case cell.type
-      when :WALL, :HORIZONTAL_WALL, :VERTICAL_WALL, :STATUE
-        item_land(item, x, y)
-        break
-      when :FLOOR, :PASSAGE
-        if [x+dx, y+dy] == [@hero.x, @hero.y]
-          if rand() < 0.125
-            SoundEffects.miss
-            item_land(item, x+dx, y+dy)
-          else
-            SoundEffects.hit
-            item_hits_hero(item, monster)
-          end
-          break
-        elsif cell.monster
-          # FIXME: これだと主人公に経験値が入ってしまうな
-          if rand() < 0.125
-            SoundEffects.miss
-            item_land(item, x+dx, y+dy)
-          else
-            SoundEffects.hit
-            item_hits_monster(item, cell.monster, monster)
-          end
-          break
-        end
-      else
-        fail "case not covered"
-      end
-      x, y = x+dx, y+dy
-    end
-  end
-
   # ドラゴンの炎。
   def breath_of_fire(monster, mx, my, dir)
     dx, dy = dir
@@ -2475,13 +2434,16 @@ EOD
     end
   end
 
-  PROJECTILE_TERON_RATE = 0.125
+  DEFAULT_PROJECTILE_MISS_RATE = 0.125
+
+  def projectile_miss_rate(item, thrower, target)
+    return (thrower==:trap ? 0.0 : DEFAULT_PROJECTILE_MISS_RATE)
+  end
 
   # (Item, Array, Array, Hero|:trap, Integer)
   def do_throw_item(item, origin, dir, actor, range = 10)
     dx, dy = dir
     x, y = origin
-    miss_rate = (actor==:trap ? 0.0 : PROJECTILE_TERON_RATE)
 
     while true
       fail unless @level.in_dungeon?(x+dx, y+dy)
@@ -2496,24 +2458,21 @@ EOD
         item_land(item, x, y)
         break
       when :FLOOR, :PASSAGE
-        if cell.monster
-          if rand() < miss_rate
+        if cell.monster || @hero.pos == [x+dx,y+dy]
+          character = cell.monster || @hero
+
+          if character.attrs.include?(:counter_projectile)
+            log(display_character(character), "は ", display_item(item), "をはねかえした！")
+            SoundEffects.magic
+            render
+            do_throw_item(item, [x, y], Vec.negate(dir), character, range)
+          elsif rand() < projectile_miss_rate(item, actor, character)
             SoundEffects.miss
             log(display_item(item), "は 外れた。")
             item_land(item, x+dx, y+dy)
           else
             SoundEffects.hit
-            item_hits_monster(item, cell.monster, actor)
-          end
-          break
-        elsif @hero.pos == [x+dx, y+dy]
-          if rand() < miss_rate
-            SoundEffects.miss
-            log(display_item(item), "は 外れた。")
-            item_land(item, x+dx, y+dy)
-          else
-            SoundEffects.hit
-            item_hits_hero(item, actor)
+            item_hits_character(item, character, actor)
           end
           break
         end
@@ -2522,6 +2481,15 @@ EOD
       end
       x, y = x+dx, y+dy
       range -= 1
+    end
+  end
+
+  def item_hits_character(item, character, actor)
+    case character
+    when Hero
+      item_hits_hero(item, actor)
+    else
+      item_hits_monster(item, character, actor)
     end
   end
 
@@ -4314,7 +4282,7 @@ EOD
       dir = Vec.normalize(Vec.minus([@hero.x, @hero.y], [mx, my]))
       arrow = Item.make_item("木の矢")
       arrow.number = 1
-      monster_throw_item(m, arrow, mx, my, dir)
+      do_throw_item(arrow, [mx,my], dir, m)
 
     when "アクアター"
       log("#{m.name}は 酸を浴せた。")

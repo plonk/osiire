@@ -117,6 +117,7 @@ class Monster
   attr_accessor :impersonating_name, :impersonating_char
   attr_reader :contents
   attr_accessor :capacity
+  attr_reader :attrs
 
   include StatusEffectPredicates
 
@@ -129,6 +130,7 @@ class Monster
     @defense  = definition[:defense] || fail
     @exp      = definition[:exp] || fail
     @drop_rate = definition[:drop_rate] || 0.0
+    @attrs    = definition[:attrs] || []
 
     @state = state
     @facing = facing

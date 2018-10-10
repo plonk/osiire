@@ -169,4 +169,9 @@ class Hero
     ring&.attrs&.any?(&:kabenuke.method(:==)) || false
   end
 
+  # TODO: 装備品などから計算する。
+  def attrs
+    []
+  end
+
 end
