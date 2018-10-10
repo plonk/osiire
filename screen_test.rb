@@ -77,6 +77,7 @@ class Program
   RED_SEAL_COLOR_PAIR = 6
   BLUE_SEAL_COLOR_PAIR = 7
   GREEN_SEAL_COLOR_PAIR = 8
+  WEAKENING_COLOR_PAIR = 9
 
   MONSTER_TERON_RATE = 0.15
   HERO_TERON_RATE = 0.05
@@ -98,6 +99,7 @@ class Program
     Curses.init_pair(RED_SEAL_COLOR_PAIR, Curses::COLOR_WHITE, Curses::COLOR_RED)
     Curses.init_pair(BLUE_SEAL_COLOR_PAIR, Curses::COLOR_WHITE, Curses::COLOR_BLUE)
     Curses.init_pair(GREEN_SEAL_COLOR_PAIR, Curses::COLOR_BLACK, Curses::COLOR_GREEN)
+    Curses.init_pair(WEAKENING_COLOR_PAIR, Curses::COLOR_YELLOW, Curses::COLOR_BLACK)
 
     Curses.noecho
     Curses.crmode
@@ -211,6 +213,8 @@ class Program
       win.attron(Curses::color_pair(BLUE_SEAL_COLOR_PAIR))
     when "green-seal"
       win.attron(Curses::color_pair(GREEN_SEAL_COLOR_PAIR))
+    when "weakening"
+      win.attron(Curses::color_pair(WEAKENING_COLOR_PAIR))
     end
   end
 
@@ -233,6 +237,8 @@ class Program
       win.attroff(Curses::color_pair(BLUE_SEAL_COLOR_PAIR))
     when "green-seal"
       win.attroff(Curses::color_pair(GREEN_SEAL_COLOR_PAIR))
+    when "weakening"
+      win.attroff(Curses::color_pair(WEAKENING_COLOR_PAIR))
     end
   end
 
@@ -3753,32 +3759,32 @@ EOD
   def render_status
     low_hp   = @hero.hp.floor <= (@hero.max_hp / 10.0).ceil
     starving = @hero.fullness <= 0.0
-    dungeon = "span" # span or special
+    letter_style = if @hero.weakening? then "weakening" else "span" end
 
     Curses.setpos(0, 0)
     Curses.clrtoeol
-    addstr_ml(Curses, ["span", "%d" % [@level_number], [dungeon, "F"], "  "])
-    addstr_ml(Curses, ["span", [dungeon, "Lv"], " %d  " % [@hero.lv]])
+    addstr_ml(Curses, ["span", "%d" % [@level_number], [letter_style, "F"], "  "])
+    addstr_ml(Curses, ["span", [letter_style, "Lv"], " %d  " % [@hero.lv]])
     Curses.attron(Curses::A_BLINK) if low_hp
-    addstr_ml(Curses, [dungeon, "HP"])
+    addstr_ml(Curses, [letter_style, "HP"])
     Curses.attroff(Curses::A_BLINK) if low_hp
     Curses.addstr(" %3d" % [@hero.hp])
-    addstr_ml(Curses, [dungeon, "/"])
+    addstr_ml(Curses, [letter_style, "/"])
     Curses.addstr("%d  " % [@hero.max_hp])
     Curses.attron(Curses::color_pair(HEALTH_BAR_COLOR_PAIR))
     Curses.addstr(render_health_bar)
     Curses.attroff(Curses::color_pair(HEALTH_BAR_COLOR_PAIR))
     Curses.addstr("  %d" % [@hero.gold])
-    addstr_ml(["span", [dungeon, "G"], "  "])
+    addstr_ml(["span", [letter_style, "G"], "  "])
     Curses.attron(Curses::A_BLINK) if starving
-    addstr_ml(Curses, [dungeon, "満"])
+    addstr_ml(Curses, [letter_style, "満"])
     Curses.attroff(Curses::A_BLINK) if starving
     Curses.addstr(" %d"   % [@hero.fullness.ceil])
-    addstr_ml([dungeon, "% "])
+    addstr_ml([letter_style, "% "])
     Curses.addstr("%s "     % [@hero.status_effects.map(&:name).join(' ')])
-    addstr_ml([dungeon, "["])
+    addstr_ml([letter_style, "["])
     Curses.addstr("%04d"  % [@level.turn])
-    addstr_ml([dungeon, "]"])
+    addstr_ml([letter_style, "]"])
   end
 
   # メッセージの表示。
@@ -4362,6 +4368,21 @@ EOD
       else
         log("#{m.name}は 何も吸い込めなかった。")
       end
+
+    when "小坊主", "小坊主2", "小坊主3"
+      log(display_character(m), "は いのった。")
+
+      if @hero.weakening?
+        log("#{@hero.name}は ますます具合がわるくなった。")
+        w = @hero.status_effects.find { |e| e.type == :weakening }
+        w.degree += 1
+      else
+        w = StatusEffect.new(:weakening, 10)
+        w.degree = 0
+        @hero.status_effects.push(w)
+        log("#{@hero.name}は 具合がわるくなった。")
+      end
+
     else
       fail
     end
@@ -4428,7 +4449,9 @@ EOD
       end
 
       # 自然回復
-      @hero.hp = [@hero.hp + @hero.max_hp/150.0, @hero.max_hp].min
+      unless @hero.weakening?
+        @hero.hp = [@hero.hp + @hero.max_hp/150.0, @hero.max_hp].min
+      end
     else
       take_damage(1, quiet: true)
     end
@@ -4503,6 +4526,26 @@ EOD
       end
     end
 
+  end
+
+  def status_effects_take_effect
+    monsters = @level.all_monsters_with_position.map { |m, x, y| m }
+
+    (monsters + [@hero]).each  do |m|
+      m.status_effects.each do |e|
+        case e.type
+        when :weakening
+          if e.degree > 0
+            case m
+            when Hero
+              take_damage(e.degree)
+            else
+              monster_take_damage(m, e.degree)
+            end
+          end
+        end
+      end
+    end
   end
 
   # ヒーローの名前を付ける。
@@ -4903,6 +4946,7 @@ EOD
     @level.turn += 1
     @hero.action_point += @hero.action_point_recovery_rate
     recover_monster_action_point
+    status_effects_take_effect
     status_effects_wear_out
     hero_fullness_decrease
 

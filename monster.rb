@@ -3,6 +3,7 @@
 class StatusEffect
   attr_accessor :caster
   attr_accessor :type, :remaining_duration
+  attr_accessor :degree
 
   def initialize(type, remaining_duration = Float::INFINITY)
     @type = type
@@ -31,6 +32,8 @@ class StatusEffect
       "兎耳"
     when :olfaction_enhancement
       "豚鼻"
+    when :weakening
+      "衰弱"
     else
       type.to_s
     end
@@ -82,6 +85,10 @@ module StatusEffectPredicates
 
   def zawazawa?
     @status_effects.any? { |e| e.type == :zawazawa }
+  end
+
+  def weakening?
+    @status_effects.any? { |e| e.type == :weakening }
   end
 
 end
@@ -159,6 +166,7 @@ class Monster
     end
 
     @trick_range = definition[:trick_range] || :none
+    @trick_rate = definition[:trick_rate] || 0.0
 
     case @name
     when "ゆうれい"
@@ -173,6 +181,10 @@ class Monster
     # 合成モンスター。
     @contents = []
     @capacity = definition[:capacity]
+  end
+
+  def trick_rate
+    @trick_rate
   end
 
   def visible
@@ -239,39 +251,6 @@ class Monster
 
   def tipsy?
     @name == "コウモリ" || @name == "ゆうれい"
-  end
-
-  def trick_rate
-    case @name
-    when "白い手"
-      1.0
-    when '催眠術師'
-      0.25
-    when 'ファンガス'
-      0.33
-    when 'ノーム'
-      0.5
-    when 'ピューシャン'
-      0.75
-    when "アクアター"
-      0.5
-    when "パペット"
-      0.5
-    when "土偶"
-      0.5 # HP 0.25 / ちから 0.25
-    when "目玉"
-      0.25
-    when "どろぼう猫"
-      0.5
-    when "竜"
-      0.5
-    when "ソーサラー"
-      0.33
-    when "怪盗クジラ"
-      0.5
-    else
-      0.0
-    end
   end
 
   def single_attack?
