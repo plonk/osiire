@@ -3996,14 +3996,31 @@ EOD
            when "怪盗クジラ"
              m.capacity > 0
            when "カエル"
-             Vec.chess_distance([mx,my], @hero.pos).between?(2,3)
+             frog_trick_applicable?([mx,my], 3)
            when "カエル2"
-             Vec.chess_distance([mx,my], @hero.pos).between?(2,5)
+             frog_trick_applicable?([mx,my], 5)
            when "カエル3"
-             Vec.chess_distance([mx,my], @hero.pos).between?(2,10)
+             frog_trick_applicable?([mx,my], 10)
            else
              true
            end
+  end
+
+  def frog_trick_applicable?(mpos, range)
+    unless Vec.chess_distance(mpos, @hero.pos).between?(2,range)
+      return false
+    end
+
+    dir = Vec.normalize(Vec.minus(@hero.pos, mpos))
+    pos = Vec.plus(mpos, dir)
+    while pos != @hero.pos
+      cell = @level.cell(*pos)
+      if cell.wall? || cell.monster
+        return false
+      end
+      pos = Vec.plus(pos, dir)
+    end
+    return true
   end
 
   # (Monster, Integer, Integer) → Action
@@ -4261,9 +4278,20 @@ EOD
       log("#{m.name}は 手に持っている物を 揺り動かした。")
       SoundEffects.magic
       hero_fall_asleep
+
     when 'ファンガス'
       log("#{m.name}は 毒のこなを 撒き散らした。")
       take_damage_strength(1)
+    when 'ファンガス2'
+      log("#{m.name}は 毒のこなを 撒き散らした。")
+      take_damage_max_strength(1)
+    when 'ファンガス3'
+      log("#{m.name}は 毒のこなを 撒き散らした。")
+      take_damage_max_strength(2)
+    when 'ファンガス4'
+      log("#{m.name}は 毒のこなを 撒き散らした。")
+      take_damage_max_strength(3)
+
     when 'ノーム'
       potential = rand(250..1500)
       actual = [potential, @hero.gold].min
@@ -4279,7 +4307,7 @@ EOD
           m.status_effects << StatusEffect.new(:hallucination, Float::INFINITY)
         end
 
-        monster_teleport(m, @level.cell(*@level.coordinates_of(m)))
+        monster_teleport(m)
       end
     when "白い手"
       if !@hero.held?
@@ -4293,6 +4321,24 @@ EOD
       mx, my = @level.coordinates_of(m)
       dir = Vec.normalize(Vec.minus([@hero.x, @hero.y], [mx, my]))
       arrow = Item.make_item("木の矢")
+      arrow.number = 1
+      do_throw_item(arrow, [mx,my], dir, m)
+    when "ピューシャン2"
+      mx, my = @level.coordinates_of(m)
+      dir = Vec.normalize(Vec.minus([@hero.x, @hero.y], [mx, my]))
+      arrow = Item.make_item("鉄の矢")
+      arrow.number = 1
+      do_throw_item(arrow, [mx,my], dir, m)
+    when "ピューシャン3"
+      mx, my = @level.coordinates_of(m)
+      dir = Vec.normalize(Vec.minus([@hero.x, @hero.y], [mx, my]))
+      arrow = Item.make_item("鉄の矢")
+      arrow.number = 1
+      do_throw_item(arrow, [mx,my], dir, m)
+    when "ピューシャン4"
+      mx, my = @level.coordinates_of(m)
+      dir = Vec.normalize(Vec.minus([@hero.x, @hero.y], [mx, my]))
+      arrow = Item.make_item("鉄の矢")
       arrow.number = 1
       do_throw_item(arrow, [mx,my], dir, m)
 
@@ -4446,7 +4492,11 @@ EOD
   def dispatch_action(m, action)
     case action.type
     when :attack
-      monster_attack(m, action.direction)
+      if m.attrs.include?(:attack_is_trick)
+        monster_trick(m)
+      else
+        monster_attack(m, action.direction)
+      end
     when :trick
       monster_trick(m)
     when :rest
