@@ -4271,6 +4271,30 @@ EOD
     end
   end
 
+  def hypnotize(patient)
+    case patient
+    when Hero
+      choices = DIRECTIONS.map { |d| [:dir, d] }
+      choices += patient.inventory.map { |i| [:item, i] }
+      type, arg = choices.sample
+      case type
+      when :dir
+        @hero.facing = arg
+        hero_swing
+      when :item
+        action = actions_for_item(arg)[0]
+        # XXX: 「どれを」のアイテムでターゲットが選択されない。
+        try_do_action_on_item(action, arg)
+      else fail
+      end
+    else
+      unless patient.confused?
+        patient.status_effects.push(StatusEffect.new(:confused, 10))
+        log(display_character(patient), "は 混乱した。")
+      end
+    end
+  end
+
   # モンスターが特技を使用する。
   def monster_trick(m)
     case m.name
@@ -4373,11 +4397,10 @@ EOD
         end
       end
 
-    when "目玉"
-      unless @hero.confused?
-        @hero.status_effects.push(StatusEffect.new(:confused, 10))
-        log("#{@hero.name}は 混乱した。")
-      end
+    when "目玉", "目玉2", "目玉3"
+      log("目玉は ", display_character(@hero), "を にらんだ。")
+      SoundEffects.magic
+      hypnotize(@hero)
 
     when "どろぼう猫"
       candidates = @hero.inventory.reject { |x| @hero.equipped?(x) }
