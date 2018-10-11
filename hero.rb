@@ -10,6 +10,7 @@ class Hero
   attr_accessor :action_point
   attr_accessor :invisible
   attr_accessor :facing
+  attr_accessor :prev
 
   include StatusEffectPredicates
 
@@ -23,6 +24,7 @@ class Hero
     @action_point = 0
     @invisible = false
     @facing = [0,1]
+    @prev = nil # 残り香
   end
 
   def action_point_recovery_rate
@@ -103,12 +105,30 @@ class Hero
 
   def increase_fullness(amount)
     fail TypeError unless amount.is_a?(Numeric)
+    old_value = self.fullness
     self.fullness = [fullness + amount, max_fullness].min
+    return self.fullness - old_value
   end
 
   def increase_max_fullness(amount)
     fail TypeError unless amount.is_a?(Numeric)
+    old_value = self.max_fullness
     self.max_fullness = [max_fullness + amount, 200.0].min
+    return self.max_fullness - old_value
+  end
+
+  def decrease_fullness(amount)
+    fail TypeError unless amount.is_a?(Numeric)
+    old_value = self.fullness
+    self.fullness = [fullness - amount, 0].max
+    return old_value - self.fullness
+  end
+
+  def decrease_max_fullness(amount)
+    fail TypeError unless amount.is_a?(Numeric)
+    old_value = self.max_fullness
+    self.max_fullness = [max_fullness - amount, 0].max
+    return old_value - self.max_fullness
   end
 
   def strength_maxed?

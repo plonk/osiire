@@ -51,6 +51,14 @@ class Action
   end
 end
 
+class JumpAction < Action
+  attr_reader :target
+  def initialize(target, direction)
+    super(:jump, direction)
+    @target = target
+  end
+end
+
 class OverlayedTile
   attr :char, :x, :y
 
@@ -753,6 +761,7 @@ class Program
   end
 
   def hero_change_position(x1, y1)
+    @hero.prev = @hero.pos
     @hero.x, @hero.y = x1, y1
     @hero.status_effects.reject! { |e| e.type == :held }
     @level.update_lighting(x1, y1)
@@ -4044,6 +4053,19 @@ EOD
     end
 
     if m.goal
+      if !(!m.nullified? && m.hallucinating?) &&
+         @level.fov(mx, my).include?(@hero.x, @hero.y) &&
+         m.attrs.include?(:dancing_move)
+        dir = Vec.normalize(Vec.minus(@hero.prev || @hero.pos, [mx, my]))
+        tpos = Vec.plus(@hero.pos, dir)
+
+        if @level.passable?(*tpos) &&
+           !@level.cell(*tpos).monster &&
+           @level.cell(*tpos).item&.name != "結界の巻物"
+          return JumpAction.new(tpos, dir)
+        end
+      end
+
       # * 目的地があれば目的地へ向かう。(方向のpreferenceが複雑)
       dir = Vec.normalize(Vec.minus(m.goal, [mx, my]))
       i = DIRECTIONS.index(dir)
@@ -4472,6 +4494,21 @@ EOD
         monster_attack(m, dir)
       end
 
+    when "からかさおばけ", "からかさおばけ2", "からかさおばけ3", "からかさおばけ4"
+      log(display_character(m), "は おどりをおどった。")
+      SoundEffects.fanfare2
+      case m.name
+      when "からかさおばけ"
+        decrement = @hero.decrease_fullness(5)
+      when "からかさおばけ2"
+        decrement = @hero.decrease_fullness(10)
+      when "からかさおばけ3"
+        decrement = @hero.decrease_fullness(30)
+      when "からかさおばけ4"
+        decrement = @hero.decrease_max_fullness(30)
+      end
+      log(display_character(@hero), "の 腹が減った。")
+
     else
       fail
     end
@@ -4509,6 +4546,12 @@ EOD
     @level.cell(mx, my).remove_object(m)
     @level.cell(mx + dir[0], my + dir[1]).put_object(m)
     m.facing = dir
+  end
+
+  def monster_jump(m, mx, my, tpos, facing)
+    @level.cell(mx, my).remove_object(m)
+    @level.cell(*tpos).put_object(m)
+    m.facing = facing
   end
 
   # :move 以外のアクションを実行。
@@ -5081,6 +5124,9 @@ EOD
         # その場で動かす。
         m.action_point -= 2
         monster_move(m, mx, my, action.direction)
+      elsif action.type == :jump
+        m.action_point -= 2
+        monster_jump(m, mx, my, action.target, action.direction)
       else
         doers << [m, action]
       end

@@ -45,6 +45,7 @@ class Item
  {:type=>:projectile, :name=>"鉄の矢"},
  {:type=>:projectile, :name=>"毒矢"},
  {:type=>:projectile, :name=>"銀の矢"},
+ {:type=>:projectile, :name=>"大砲の弾"},
  {:type=>:shield, :name=>"鍛えた木の盾", :number=>2, :nslots=>1},
  {:type=>:shield, :name=>"みやびやかな盾", :number=>2, :nslots=>7},
  {:type=>:shield, :name=>"青銅甲の盾", :number=>5, :nslots=>5},
