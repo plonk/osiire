@@ -74,11 +74,11 @@ class Item
  {:type=>:shield, :name=>"使い捨ての盾", :seal=>"捨", :number=>40, :nslots=>3},
  {:type=>:shield, :name=>"矛の盾", :unsealifiable=>true, :seal=>"星", :number=>7, :nslots=>5, :two_handed=>true},
  {:type=>:shield, :name=>"グランドカウンター", :unsealifiable=>true, :seal=>"グ", :number=>9, :nslots=>9, :two_handed=>true},
- {:type=>:herb, :name=>"薬草", :desc=>"HPを25回復する。"},
- {:type=>:herb, :name=>"高級薬草", :desc=>"HPを100回復する。"},
- {:type=>:herb, :name=>"毒けし草", :desc=>"ちからが回復する。"},
- {:type=>:herb, :name=>"ちからの種", :desc=>"ちからが満タンの時に最大値を1つ増やす。"},
- {:type=>:herb, :name=>"幸せの種", :desc=>"レベルが1つ上がる。"},
+ {:type=>:herb, :name=>"薬草", :desc=>"HPを25回復する。", :seal=>"薬"},
+ {:type=>:herb, :name=>"高級薬草", :desc=>"HPを100回復する。", :seal=>"高"},
+ {:type=>:herb, :name=>"毒けし草", :desc=>"ちからが回復する。", :seal=>"消"},
+ {:type=>:herb, :name=>"ちからの種", :desc=>"ちからが満タンの時に最大値を1つ増やす。", :seal=>"ち"},
+ {:type=>:herb, :name=>"幸せの種", :desc=>"レベルが1つ上がる。", :seal=>"幸"},
  {:type=>:herb, :name=>"すばやさの種"},
  {:type=>:herb, :name=>"目薬草", :desc=>"ワナが見えるようになる。"},
  {:type=>:herb, :name=>"毒草"},
@@ -87,13 +87,13 @@ class Item
  {:type=>:herb, :name=>"混乱草", :desc=>"混乱してしまう。投げて使おう。"},
  {:type=>:herb, :name=>"睡眠草", :desc=>"眠ってしまう。投げて使おう。"},
  {:type=>:herb, :name=>"ワープ草", :desc=>"フロアの別の場所にワープする。"},
- {:type=>:herb, :name=>"火炎草", :desc=>"口から火をはく。敵に投げても使える。"},
+ {:type=>:herb, :name=>"火炎草", :desc=>"口から火をはく。敵に投げても使える。", :seal=>"火"},
  {:type=>:scroll, :name=>"やりなおしの巻物"},
  {:type=>:scroll, :name=>"武器強化の巻物", :desc=>"武器が少し強くなる。"},
  {:type=>:scroll, :name=>"盾強化の巻物", :desc=>"盾が少し強くなる。"},
  {:type=>:scroll, :name=>"メッキの巻物", :desc=>"盾が錆びなくなる。"},
- {:type=>:scroll, :name=>"解呪の巻物", :desc=>"アイテムの呪いが解ける。"},
- {:type=>:scroll, :name=>"同定の巻物", :desc=>"何のアイテムか判別する。"},
+ {:type=>:scroll, :name=>"解呪の巻物", :desc=>"アイテムの呪いが解ける。", :seal=>"祓"},
+ {:type=>:scroll, :name=>"同定の巻物", :desc=>"何のアイテムか判別する。", :seal=>"同"},
  {:type=>:scroll, :name=>"あかりの巻物", :desc=>"フロア全体が見えるようになる。"},
  {:type=>:scroll, :name=>"かなしばりの巻物", :desc=>"隣接している敵をかなしばり状態にする。"},
  {:type=>:scroll, :name=>"結界の巻物", :desc=>"床に置くと敵に攻撃されなくなる。"},
@@ -140,8 +140,8 @@ class Item
  {:type=>:ring, :name=>"人形よけの指輪", :desc=>"敵にレベルやHPを下げられなくなる。"},
  {:type=>:ring, :name=>"ザメハの指輪"},
  {:type=>:ring, :name=>"壁抜けの指輪", :desc=>"壁に入れる。", :attrs=>[:kabenuke]},
- {:type=>:food, :name=>"パン", :desc=>"満腹度が50%回復する。"},
- {:type=>:food, :name=>"大きなパン", :desc=>"満腹度が100%回復する。"},
+ {:type=>:food, :name=>"パン", :desc=>"満腹度が50%回復する。", :seal=>"飯"},
+ {:type=>:food, :name=>"大きなパン", :desc=>"満腹度が100%回復する。", :seal=>"飯"},
  {:type=>:food, :name=>"くさったパン", :desc=>"満腹度100%回復。ダメージを受けてちからが減る。"},
  {:type=>:jar, :name=>"保存の壺", :desc=>"アイテムをこれに入れておけば呪われたりしない。"},
  {:type=>:jar, :name=>"識別の壺", :desc=>"入れたアイテムが同定される。"},
@@ -249,11 +249,13 @@ class Item
     @inspected = false
     @correction = nil
     @seals = []
+
     if definition[:seal]
-      @own_seal = Seal.new(definition[:seal], :blue)
+      @own_seal = Seal.new(definition[:seal], seal_color(@type))
     else
       @own_seal = nil
     end
+
     @mimic_name = nil
     @break_count = definition[:break_count] || 50
     @two_handed = definition[:two_handed]
@@ -432,6 +434,17 @@ class Item
 
   def seals
     @seals
+  end
+
+  def seal_color(type)
+    case type
+    when :herb, :food
+      :green
+    when :weapon, :shield
+      :blue
+    else
+      :red
+    end
   end
 
 end

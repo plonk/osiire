@@ -180,7 +180,7 @@ class Monster
 
     # 合成モンスター。
     @contents = []
-    @capacity = definition[:capacity]
+    @capacity = definition[:capacity] || 0
   end
 
   def trick_rate

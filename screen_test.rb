@@ -1890,11 +1890,43 @@ EOD
     [item1, item2]
   end
 
+  # (Item, Item) → true|false
+  def heterosynthesizable?(item1, item2)
+    if item1.type == :weapon &&
+       item1.seals.size < item1.nslots &&
+       item2.type != :weapon &&
+       item2.type != :shield &&
+       item2.own_seal &&
+       item2.own_seal != "消"
+      return true
+    elsif item1.type == :shield &&
+          item1.seals.size < item1.nslots &&
+          item2.type != :weapon &&
+          item2.type != :shield &&
+          item2.own_seal &&
+          item2.own_seal != "ち"
+      return true
+    else
+      return false
+    end
+  end
+
+  # (Item, Item) → [Item]
+  def heterosynthesize(item1, item2)
+    fail unless heterosynthesizable?(item1, item2)
+    item1.seals.push(item2.own_seal)
+    [transmute(item1)]
+  end
+
   # (Item, Item) -> [Item]
-  def synthesize(item1, item2, green_seals = false)
+  def synthesize(item1, item2, heterosynthesis = false)
     if item1.type != item2.type
-      if green_seals
-        [item1, item2] # TODO: 緑印合成実装。
+      if heterosynthesis
+        if heterosynthesizable?(item1, item2)
+          heterosynthesize(item1, item2)
+        else
+          [item1, item2]
+        end
       else
         [item1, item2] # 合成されない。
       end
@@ -4002,7 +4034,7 @@ EOD
              !@hero.held?
            when "どろぼう猫"
              !m.hallucinating?
-           when "怪盗クジラ"
+           when "ペカリン", "ペカリン2", "ペカリン3", "ペカリン4"
              m.capacity > 0
            when "カエル"
              frog_trick_applicable?([mx,my], 3)
@@ -4460,7 +4492,7 @@ EOD
       wait_delay
       hero_teleport
 
-    when "怪盗クジラ"
+    when "ペカリン", "ペカリン2", "ペカリン3", "ペカリン4"
       item = @hero.inventory.reject { |i| @hero.equipped?(i) }.sample
       if item
         @hero.remove_from_inventory(item)
@@ -4885,6 +4917,8 @@ EOD
 
   # 起動時のメニュー。
   def initial_menu
+    fail unless @screen_initialized
+
     reset()
 
     Curses.stdscr.clear
