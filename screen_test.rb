@@ -3759,7 +3759,7 @@ EOD
   def render_status
     low_hp   = @hero.hp.floor <= (@hero.max_hp / 10.0).ceil
     starving = @hero.fullness <= 0.0
-    letter_style = if @hero.weakening? then "weakening" else "span" end
+    letter_style = if @hero.weakening?||starving then "weakening" else "span" end
 
     Curses.setpos(0, 0)
     Curses.clrtoeol
