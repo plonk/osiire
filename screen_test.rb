@@ -4010,9 +4010,15 @@ EOD
              frog_trick_applicable?([mx,my], 5)
            when "カエル3"
              frog_trick_applicable?([mx,my], 10)
+           when "ウーパンルーパン2"
+             cooking_trick_applicable?
            else
              true
            end
+  end
+
+  def cooking_trick_applicable?
+    @hero.inventory.count { |i| !@hero.equipped?(i) } > 0
   end
 
   def frog_trick_applicable?(mpos, range)
@@ -4508,6 +4514,19 @@ EOD
         decrement = @hero.decrease_max_fullness(30)
       end
       log(display_character(@hero), "の 腹が減った。")
+
+    when "ウーパンルーパン2"
+      candidates = @hero.inventory.reject { |i| @hero.equipped?(i) }
+      fail unless candidates.any?
+
+      log(display_character(m), "は ワキをワキワキさせた。")
+      target = candidates.sample
+      index = @hero.inventory.index { |item| item.equal?(target) }
+      @hero.inventory[index] = Item.make_item("大きなパン")
+      log(display_item(target), "は ", display_item(@hero.inventory[index]), "に変わってしまった！")
+
+    when "ウーパンルーパン3", "ウーパンルーパン4"
+      log("特技未実装。")
 
     else
       fail
