@@ -93,6 +93,13 @@ class Program
   def initialize
     @debug = ARGV.include?("-d")
     @default_name = nil
+    @screen_initialized = false
+
+    reset()
+  end
+
+  def init_screen
+    return if @screen_initialized
 
     load_softfonts
 
@@ -115,8 +122,7 @@ class Program
     at_exit {
       Curses.close_screen
     }
-
-    reset()
+    @screen_initialized = true
   end
 
   def load_softfonts
@@ -5252,5 +5258,7 @@ end
 
 unless $started
   $started = true
-  Program.new.initial_menu
+  prog = Program.new
+  prog.init_screen
+  prog.initial_menu
 end
