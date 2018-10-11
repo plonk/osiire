@@ -1405,7 +1405,7 @@ class Program
             cy += dy
           else
             case c
-            when 'q'
+            when 'q', "\n".ord, 'z'
               return
             end
           end
