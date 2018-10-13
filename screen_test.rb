@@ -280,6 +280,7 @@ class Program
                     "ヒノキの杖", "杉の杖", "桜の杖", "松の杖",
                     "キリの杖", "ナラの杖", "ビワの杖",
                     "チークの杖", "バルサの杖", "柿の杖",
+                    "錫の杖", "カイヅカイブキの杖", "シュロの杖",
                    ]
     rings_false = ["金剛石の指輪", "翡翠の指輪", "猫目石の指輪", "水晶の指輪", # "タイガーアイの指輪",
                    "瑪瑙の指輪", "天河石の指輪","琥珀の指輪","孔雀石の指輪","珊瑚の指輪","電気石の指輪",
@@ -2234,16 +2235,11 @@ EOD
   end
 
   # 杖がモンスターに当たった時の効果。
-  def staff_hits_monster(item, monster, thrower)
-    mx, my = [nil, nil]
-    @level.all_monsters_with_position.each do |m, x, y|
-      if m.equal?(monster)
-        mx, my = x, y
-      end
-    end
+  def staff_hits_monster(item, monster, thrower, dir)
+    mx, my = @level.coordinates_of(monster)
 
     fail if mx.nil?
-    magic_bullet_hits_monster(item, monster, mx, my, thrower)
+    magic_bullet_hits_monster(item, monster, thrower, dir)
   end
 
   # 盾がモンスターに当たる。
@@ -2294,7 +2290,7 @@ EOD
   end
 
   # アイテムがモンスターに当たる。
-  def item_hits_monster(item, monster, thrower)
+  def item_hits_monster(item, monster, thrower, dir)
     log(display_item(item), "は ", monster.name, "に当たった。")
     case item.type
     when :box, :food, :scroll, :ring
@@ -2304,7 +2300,7 @@ EOD
     when :herb
       herb_hits_monster(item, monster, thrower)
     when :staff
-      staff_hits_monster(item, monster, thrower)
+      staff_hits_monster(item, monster, thrower, dir)
     when :shield
       shield_hits_monster(item, monster, thrower)
     when :weapon
@@ -2415,7 +2411,7 @@ EOD
             item_land(item, x+dx, y+dy)
           else
             SoundEffects.hit
-            item_hits_character(item, character, actor)
+            item_hits_character(item, character, actor, [dx,dy])
           end
           break
         end
@@ -2427,12 +2423,13 @@ EOD
     end
   end
 
-  def item_hits_character(item, character, actor)
+  def item_hits_character(item, character, actor, dir)
     case character
     when Hero
+      # dir 無いけどどうしよう…
       item_hits_hero(item, actor)
     else
-      item_hits_monster(item, character, actor)
+      item_hits_monster(item, character, actor, dir)
     end
   end
 
@@ -2539,8 +2536,9 @@ EOD
     monster.goal = nil
   end
 
-  # モンスターが変化す。
-  def monster_metamorphose(monster, x, y)
+  # モンスターが変化する。
+  def monster_metamorphose(monster)
+    x, y = @level.coordinates_of(monster)
     while true
       m = @dungeon.make_monster_from_dungeon
       break if m.name != monster.name
@@ -2578,7 +2576,9 @@ EOD
     end
   end
 
-  def monster_fall_over(monster, x, y)
+  def monster_fall_over(monster, caster)
+    x, y = @level.coordinates_of(monster)
+
     item = monster.item || (if monster.drop_rate > 0 then @dungeon.make_item(@level_number) else nil end)
 
     monster.item = nil
@@ -2588,11 +2588,11 @@ EOD
       item_land(item, x, y, false)
     end
 
-    monster_take_damage(monster, 5)
+    monster_take_damage(monster, 5, caster)
   end
 
   # 魔法弾がモンスターに当たる。
-  def magic_bullet_hits_monster(staff, monster, x, y, caster)
+  def magic_bullet_hits_monster(staff, monster, caster, dir)
     on_monster_attacked(monster)
     case staff.name
     when "いかずちの杖"
@@ -2602,9 +2602,9 @@ EOD
     when "ワープの杖"
       monster_teleport(monster)
     when "変化の杖"
-      monster_metamorphose(monster, x, y)
+      monster_metamorphose(monster)
     when "転ばぬ先の杖"
-      monster_fall_over(monster, x, y, caster)
+      monster_fall_over(monster, caster)
     when "分裂の杖"
       monster_split(monster)
     when "もろ刃の杖"
@@ -2647,9 +2647,137 @@ EOD
       level_up_monster(monster)
     when "退化の杖"
       level_down_monster(monster)
+    when "ばしがえの杖"
+      swap_places(monster, caster)
+    when "いちしのの杖"
+      send_to_staircase_paralyzing(monster)
+    when "ふきとばの杖"
+      blast_off_monster(monster, caster, dir)
+    when "かなしばの杖"
+      paralyze_monster(monster)
     else
       fail "case not covered"
     end
+  end
+
+  def blast_off_monster(monster, caster, dir)
+    dx, dy = dir
+    x, y = @level.coordinates_of(monster)
+    range = 10
+
+    while true
+      fail unless @level.in_dungeon?(x+dx, y+dy)
+
+      if range <= 0
+        set_position_of(monster, x, y)
+        break
+      end
+      cell = @level.cell(x+dx, y+dy)
+      case cell.type
+      when :WALL, :HORIZONTAL_WALL, :VERTICAL_WALL, :STATUE
+        set_position_of(monster, x, y)
+        break
+      when :FLOOR, :PASSAGE
+        if cell.monster || @hero.pos == [x+dx,y+dy]
+          character = cell.monster || @hero
+
+          set_position_of(monster, x+dx, y+dy)
+          case character
+          when Hero
+            # XXX: caster要る?
+            take_damage(character, 5)
+          when Monster
+            monster_take_damage(character, 5, caster)
+          end
+
+          if @hero.pos == [x+dx,y+dy] ||
+             !cell.monster.equal?(monster)
+            set_position_of(monster, x, y)
+          else
+            set_position_of(monster, x+dx, y+dy)
+          end
+          break
+        end
+      else
+        fail "case not covered"
+      end
+      x, y = x+dx, y+dy
+      range -= 1
+    end
+
+    case monster
+    when Monster
+      monster_take_damage(monster, 5, caster)
+    else fail
+    end
+
+    render
+  end
+
+  def paralyze_monster(monster)
+    unless monster.paralyzed?
+      monster.status_effects.push(StatusEffect.new(:paralysis, 50))
+    end
+  end
+
+  def monster_can_be_placed?(monster, x, y)
+    cell = @level.cell(x, y)
+    fail unless cell
+
+    # TODO: モンスターの特性によって許可されるタイルを変える。
+    if !cell.wall? && !cell.monster && [x,y]!=@hero.pos
+      return true
+    else
+      return false
+    end
+  end
+
+  def send_to_staircase_paralyzing(monster)
+    offsets = [[0,0], [0,-1], [1,-1], [1,0], [1,1], [0,1], [-1,1], [-1,0], [-1,-1]]
+
+    # 階段を探す。
+    cell, ox, oy =
+              @level.all_cells_and_positions.find { |cell, x, y| cell.staircase }
+    fail unless cell
+
+    dx, dy = offsets.find { |dx,dy| monster_can_be_placed?(monster, ox+dx, oy+dy) }
+
+    if dx.nil?
+      set_position_of(monster, *@level.get_random_character_placeable_place)
+    else
+      set_position_of(monster, ox+dx, oy+dy)
+    end
+
+    paralyze_monster(monster)
+  end
+
+  def position_of(character)
+    case character
+    when Hero
+      character.pos
+    when Monster
+      @level.coordinates_of(character)
+    else fail
+    end
+  end
+
+  def set_position_of(character, x, y)
+    case character
+    when Hero
+      hero_change_position(x, y)
+    when Monster
+      old = @level.coordinates_of(character)
+      @level.remove_object(character, *old)
+      @level.put_object(character, x, y)
+      character.goal = nil
+    end
+  end
+
+  def swap_places(character_1, character_2)
+    p1 = position_of(character_1)
+    p2 = position_of(character_2)
+    set_position_of(character_1, *p2)
+    set_position_of(character_2, *p1)
   end
 
   def level_up_monster(monster)
@@ -2706,7 +2834,7 @@ EOD
         break
       when :FLOOR, :PASSAGE
         if cell.monster
-          magic_bullet_hits_monster(staff, cell.monster, x+dx, y+dy, @hero)
+          magic_bullet_hits_monster(staff, cell.monster, @hero, [dx,dy])
           break
         end
       else
