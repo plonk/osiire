@@ -247,8 +247,8 @@ class Level
     when :grid2
       # 0 1
       @rooms = []
-      @rooms << Room.new(0, 22, 0, 38)
-      @rooms << Room.new(0, 22, 40, 78)
+      @rooms << Room.new(0, 22, 20, 38)
+      @rooms << Room.new(0, 22, 40, 58)
 
       @connections = []
 
@@ -257,7 +257,7 @@ class Level
       @connections[0].realized = true
 
       @rooms.each do |room|
-        room.distort!(min_width: 30, min_height: 18)
+        room.distort!(min_width: 15, min_height: 18)
       end
 
       @rooms.each do |room|
