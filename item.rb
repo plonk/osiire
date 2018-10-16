@@ -158,7 +158,8 @@ class Item
  {:type=>:jar, :name=>"手封じの壺", :desc=>"手が使えなくなる。"},
  {:type=>:jar, :name=>"底抜けの壺", :desc=>"割ると落とし穴が出る。"},
  {:type=>:jar, :name=>"水がめ", :desc=>"水を汲んで持ち運べる。"},
- {:type=>:jar, :name=>"やりすごしの壺", :desc=>"中に入ってモンスターをやりすごせる。"}]
+ {:type=>:jar, :name=>"やりすごしの壺", :desc=>"中に入ってモンスターをやりすごせる。"},
+ {:type=>:water, :name=>"水", :desc=>"ワナを消すことができる。かけると効果のあるモンスターもいる。"}]
 
   CHARS = {
     :box => "􄄺􄄻",
@@ -180,6 +181,8 @@ class Item
       case definition[:type]
       when :jar
         item = Jar.new(definition)
+      when :water
+        item = Water.new(definition)
       else
         item = Item.new(definition)
       end
@@ -473,6 +476,17 @@ class Jar < Item
     "\u{10432e}\u{10432f}"
   end
 
+end
+
+# 水がめに入れる水
+class Water < Item
+  def initialize(definitioin)
+    super
+  end
+
+  def char
+    "\u{10442c}\u{10442d}"
+  end
 end
 
 class Gold < Item

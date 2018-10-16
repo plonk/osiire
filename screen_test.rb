@@ -148,8 +148,13 @@ class Program
       @hero.inventory << Item.make_item("あかりの巻物")
       @hero.inventory << Item.make_item("あかりの巻物")
       @hero.inventory << Item.make_item("結界の巻物")
+      @hero.inventory << Item.make_item("解呪の巻物")
       @hero.inventory << Item.make_item("同定の巻物")
       @hero.inventory << Item.make_item("ざわざわの巻物")
+      @hero.inventory << Item.make_item("ばしがえの杖")
+      @hero.inventory << Item.make_item("いちしのの杖")
+      @hero.inventory << Item.make_item("ふきとばの杖")
+      @hero.inventory << Item.make_item("かなしばの杖")
     end
     @level_number = 0
     @dungeon = Dungeon.new
@@ -725,7 +730,7 @@ class Program
 
     gold = cell.gold
     if gold
-      if picking
+      if picking && !cell.type==:WATER
         cell.remove_object(gold)
         @hero.gold += gold.amount
         log("#{gold.amount}G を拾った。")
@@ -737,7 +742,7 @@ class Program
 
     item = cell.item
     if item
-      if picking
+      if picking && !cell.type==:WATER
         pick(cell, item)
       else
         log(display_item(item), "の上に乗った。")
@@ -1096,7 +1101,12 @@ class Program
     elsif cell.staircase
       return staircase_menu(cell.staircase)
     elsif cell.item
-      return underfoot_item_menu(cell.item)
+      if cell.type==:WATER
+        log("水中のアイテムには 手がとどかない。")
+        return :nothing
+      else
+        return underfoot_item_menu(cell.item)
+      end
     else
       log("足元には なにもない。")
       return :nothing
@@ -1348,11 +1358,21 @@ class Program
         when :VERTICAL_WALL, :HORIZONTAL_WALL, :WALL
           "壁"
         when :PASSAGE
-          "通路"
+          if cell.wet
+            "通路(ぬれ)"
+          else
+            "通路"
+          end
         when :FLOOR
-          "床"
+          if cell.wet
+            "床(ぬれ)"
+          else
+            "床"
+          end
         when :STATUE
           "石像"
+        when :WATER
+          "水"
         else
           "????"
         end
@@ -1896,9 +1916,68 @@ EOD
       else
         return :nothing
       end
+    when "水がめ"
+      unless @naming_table.identified?(jar.name)
+        @naming_table.identify!(jar.name)
+        log("なんと！ #{jar.name}だった！")
+      end
+
+      tpos = Vec.plus(@hero.pos, @hero.facing)
+      cell = @level.cell(*tpos)
+      if jar.contents.size == jar.capacity
+        log("#{jar.name}は いっぱいだ。")
+      elsif cell.type == :WATER
+        jar.contents.replace(jar.capacity.times.map { Item.make_item("水") })
+        log(display_character(@hero), "は 水をくんだ。")
+        return :action
+      else
+        log("そっちに 水はない。")
+        return :action
+      end
     else
       log("#{jar.name}の入れるは実装してないよ。")
       return :nothing
+    end
+  end
+
+  def wettable_cell?(cell)
+    case cell.type
+    when :PASSAGE, :FLOOR, :WATER
+      true
+    else
+      false
+    end
+  end
+
+  def wet_cell(cell, jar)
+    fail unless jar.contents.size > 0
+
+    if wettable_cell?(cell)
+      jar.contents.pop
+
+      if cell.monster
+        wet_monster(cell.monster)
+      end
+
+      cell.wet = true
+    else
+      log("ここで 水は出せない。")
+    end
+  end
+
+  def take_out_from_jar(jar)
+    fail unless jar.name == "水がめ"
+
+    if jar.contents.size > 0
+      tpos = Vec.plus(@hero.pos, @hero.facing)
+      cell = @level.cell(*tpos)
+      if wettable_cell?(cell)
+        wet_cell(cell, jar)
+      else
+        wet_cell(@level.cell(*@hero.pos), jar)
+      end
+    else
+      log("水がめに 水は入っていない。")
     end
   end
 
@@ -1907,6 +1986,8 @@ EOD
     case action
     when "入れる"
       try_put_in_jar(item)
+    when "出す"
+      take_out_from_jar(item)
     when "置く"
       try_place_item(item)
     when "拾う"
@@ -2133,7 +2214,11 @@ EOD
           if item.name == "結界の巻物"
             stick_scroll(item)
           end
-          log(display_item(item), "は 床に落ちた。")
+          if @level.cell(x+dx, y+dy).type == :WATER
+            log(display_item(item), "は 水に落ちた。")
+          else
+            log(display_item(item), "は 床に落ちた。")
+          end
           return
         end
       end
@@ -2396,7 +2481,8 @@ EOD
       when :WALL, :HORIZONTAL_WALL, :VERTICAL_WALL, :STATUE
         item_land(item, x, y)
         break
-      when :FLOOR, :PASSAGE
+      when :FLOOR, :PASSAGE, :WATER
+        # TODO: 水の場合は、水中か浮遊かの場合分け。
         if cell.monster || @hero.pos == [x+dx,y+dy]
           character = cell.monster || @hero
 
@@ -2832,7 +2918,8 @@ EOD
       when :STATUE
         log("魔法弾は石像に当たって消えた。")
         break
-      when :FLOOR, :PASSAGE
+      when :FLOOR, :PASSAGE, :WATER
+        # TODO: 水の場合は、水中か浮遊かの場合分け。
         if cell.monster
           magic_bullet_hits_monster(staff, cell.monster, @hero, [dx,dy])
           break

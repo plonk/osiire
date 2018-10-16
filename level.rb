@@ -8,6 +8,7 @@ require_relative 'charlevel'
 class Cell
   attr_accessor :lit, :explored, :type, :objects
   attr_accessor :unbreakable
+  attr_accessor :wet
 
   def initialize type
     @type = type
@@ -15,6 +16,7 @@ class Cell
     @explored = false
     @objects = [].freeze
     @unbreakable = false
+    @wet = false
   end
 
   def first_visible_object(globally_lit, visible_p)
@@ -57,7 +59,11 @@ class Cell
       end
     when :FLOOR
       if lit
-        '􄀪􄀫' # 部屋の床
+        if @wet
+          "\u{10433e}\u{10433f}"
+        else
+          '􄀪􄀫' # 部屋の床
+        end
       elsif @explored
         '􄀾􄀿' # 薄闇
       else
@@ -65,9 +71,19 @@ class Cell
       end
     when :PASSAGE
       if lit
-        '􄀤􄀥' # 通路
+        if @wet
+          "\u{10433e}\u{10433f}"
+        else
+          '􄀤􄀥' # 通路
+        end
       elsif @explored
         '􄀾􄀿' # 薄闇
+      else
+        '　'
+      end
+    when :WATER
+      if lit || @explored
+        "\u{10433c}\u{10433d}"
       else
         '　'
       end
@@ -104,7 +120,7 @@ class Cell
   end
 
   def can_place?
-    return (@type == :FLOOR || @type == :PASSAGE) && @objects.none? { |x|
+    return (@type == :FLOOR || @type == :PASSAGE || @type == :WATER) && @objects.none? { |x|
       case x
       when StairCase, Trap, Item, Gold
         true
@@ -247,8 +263,8 @@ class Level
     when :grid2
       # 0 1
       @rooms = []
-      @rooms << Room.new(0, 22, 20, 38)
-      @rooms << Room.new(0, 22, 40, 58)
+      @rooms << Room.new(1, 22, 20, 38)
+      @rooms << Room.new(1, 22, 40, 58)
 
       @connections = []
 
@@ -541,7 +557,8 @@ class Level
 
     return (@dungeon[y][x].type == :FLOOR ||
             @dungeon[y][x].type == :PASSAGE ||
-            @dungeon[y][x].type == :STATUE)
+            @dungeon[y][x].type == :STATUE ||
+            @dungeon[y][x].type == :WATER)
   end
 
   def room_at(x, y)
@@ -681,7 +698,7 @@ class Level
     # m の特性によって場合分けすることもできる。
 
     return Vec.chess_distance([mx, my], [tx, ty]) == 1 &&
-           passable?(tx, ty) &&
+           (passable?(tx, ty) || cell(tx, ty).type == :WATER) &&
            uncornered?(tx, my) &&
            uncornered?(mx, ty)
   end

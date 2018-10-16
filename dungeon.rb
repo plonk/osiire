@@ -360,6 +360,15 @@ class Dungeon
     TILESETS.sample
   end
 
+  def place_water(level, level_number)
+    level.each_coords do |x, y|
+      c = level.cell(x, y)
+      if c.wall? && !c.unbreakable
+        level.cell(x, y).type = :WATER
+      end
+    end
+  end
+
   def make_level(level_number, hero)
     fail unless level_number.is_a? Integer and level_number >= 1
 
@@ -391,6 +400,7 @@ class Dungeon
     end
 
     # place_statues(level, level_number)
+    place_water(level, level_number)
 
     place_staircase(level)
     place_items(level, level_number)
