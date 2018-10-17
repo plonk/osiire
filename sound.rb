@@ -333,12 +333,14 @@ module SoundEffects
     print "\e[0;60;0-~"
 
     tune = compile([
-                     [:note, 100, 'a4', 40],
-                     [:note, 100, 'c5', 40],
-                     [:note, 100, 'b4', 40],
-                     [:note, 100, 'd5', 40],
-                     [:note, 100, 'c5', 40],
-                     [:note, 100, 'd#5', 40],
+                     [:note, 80, 'a4', 40],
+                     [:note, 80, 'c5', 40],
+                     [:note, 80, 'b4', 40],
+                     [:note, 80, 'd5', 40],
+                     [:note, 80, 'c5', 40],
+                     [:note, 80, 'd#5', 40],
+                     [:note, 80, 'd5', 40],
+                     [:note, 80, 'f5', 40],
                    ])
     play(tune)
   end
