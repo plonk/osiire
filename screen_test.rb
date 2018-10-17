@@ -1805,6 +1805,22 @@ EOD
       end
     when :scroll
       display_uninspected_item(item)
+    when :jar
+      if @naming_table.include?(item.name)
+        case @naming_table.state(item.name)
+        when :identified
+          ["span", item.to_s]
+        when :nicknamed
+          ["span", display_item_by_nickname(item),
+           ["nicknamed", "[#{item.capacity - item.contents.size}]"]]
+        when :unidentified
+          ["unidentified", @naming_table.false_name(item.name),
+           "[#{item.capacity - item.contents.size}]"]
+        else fail
+        end
+      else
+        item.to_s
+      end
     else
       display_uninspected_item(item)
     end
@@ -1984,6 +2000,8 @@ EOD
   # (String, Item) -> :action | :nothing
   def try_do_action_on_item(action, item)
     case action
+    when "見る"
+      look_in_jar(item)
     when "入れる"
       try_put_in_jar(item)
     when "出す"
@@ -2013,6 +2031,57 @@ EOD
       log("case not covered: #{item}を#{action}。")
     end
     return :action
+  end
+
+  def markup_to_text(ml)
+    case ml
+    when Array
+      ml[1..-1].map(&method(:markup_to_text)).join
+    else
+      ml.to_s
+    end
+  end
+
+  # 壺の中身を表示する。
+  # Jar → :action|:nothing
+  def look_in_jar(jar)
+    dispfunc = proc { |win, item|
+      addstr_ml(win, ["span", " ", item.char, display_item(item)])
+    }
+
+    menu = Menu.new(jar.contents,
+                    y: 1, x: 0, cols: 28,
+                    dispfunc: dispfunc,
+                    title: markup_to_text(display_item(jar)),
+                    sortable: false,
+                    selectable: false,
+                    min_height: jar.capacity)
+    begin
+      item = action = nil
+
+      loop do
+        item = action = nil
+        render
+        command, item = menu.choose
+
+        case command
+        when :cancel
+          return :nothing
+        when :chosen
+          action = item_action_menu(item)
+          if action.nil?
+            next
+          end
+        else fail
+        end
+
+        break if item and action
+      end
+
+      return try_do_action_on_item(action, item)
+    ensure
+      menu.close
+    end
   end
 
   def nibble(item)
@@ -2046,7 +2115,8 @@ EOD
                     y: 1, x: 0, cols: 28,
                     dispfunc: dispfunc,
                     title: "持ち物 [s]ソート",
-                    sortable: true)
+                    sortable: true,
+                    min_height: 20)
     begin
       item = action = nil
 
@@ -3083,7 +3153,8 @@ EOD
                       y: 1, x: 0, cols: 28,
                       dispfunc: dispfunc,
                       title: "どれを？",
-                      sortable: false)
+                      sortable: false,
+                      min_height: 20)
       render
       command, *args = menu.choose
 

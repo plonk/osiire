@@ -159,7 +159,7 @@ class Item
  {:type=>:jar, :name=>"底抜けの壺", :desc=>"割ると落とし穴が出る。"},
  {:type=>:jar, :name=>"水がめ", :desc=>"水を汲んで持ち運べる。"},
  {:type=>:jar, :name=>"やりすごしの壺", :desc=>"中に入ってモンスターをやりすごせる。"},
- {:type=>:water, :name=>"水", :desc=>"ワナを消すことができる。かけると効果のあるモンスターもいる。"}]
+ {:type=>:water, :name=>"水", :desc=>"ワナを消す。かけると効果のあるモンスターもいる。"}]
 
   CHARS = {
     :box => "􄄺􄄻",
@@ -351,12 +351,6 @@ class Item
       else
         ["装備"]
       end
-    when :jar
-      if two_way_jar?()
-        ["見る", "入れる", "出す"]
-      else
-        ["見る", "入れる"]
-      end
     else fail
       "uncovered case"
     end
@@ -364,15 +358,6 @@ class Item
 
   def effective_seals
     [*self.own_seal, *self.seals]
-  end
-
-  def two_way_jar?
-    case @name
-    when "保存の壺", "水がめ"
-      true
-    else
-      false
-    end
   end
 
   def rustproof?
@@ -476,6 +461,23 @@ class Jar < Item
     "\u{10432e}\u{10432f}"
   end
 
+  def actions
+    if two_way_jar?()
+      ["見る", "入れる", "出す"]
+    else
+      ["見る", "入れる"]
+    end
+  end
+
+  def two_way_jar?
+    case @name
+    when "保存の壺", "水がめ"
+      true
+    else
+      false
+    end
+  end
+
 end
 
 # 水がめに入れる水
@@ -486,6 +488,10 @@ class Water < Item
 
   def char
     "\u{10442c}\u{10442d}"
+  end
+
+  def actions
+    []
   end
 end
 
