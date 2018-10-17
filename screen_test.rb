@@ -730,7 +730,7 @@ class Program
 
     gold = cell.gold
     if gold
-      if picking && !cell.type==:WATER
+      if picking && cell.type!=:WATER
         cell.remove_object(gold)
         @hero.gold += gold.amount
         log("#{gold.amount}G を拾った。")
@@ -742,7 +742,7 @@ class Program
 
     item = cell.item
     if item
-      if picking && !cell.type==:WATER
+      if picking && cell.type!=:WATER
         pick(cell, item)
       else
         log(display_item(item), "の上に乗った。")
