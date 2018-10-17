@@ -1075,9 +1075,11 @@ class Program
     if cell.staircase
       return go_downstairs()
     elsif cell.item
+      # TODO: 水没アイテムは拾わない。
       pick(cell, cell.item)
       return :action
     elsif cell.gold
+      # TODO: 水没アイテムは拾わない。
       gold = cell.gold
       cell.remove_object(gold)
       @hero.gold += gold.amount
