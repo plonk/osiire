@@ -212,7 +212,7 @@ class Level
     case type
     when :bigmaze
       @rooms = []
-      make_maze(Room.new(0, 23, 20, 59))
+      make_maze(Room.new(1, 21, 25, 54))
     when :grid9
       # 0 1 2
       # 3 4 5
