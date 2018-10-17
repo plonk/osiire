@@ -462,19 +462,10 @@ class Jar < Item
   end
 
   def actions
-    if two_way_jar?()
+    if @name == "水がめ"
       ["見る", "入れる", "出す"]
     else
       ["見る", "入れる"]
-    end
-  end
-
-  def two_way_jar?
-    case @name
-    when "保存の壺", "水がめ"
-      true
-    else
-      false
     end
   end
 

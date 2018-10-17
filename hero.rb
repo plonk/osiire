@@ -74,11 +74,17 @@ class Hero
     if item.equal?(projectile)
       self.projectile = nil
     end
-    old_size = @inventory.size
-    @inventory = @inventory.reject { |x|
-      x.equal?(item)
+    @inventory = @inventory.delete_if { |x|
+      case x.type
+      when :jar
+        x.contents.delete_if { |y|
+          y.equal?(item)
+        }
+        x.equal?(item)
+      else
+        x.equal?(item)
+      end
     }
-    fail unless @inventory.size == old_size - 1
   end
 
   # 成功したら true。さもなくば false。
@@ -170,7 +176,14 @@ class Hero
   end
 
   def in_inventory?(item)
-    !!inventory.find { |i| i.equal?(item) }
+    inventory.any? { |i|
+      case i.type
+      when :jar
+        i.equal?(item) || i.contents.any? { |j| j.equal?(item) }
+      else
+        i.equal?(item)
+      end
+    }
   end
 
   def pos

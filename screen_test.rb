@@ -1180,7 +1180,7 @@ class Program
 
   def underfoot_item_menu(item)
     log(display_item(item), "を？")
-    action = item_action_menu(item, y: 1, x: 0)
+    action = item_action_menu(item, false, y: 1, x: 0)
     if action
       return try_do_action_on_item(action, item)
     else
@@ -1740,16 +1740,16 @@ EOD
   end
 
   # アイテムに適用可能な行動
-  def actions_for_item(item)
-    in_inventory = @hero.inventory.find { |i| i.equal?(item) }
-    basics = ["投げる", in_inventory ? "置く" : "拾う"]
+  def actions_for_item(item, add_take_out)
+    in_inventory = @hero.in_inventory?(item)
+    basics = ["投げる", in_inventory ? "置く" : "拾う", *(add_take_out ? "出す" : nil)]
     actions = item.actions + basics
     if !@naming_table.include?(item.name) || @naming_table.identified?(item.name)
     else
       actions += ["名前"]
     end
     actions += ["説明"]
-    actions -= ["装備"] unless @hero.in_inventory?(item)
+    actions -= ["装備"] unless in_inventory
     return actions
   end
 
@@ -1914,6 +1914,9 @@ EOD
           jar.capacity -= 1
         end
         jar.contents.replace(new_contents)
+      when "保存の壺"
+        remove_item_from_hero(target)
+        jar.contents.push(target)
       else
         log("#{jar.name}の入れるは実装してないよ。")
         return :nothing
@@ -1927,13 +1930,6 @@ EOD
     fail TypeError, "Jar expected" unless jar.is_a?(Jar)
 
     case jar.name
-    when "合成の壺" # などなど
-      target = choose_target()
-      if target
-        return put_in_jar(jar, target)
-      else
-        return :nothing
-      end
     when "水がめ"
       unless @naming_table.identified?(jar.name)
         @naming_table.identify!(jar.name)
@@ -1953,8 +1949,12 @@ EOD
         return :action
       end
     else
-      log("#{jar.name}の入れるは実装してないよ。")
-      return :nothing
+      target = choose_target()
+      if target
+        return put_in_jar(jar, target)
+      else
+        return :nothing
+      end
     end
   end
 
@@ -1983,7 +1983,7 @@ EOD
     end
   end
 
-  def take_out_from_jar(jar)
+  def use_jug(jar)
     fail unless jar.name == "水がめ"
 
     if jar.contents.size > 0
@@ -1999,6 +1999,16 @@ EOD
     end
   end
 
+  def take_out_from_jar(item)
+    container = @hero.inventory.find { |x| x.type==:jar && x.contents.any?{ |y| y.equal?(item) } }
+    if @hero.add_to_inventory(item)
+      container.contents.delete_if { |z| z.equal?(item) }
+      log(display_item(item), "を 取り出した。")
+    else
+      log("持ちものが いっぱいで 取り出せない。")
+    end
+  end
+
   # (String, Item) -> :action | :nothing
   def try_do_action_on_item(action, item)
     case action
@@ -2007,7 +2017,13 @@ EOD
     when "入れる"
       try_put_in_jar(item)
     when "出す"
-      take_out_from_jar(item)
+      case item.type
+      when :jar
+        # 水がめに違いない。
+        use_jug(item)
+      else
+        take_out_from_jar(item)
+      end
     when "置く"
       try_place_item(item)
     when "拾う"
@@ -2051,12 +2067,14 @@ EOD
       addstr_ml(win, ["span", " ", item.char, display_item(item)])
     }
 
+    selectable = jar.name == "保存の壺"
+
     menu = Menu.new(jar.contents,
                     y: 1, x: 0, cols: 28,
                     dispfunc: dispfunc,
                     title: markup_to_text(display_item(jar)),
                     sortable: false,
-                    selectable: false,
+                    selectable: selectable,
                     min_height: jar.capacity)
     begin
       item = action = nil
@@ -2070,7 +2088,7 @@ EOD
         when :cancel
           return :nothing
         when :chosen
-          action = item_action_menu(item)
+          action = item_action_menu(item, true)
           if action.nil?
             next
           end
@@ -2131,7 +2149,7 @@ EOD
         when :cancel
           return :nothing
         when :chosen
-          action = item_action_menu(item)
+          action = item_action_menu(item, false)
           if action.nil?
             next
           end
@@ -2160,9 +2178,9 @@ EOD
     @naming_table.set_nickname(item.name, nickname)
   end
 
-  def item_action_menu(item, menu_opts = {})
+  def item_action_menu(item, add_take_out, menu_opts = {})
     menu_opts = {y: 1, x: 27, cols: 9}.merge(menu_opts)
-    action_menu = Menu.new(actions_for_item(item), menu_opts)
+    action_menu = Menu.new(actions_for_item(item, add_take_out), menu_opts)
     begin
       c, *args = action_menu.choose
       case c
