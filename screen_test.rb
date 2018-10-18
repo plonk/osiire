@@ -700,7 +700,7 @@ class Program
     end
 
     cell = @level.cell(*target)
-    if cell.monster
+    if cell.character
       return :nothing
     else
       if @hero.held?
@@ -865,12 +865,12 @@ class Program
 
     fov = @level.fov(*hero_pos)
     x, y = @level.find_random_place { |cell, x, y|
-      cell.type == :FLOOR && !cell.monster && !fov.include?(x, y)
+      cell.type == :FLOOR && !cell.character && !fov.include?(x, y)
     }
     if x.nil?
       # 視界内でも良い条件でもう一度検索。
       x, y = @level.find_random_place { |cell, x, y|
-        cell.type == :FLOOR && !cell.monster
+        cell.type == :FLOOR && !cell.character
       }
     end
 
@@ -1412,11 +1412,8 @@ class Program
       if cell.item
         res << item_type_string(cell.item.type)
       end
-      if cell.monster&.visible
-        res << display(cell.monster)
-      end
-      if hero_pos == [x,y]
-        res << @hero.name
+      if cell.character&.visible
+        res << display(cell.character)
       end
     end
     return res.join(" \u{00bb} ") # raquo
@@ -1509,8 +1506,7 @@ class Program
             rect.each_coords do |x, y|
               cell = @level.cell(x, y)
               if (cell.type == :PASSAGE || cell.type == :FLOOR) &&
-                 !cell.monster &&
-                 hero_pos != [x,y]
+                 !cell.character
                 @level.put_object(m, x, y)
                 placed = true
                 break
@@ -1965,14 +1961,17 @@ EOD
     end
   end
 
+  def wet_character(character)
+  end
+
   def wet_cell(cell, jar)
     fail unless jar.contents.size > 0
 
     if wettable_cell?(cell)
       jar.contents.pop
 
-      if cell.monster
-        wet_monster(cell.monster)
+      if cell.character
+        wet_character(cell.character)
       end
 
       cell.wet = true
@@ -2703,12 +2702,12 @@ EOD
     cell = @level.cell(*@level.pos_of(monster))
     fov = @level.fov(*hero_pos)
     x, y = @level.find_random_place { |cell, x, y|
-      cell.type == :FLOOR && !cell.monster && hero_pos != [x,y] && !fov.include?(x, y)
+      cell.type == :FLOOR && !cell.character && !fov.include?(x, y)
     }
     if x.nil?
       # 視界内でも良い条件でもう一度検索。
       x, y = @level.find_random_place { |cell, x, y|
-        cell.type == :FLOOR && !cell.monster && hero_pos != [x,y]
+        cell.type == :FLOOR && !cell.character
       }
     end
     cell.remove_object(monster)
@@ -2742,8 +2741,7 @@ EOD
     rect.each_coords do |x, y|
       cell = @level.cell(x, y)
       if (cell.type == :PASSAGE || cell.type == :FLOOR) &&
-         !cell.monster &&
-         hero_pos != [x,y]
+         !cell.character
         @level.put_object(m, x, y)
         placed = true
         break
@@ -2859,8 +2857,8 @@ EOD
         set_position_of(monster, x, y)
         break
       when :FLOOR, :PASSAGE
-        if cell.monster || hero_pos == [x+dx,y+dy]
-          character = cell.monster || @hero
+        if cell.character
+          character = cell.character
 
           set_position_of(monster, x+dx, y+dy)
           case character
@@ -2906,7 +2904,7 @@ EOD
     fail unless cell
 
     # TODO: モンスターの特性によって許可されるタイルを変える。
-    if !cell.wall? && !cell.monster && [x,y]!=hero_pos
+    if !cell.wall? && !cell.character
       return true
     else
       return false
@@ -4269,7 +4267,7 @@ EOD
     pos = Vec.plus(mpos, dir)
     while pos != hero_pos
       cell = @level.cell(*pos)
-      if cell.wall? || cell.monster
+      if cell.wall? || cell.character
         return false
       end
       pos = Vec.plus(pos, dir)
@@ -4382,8 +4380,7 @@ EOD
       next unless @level.in_dungeon?(x, y) &&
                   (@level.cell(x, y).type == :FLOOR ||
                    @level.cell(x, y).type == :PASSAGE)
-      if [x,y] != hero_pos &&
-         @level.can_move_to?(m, mx, my, x, y) &&
+      if @level.can_move_to?(m, mx, my, x, y) &&
          @level.cell(x, y).item&.name != "結界の巻物"
         candidates << [x, y]
       end
@@ -4410,7 +4407,7 @@ EOD
     end
     if candidates.any?
       x, y = candidates.sample
-      if [x,y] == hero_pos || @level.cell(x,y).monster
+      if @level.cell(x,y).character
         return Action.new(:attack, [x-mx, y-my])
       else
         return Action.new(:move, [x - mx, y - my])
@@ -4508,17 +4505,12 @@ EOD
     end
   end
 
-  def get_character(pos)
-    @level.cell(*pos).monster ||
-      ((hero_pos == pos) ? @hero : nil)
-  end
-
   # モンスターが攻撃する。
   def monster_attack(assailant, dir)
     mx, my = @level.pos_of(assailant)
     dir_ = assailant.zawazawa? ? Vec.negate(dir) : dir
     target = Vec.plus([mx, my], dir_)
-    defender = get_character(target)
+    defender = @level.cell(*target).character
     if defender.is_a?(Hero)
       monster_attacks_hero(assailant)
     elsif defender
@@ -5264,7 +5256,7 @@ EOD
       return false
     elsif forward_area.any? { |x,y|
       cell = @level.cell(x,y)
-      cell.staircase || cell.item || cell.trap&.visible || cell.monster || cell.type == :STATUE
+      cell.staircase || cell.item || cell.trap&.visible || cell.character || cell.type == :STATUE
     }
       return false
     elsif current_room && @level.first_cells_in(current_room).include?(hero_pos)

@@ -686,7 +686,7 @@ class Level
   end
 
   def can_move_to?(m, mx, my, tx, ty)
-    return !@dungeon[ty][tx].monster &&
+    return !@dungeon[ty][tx].character &&
       Vec.chess_distance([mx, my], [tx, ty]) == 1 &&
       passable?(tx, ty) &&
       uncornered?(tx, my) &&

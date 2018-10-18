@@ -93,6 +93,10 @@ end
 
 class Character
   include StatusEffectPredicates
+
+  def visible
+    !@invisible
+  end
 end
 
 class Monster < Character
@@ -185,10 +189,6 @@ class Monster < Character
 
   def trick_rate
     @trick_rate
-  end
-
-  def visible
-    !@invisible
   end
 
   # state = :awake の操作は別。モンスターの特殊な状態を解除して動き出
