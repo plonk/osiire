@@ -733,18 +733,6 @@ class Program
     hero_change_position(x1, y1)
     cell = @level.cell(x1, y1)
 
-    gold = cell.gold
-    if gold
-      if picking && cell.type!=:WATER
-        cell.remove_object(gold)
-        @hero.gold += gold.amount
-        log("#{gold.amount}G を拾った。")
-      else
-        log("#{gold.amount}G の上に乗った。")
-        stop_dashing
-      end
-    end
-
     item = cell.item
     if item
       if picking && cell.type!=:WATER
@@ -1048,11 +1036,18 @@ class Program
     if item.stuck
       log(display_item(item), "は 床にはりついて 拾えない。")
     else
-      if @hero.add_to_inventory(item)
+      case item
+      when Gold
         cell.remove_object(item)
-        log(@hero.name, "は ", display_item(item), "を 拾った。")
+        @hero.gold += item.amount
+        log("#{item.amount}G を拾った。")
       else
-        log("持ち物が いっぱいで ", display_item(item), "が 拾えない。")
+        if @hero.add_to_inventory(item)
+          cell.remove_object(item)
+          log(@hero.name, "は ", display_item(item), "を 拾った。")
+        else
+          log("持ち物が いっぱいで ", display_item(item), "が 拾えない。")
+        end
       end
     end
   end
@@ -1088,13 +1083,6 @@ class Program
     elsif cell.item
       # TODO: 水没アイテムは拾わない。
       pick(cell, cell.item)
-      return :action
-    elsif cell.gold
-      # TODO: 水没アイテムは拾わない。
-      gold = cell.gold
-      cell.remove_object(gold)
-      @hero.gold += gold.amount
-      log("#{gold.amount}G を拾った。")
       return :action
     elsif cell.trap
       trap_do_activate(cell.trap)
@@ -1893,8 +1881,7 @@ EOD
   # 足元かインベントリからアイテムを削除する。
   def remove_item_from_hero(item)
     cell = @level.cell(*hero_pos)
-    if cell&.item.equal?(item) ||
-       cell&.gold.equal?(item)
+    if cell&.item.equal?(item)
       cell.remove_object(item)
     elsif @hero.in_inventory?(item)
       @hero.remove_from_inventory(item)
@@ -3482,7 +3469,7 @@ EOD
       fail unless @level.in_dungeon?(tx, ty)
       cell = @level.cell(tx, ty)
 
-      thing = cell.item || cell.gold
+      thing = cell.item
       if thing
         cell.remove_object(thing)
         log("#{thing}は 燃え尽きた。")
@@ -3884,7 +3871,7 @@ EOD
       obj ||= @level.cell(x, y).monster
     end
     if @hero.olfaction_enhanced?
-      obj ||= @level.cell(x, y).item || @level.cell(x, y).gold
+      obj ||= @level.cell(x, y).item
     end
 
     if obj
@@ -5277,7 +5264,7 @@ EOD
       return false
     elsif forward_area.any? { |x,y|
       cell = @level.cell(x,y)
-      cell.staircase || cell.item || cell.gold || cell.trap&.visible || cell.monster || cell.type == :STATUE
+      cell.staircase || cell.item || cell.trap&.visible || cell.monster || cell.type == :STATUE
     }
       return false
     elsif current_room && @level.first_cells_in(current_room).include?(hero_pos)

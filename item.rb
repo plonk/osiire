@@ -351,8 +351,8 @@ class Item
       else
         ["装備"]
       end
-    else fail
-      "uncovered case"
+    else
+      []
     end
   end
 
@@ -481,9 +481,6 @@ class Water < Item
     "\u{10442c}\u{10442d}"
   end
 
-  def actions
-    []
-  end
 end
 
 class Gold < Item
@@ -505,8 +502,13 @@ class Gold < Item
     "#{amount}ゴールド"
   end
 
+  def desc
+    "敵に当てると金額の1/10のダメージを与える。"
+  end
+
   def to_s
     name
   end
+
 end
 

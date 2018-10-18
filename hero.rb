@@ -1,7 +1,7 @@
 require_relative 'monster'
 require_relative 'seal'
 
-class Hero
+class Hero < Character
   attr_accessor :hp, :max_hp, :strength, :max_strength,
                 :gold, :exp, :fullness, :max_fullness, :lv
   attr_accessor :inventory
@@ -11,8 +11,6 @@ class Hero
   attr_accessor :invisible
   attr_accessor :facing
   attr_accessor :prev
-
-  include StatusEffectPredicates
 
   def initialize(*args)
     @hp, @max_hp, @strength, @max_strength, @gold, @exp, @fullness, @max_fullness, @lv = *args

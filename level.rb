@@ -104,7 +104,7 @@ class Cell
     case object
     when Monster, Hero
       10
-    when Gold, Item, StairCase, Trap
+    when Item, StairCase, Trap
       20
     else
       fail object.class.to_s
@@ -122,7 +122,7 @@ class Cell
   def can_place?
     return (@type == :FLOOR || @type == :PASSAGE || @type == :WATER) && @objects.none? { |x|
       case x
-      when StairCase, Trap, Item, Gold
+      when StairCase, Trap, Item
         true
       else
         false
@@ -138,12 +138,12 @@ class Cell
     @objects.find { |x| x.is_a? Monster }
   end
 
-  def item
-    @objects.find { |x| x.is_a? Item }
+  def character
+    @objects.find { |x| x.is_a? Character }
   end
 
-  def gold
-    @objects.find { |x| x.is_a? Gold }
+  def item
+    @objects.find { |x| x.is_a? Item }
   end
 
   def staircase

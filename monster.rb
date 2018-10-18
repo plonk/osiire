@@ -1,5 +1,3 @@
-# どうして MonsterGenerator のようなものが必要なのだろう？
-
 class StatusEffect
   attr_accessor :caster
   attr_accessor :type, :remaining_duration
@@ -93,7 +91,11 @@ module StatusEffectPredicates
 
 end
 
-class Monster
+class Character
+  include StatusEffectPredicates
+end
+
+class Monster < Character
   # mimic.rb による生成。
   MIMIC_TABLE = eval IO.read File.join File.dirname(__FILE__),'mimic_definition.rb'
   SPECIES = eval IO.read File.join File.dirname(__FILE__),'monster_definition.rb'
@@ -125,8 +127,6 @@ class Monster
   attr_reader :contents
   attr_accessor :capacity
   attr_reader :attrs
-
-  include StatusEffectPredicates
 
   def initialize(definition,
                  state, facing, goal)
