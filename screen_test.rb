@@ -423,14 +423,14 @@ class Program
         x, y = @level.pos_of(monster)
         monster_split(monster)
       elsif monster.teleport_on_attack?
-        log("#{display_character(monster)}は ワープした。")
+        log("#{display(monster)}は ワープした。")
         monster_teleport(monster)
       end
     end
   end
 
   def monster_explode(monster)
-    log("#{display_character(monster)}は 爆発した！")
+    log("#{display(monster)}は 爆発した！")
 
     mx, my = @level.pos_of(monster)
 
@@ -460,7 +460,7 @@ class Program
     set_to_explode = !monster.nullified? && monster.bomb? && monster.hp < monster.max_hp/2
 
     monster.hp -= damage
-    log("#{display_character(monster)}に #{damage} のダメージを与えた。")
+    log("#{display(monster)}に #{damage} のダメージを与えた。")
     if monster.hp >= 1.0 # 生きている
       if set_to_explode
         monster_explode(monster)
@@ -523,7 +523,7 @@ class Program
     case subject
     when Hero
       @hero.exp += monster.exp
-      log("#{display_character(monster)}を たおして #{monster.exp} ポイントの経験値を得た。")
+      log("#{display(monster)}を たおして #{monster.exp} ポイントの経験値を得た。")
       check_level_up
     when Monster
       level_up_monster(subject)
@@ -542,7 +542,7 @@ class Program
       old = monster.name
       monster.invisible = false
       monster.hp = 1
-      log("#{old}は #{display_character(monster)}だった!")
+      log("#{old}は #{display(monster)}だった!")
       render
       monster.hp = 0
       render
@@ -723,7 +723,7 @@ class Program
       m.action_point = m.action_point_recovery_rate # このターンに攻撃させる
       @level.cell(x1, y1).remove_object(item)
       @level.cell(x1, y1).put_object(m)
-      log(display_item(item), "は ", m.name, "だった!")
+      log(display(item), "は ", m.name, "だった!")
       stop_dashing
       return
     end
@@ -738,7 +738,7 @@ class Program
       if picking && cell.type!=:WATER
         pick(cell, item)
       else
-        log(display_item(item), "の上に乗った。")
+        log(display(item), "の上に乗った。")
         stop_dashing
       end
     end
@@ -787,13 +787,13 @@ class Program
   def take_damage_shield
     if @hero.shield
       if @hero.shield.rustproof?
-        log("しかし ", display_item(@hero.shield), "は錆びなかった。")
+        log("しかし ", display(@hero.shield), "は錆びなかった。")
       else
         if @hero.shield.number + @hero.shield.correction > 0
           @hero.shield.correction -= 1
           log("盾が錆びてしまった！ ")
         else
-          log("しかし ", display_item(@hero.shield), "はもう錆びない。")
+          log("しかし ", display(@hero.shield), "はもう錆びない。")
         end
       end
     else
@@ -804,13 +804,13 @@ class Program
   def take_damage_weapon
     if @hero.weapon
       if @hero.weapon.rustproof?
-        log("しかし ", display_item(@hero.weapon), "は錆びなかった。")
+        log("しかし ", display(@hero.weapon), "は錆びなかった。")
       else
         if @hero.weapon.number + @hero.weapon.correction > 0
           @hero.weapon.correction -= 1
           log("武器が錆びてしまった！ ")
         else
-          log("しかし ", display_item(@hero.weapon), "はもう錆びない。")
+          log("しかし ", display(@hero.weapon), "はもう錆びない。")
         end
       end
     else
@@ -850,11 +850,11 @@ class Program
   end
 
   def stick_scroll(item)
-    prevdesc = display_item(item)
+    prevdesc = display(item)
 
     if @naming_table.include?(item.name) && !@naming_table.identified?(item.name)
       @naming_table.identify!(item.name)
-      log(prevdesc, "は ", display_item(item), "だった。")
+      log(prevdesc, "は ", display(item), "だった。")
     end
     item.stuck = true
   end
@@ -960,7 +960,7 @@ class Program
       log("しかし なんともなかった。")
     else
       item = uncursed.sample
-      log(display_item(item), "は 呪われてしまった。")
+      log(display(item), "は 呪われてしまった。")
       item.cursed = true
     end
   end
@@ -1001,7 +1001,7 @@ class Program
       if @level.in_dungeon?(x, y)
         cell = @level.cell(x, y)
         if cell.item
-          log(display_item(cell.item), "は 消し飛んだ。")
+          log(display(cell.item), "は 消し飛んだ。")
           cell.remove_object(cell.item)
           render
         end
@@ -1034,7 +1034,7 @@ class Program
   # ヒーロー @hero が配列 objects の要素 item を拾おうとする。
   def pick(cell, item)
     if item.stuck
-      log(display_item(item), "は 床にはりついて 拾えない。")
+      log(display(item), "は 床にはりついて 拾えない。")
     else
       case item
       when Gold
@@ -1044,9 +1044,9 @@ class Program
       else
         if @hero.add_to_inventory(item)
           cell.remove_object(item)
-          log(@hero.name, "は ", display_item(item), "を 拾った。")
+          log(@hero.name, "は ", display(item), "を 拾った。")
         else
-          log("持ち物が いっぱいで ", display_item(item), "が 拾えない。")
+          log("持ち物が いっぱいで ", display(item), "が 拾えない。")
         end
       end
     end
@@ -1178,7 +1178,7 @@ class Program
   end
 
   def underfoot_item_menu(item)
-    log(display_item(item), "を？")
+    log(display(item), "を？")
     action = item_action_menu(item, false, y: 1, x: 0)
     if action
       return try_do_action_on_item(action, item)
@@ -1413,7 +1413,7 @@ class Program
         res << item_type_string(cell.item.type)
       end
       if cell.monster&.visible
-        res << display_character(cell.monster)
+        res << display(cell.monster)
       end
       if hero_pos == [x,y]
         res << @hero.name
@@ -1517,9 +1517,9 @@ class Program
               end
             end
             if placed
-              log("#{display_character(m)}が 発生した。 ")
+              log("#{display(m)}が 発生した。 ")
             else
-              log("#{display_character(m)}は 発生できなかった。")
+              log("#{display(m)}は 発生できなかった。")
             end
             break
           end
@@ -1554,7 +1554,7 @@ class Program
         cell.type = :PASSAGE
         @hero.weapon.break_count -= 1
         if @hero.weapon.break_count <= 0
-          log(display_item(@hero.weapon), "は 壊れてしまった!")
+          log(display(@hero.weapon), "は 壊れてしまった!")
           @hero.remove_from_inventory(@hero.weapon)
         end
         return :action
@@ -1616,7 +1616,7 @@ class Program
                 else
                   item = Item::make_item(arg2)
                   if @hero.add_to_inventory(item)
-                    log(display_item(item), "を 手に入れた。")
+                    log(display(item), "を 手に入れた。")
                     return
                   else
                     item_land(item, *hero_pos, false)
@@ -1759,7 +1759,7 @@ EOD
     if @level.cell(*hero_pos).can_place?
       if (@hero.weapon.equal?(item) || @hero.shield.equal?(item) || @hero.ring.equal?(item)) &&
          item.cursed
-        log(display_item(item), "は 呪われていて 外れない！")
+        log(display(item), "は 呪われていて 外れない！")
         return
       end
 
@@ -1768,7 +1768,7 @@ EOD
         stick_scroll(item)
       end
       @level.put_object(item, *hero_pos)
-      log(display_item(item), "を 置いた。")
+      log(display(item), "を 置いた。")
     else
       log("ここには 置けない。")
     end
@@ -1812,7 +1812,7 @@ EOD
         when :identified
           ["span", item.to_s]
         when :nicknamed
-          ["span", display_item_by_nickname(item),
+          ["span", display_by_nickname(item),
            ["nicknamed", "[#{item.capacity - item.contents.size}]"]]
         when :unidentified
           ["unidentified", @naming_table.false_name(item.name),
@@ -1856,7 +1856,7 @@ EOD
           end
         end
       when :nicknamed
-        ["span", cursed, display_item_by_nickname(item)]
+        ["span", cursed, display_by_nickname(item)]
       when :unidentified
         ["span", cursed, ["unidentified", @naming_table.false_name(item.name)]]
       else fail
@@ -1899,10 +1899,10 @@ EOD
       log("壺に壺は入らない。")
       return :nothing
     elsif @hero.equipped?(target) && target.cursed
-      log(display_item(item), "は 呪われていて外れない！")
+      log(display(item), "は 呪われていて外れない！")
       return :action
     else
-      log(display_item(jar), "に ", display_item(target), "を入れた。")
+      log(display(jar), "に ", display(target), "を入れた。")
       case jar.name
       when "合成の壺"
         new_contents = Synthesis.homosynthesis_add(jar.contents, target)
@@ -1940,7 +1940,7 @@ EOD
         log("#{jar.name}は いっぱいだ。")
       elsif cell.type == :WATER
         jar.contents.replace(jar.capacity.times.map { Item.make_item("水") })
-        log(display_character(@hero), "は 水をくんだ。")
+        log(display(@hero), "は 水をくんだ。")
         return :action
       else
         log("そっちに 水はない。")
@@ -2001,7 +2001,7 @@ EOD
     container = @hero.inventory.find { |x| x.type==:jar && x.contents.any?{ |y| y.equal?(item) } }
     if @hero.add_to_inventory(item)
       container.contents.delete_if { |z| z.equal?(item) }
-      log(display_item(item), "を 取り出した。")
+      log(display(item), "を 取り出した。")
     else
       log("持ちものが いっぱいで 取り出せない。")
     end
@@ -2062,7 +2062,7 @@ EOD
   # Jar → :action|:nothing
   def look_in_jar(jar)
     dispfunc = proc { |win, item|
-      addstr_ml(win, ["span", " ", item.char, display_item(item)])
+      addstr_ml(win, ["span", " ", item.char, display(item)])
     }
 
     selectable = jar.name == "保存の壺"
@@ -2070,7 +2070,7 @@ EOD
     menu = Menu.new(jar.contents,
                     y: 1, x: 0, cols: 28,
                     dispfunc: dispfunc,
-                    title: markup_to_text(display_item(jar)),
+                    title: markup_to_text(display(jar)),
                     sortable: false,
                     selectable: selectable,
                     min_height: jar.capacity)
@@ -2104,13 +2104,13 @@ EOD
 
   def nibble(item)
     if item.cursed && @hero.equipped?(item)
-      log(display_item(item), "は 呪われていてかじれない。")
+      log(display(item), "は 呪われていてかじれない。")
     elsif item.number + item.correction > 0
-      log("#{@hero.name}は ", display_item(item), "をかじった。")
+      log("#{@hero.name}は ", display(item), "をかじった。")
       item.correction -= 1
       @hero.increase_fullness(30.0)
     else
-      log(display_item(item), "は もうかじれない。")
+      log(display(item), "は もうかじれない。")
     end
   end
 
@@ -2126,7 +2126,7 @@ EOD
              else
                " "
              end
-      addstr_ml(win, ["span", prefix, item.char, display_item(item)])
+      addstr_ml(win, ["span", prefix, item.char, display(item)])
     }
 
     menu = Menu.new(@hero.inventory,
@@ -2267,7 +2267,7 @@ EOD
   # 投げられたアイテムが着地する。
   def item_land(item, x, y, activate_trap = false)
     if item.type == :jar && !item.unbreakable
-      log(display_item(item), "は 割れた！")
+      log(display(item), "は 割れた！")
       item.contents.each do |subitem|
         item_land(subitem, x, y, false)
       end
@@ -2303,14 +2303,14 @@ EOD
             stick_scroll(item)
           end
           if @level.cell(x+dx, y+dy).type == :WATER
-            log(display_item(item), "は 水に落ちた。")
+            log(display(item), "は 水に落ちた。")
           else
-            log(display_item(item), "は 床に落ちた。")
+            log(display(item), "は 床に落ちた。")
           end
           return
         end
       end
-      log(display_item(item), "は消えてしまった。")
+      log(display(item), "は消えてしまった。")
     end
   end
 
@@ -2348,18 +2348,18 @@ EOD
       end
     when "ちからの種"
       monster.strength += 1
-      log("#{display_character(monster)}の ちからが 1 上がった。")
+      log("#{display(monster)}の ちからが 1 上がった。")
     # when "幸せの種"
     when "すばやさの種"
       case  monster.action_point_recovery_rate
       when 1
         monster.action_point_recovery_rate = 2
         monster.action_point = 2
-        log("#{display_character(monster)}の 足はもう遅くない。")
+        log("#{display(monster)}の 足はもう遅くない。")
       when 2
         monster.action_point_recovery_rate = 4
         monster.action_point = 4
-        log("#{display_character(monster)}の 足が速くなった。")
+        log("#{display(monster)}の 足が速くなった。")
       when 4
         log("しかし 何も起こらなかった。")
       else fail
@@ -2367,7 +2367,7 @@ EOD
     when "毒草"
       if monster.strength > 0
         monster.strength -= 1
-        log("#{display_character(monster)}の ちからが 1 下がった。")
+        log("#{display(monster)}の ちからが 1 下がった。")
       else
         # log("しかし 何も起こらなかった。")
       end
@@ -2378,22 +2378,22 @@ EOD
       when 2
         monster.action_point_recovery_rate = 1
         monster.action_point = 1
-        log("#{display_character(monster)}の 足が遅くなった。")
+        log("#{display(monster)}の 足が遅くなった。")
       when 4
         monster.action_point_recovery_rate = 2
         monster.action_point = 2
-        log("#{display_character(monster)}の 足はもう速くない。")
+        log("#{display(monster)}の 足はもう速くない。")
       else fail
       end
     # when "目つぶし草"
     when "まどわし草"
       unless monster.hallucinating?
-        log("#{display_character(monster)}は おびえだした。")
+        log("#{display(monster)}は おびえだした。")
         monster.status_effects << StatusEffect.new(:hallucination, 50)
       end
     when "混乱草"
       unless monster.confused?
-        log("#{display_character(monster)}は 混乱した。")
+        log("#{display(monster)}は 混乱した。")
         monster.status_effects << StatusEffect.new(:confused, 10)
       end
     when "睡眠草"
@@ -2431,7 +2431,7 @@ EOD
 
   def monster_strength_zero(monster)
     monster.strength = 0
-    log(display_character(monster), "のちからが 0 になった。")
+    log(display(monster), "のちからが 0 になった。")
   end
 
   def gold_hits_monster(item, monster, thrower)
@@ -2468,7 +2468,7 @@ EOD
 
   # アイテムがモンスターに当たる。
   def item_hits_monster(item, monster, thrower, dir)
-    log(display_item(item), "は ", monster.name, "に当たった。")
+    log(display(item), "は ", monster.name, "に当たった。")
     case item.type
     when :box, :food, :scroll, :ring
       on_monster_attacked(monster)
@@ -2494,7 +2494,7 @@ EOD
   # アイテムがヒーローに当たる。(今のところ矢しか当たらない？)
   # (Item, Monster | :trap) -> ()
   def item_hits_hero(item, thrower)
-    log(display_item(item), "が #{@hero.name}に当たった。")
+    log(display(item), "が #{@hero.name}に当たった。")
     case thrower
     when :trap
       case item.name
@@ -2577,17 +2577,17 @@ EOD
         break
       when :FLOOR, :PASSAGE, :WATER
         # TODO: 水の場合は、水中か浮遊かの場合分け。
-        if cell.monster || hero_pos == [x+dx,y+dy]
-          character = cell.monster || @hero
+        if cell.character
+          character = cell.character
 
           if character.attrs.include?(:counter_projectile)
-            log(display_character(character), "は ", display_item(item), "をはねかえした！")
+            log(display(character), "は ", display(item), "をはねかえした！")
             SoundEffects.magic
             render
             do_throw_item(item, [x, y], Vec.negate(dir), character, range)
           elsif rand() < projectile_miss_rate(item, actor, character)
             SoundEffects.miss
-            log(display_item(item), "は 外れた。")
+            log(display(item), "は 外れた。")
             item_land(item, x+dx, y+dy)
           else
             SoundEffects.hit
@@ -2648,12 +2648,12 @@ EOD
   def throw_item(item)
     if (@hero.weapon.equal?(item) || @hero.shield.equal?(item) || @hero.ring.equal?(item)) &&
        item.cursed
-      log(display_item(item), "は 呪われていて 外れない！")
+      log(display(item), "は 呪われていて 外れない！")
       return :action
     end
 
     if item.stuck
-      log(display_item(item), "は 床にはりついて 外れない！")
+      log(display(item), "は 床にはりついて 外れない！")
       return :action
     end
 
@@ -2677,7 +2677,7 @@ EOD
     fail if item.type != :staff
 
     if item.cursed
-      log(display_item(item), "は 呪われていて使えない。")
+      log(display(item), "は 呪われていて使えない。")
     elsif item.number == 0
       log("しかし なにも起こらなかった。")
     elsif item.number > 0
@@ -2693,7 +2693,7 @@ EOD
   def monster_fall_asleep(monster)
     unless monster.asleep?
       monster.status_effects.push(StatusEffect.new(:sleep, 5))
-      log("#{display_character(monster)}は 眠りに落ちた。")
+      log("#{display(monster)}は 眠りに落ちた。")
     end
   end
 
@@ -2728,7 +2728,7 @@ EOD
     remove_object_from_board(monster)
     @level.put_object(m, x, y)
     m.action_point = m.action_point_recovery_rate
-    log("#{display_character(monster)}は #{m.name}に変わった！ ")
+    log("#{display(monster)}は #{m.name}に変わった！ ")
   end
 
   # モンスターが分裂する。
@@ -2750,9 +2750,9 @@ EOD
       end
     end
     if placed
-      log("#{display_character(monster)}は 分裂した！ ")
+      log("#{display(monster)}は 分裂した！ ")
     else
-      log("#{display_character(monster)}は 分裂できなかった。")
+      log("#{display(monster)}は 分裂できなかった。")
     end
   end
 
@@ -2790,7 +2790,7 @@ EOD
     when "もろ刃の杖"
       monster.hp = 1
       @hero.hp = @hero.hp - (@hero.hp / 2.0).ceil
-      log("#{display_character(monster)}の HP が 1 になった。")
+      log("#{display(monster)}の HP が 1 になった。")
     when "鈍足の杖"
       case  monster.action_point_recovery_rate
       when 1
@@ -2798,11 +2798,11 @@ EOD
       when 2
         monster.action_point_recovery_rate = 1
         monster.action_point = 1
-        log("#{display_character(monster)}の 足が遅くなった。")
+        log("#{display(monster)}の 足が遅くなった。")
       when 4
         monster.action_point_recovery_rate = 2
         monster.action_point = 2
-        log("#{display_character(monster)}の 足はもう速くない。")
+        log("#{display(monster)}の 足はもう速くない。")
       else fail
       end
     when "封印の杖"
@@ -2814,7 +2814,7 @@ EOD
         monster.action_point = 2
         monster.action_point_recovery_rate = 2
 
-        log("#{display_character(monster)}の特技は 封印された。")
+        log("#{display(monster)}の特技は 封印された。")
       end
     when "即死の杖"
       monster.hp = 0
@@ -2972,9 +2972,9 @@ EOD
 
       cell.remove_object(monster)
       cell.put_object(m)
-      log("#{display_character(monster)}は #{display_character(m)}に進化した。")
+      log("#{display(monster)}は #{display(m)}に進化した。")
     else
-      log("しかし#{display_character(monster)}は 進化しなかった。")
+      log("しかし#{display(monster)}は 進化しなかった。")
     end
   end
 
@@ -2990,9 +2990,9 @@ EOD
 
       cell.remove_object(monster)
       cell.put_object(m)
-      log("#{display_character(monster)}は #{display_character(m)}に退化した。")
+      log("#{display(monster)}は #{display(m)}に退化した。")
     else
-      log("しかし#{display_character(monster)}は 退化しなかった。")
+      log("しかし#{display(monster)}は 退化しなかった。")
     end
   end
 
@@ -3056,12 +3056,12 @@ EOD
     fail "not a scroll" unless item.type == :scroll
 
     if item.cursed
-      log(display_item(item), "は 呪われていて読めない！")
+      log(display(item), "は 呪われていて読めない！")
       return :nothing
     end
 
     if item.stuck
-      log(display_item(item), "は 床にはりついて 読めない。")
+      log(display(item), "は 床にはりついて 読めない。")
       return :action
     end
 
@@ -3077,7 +3077,7 @@ EOD
     return :nothing unless target
 
     remove_item_from_hero(scroll)
-    log(display_item(scroll), "を 読んだ。")
+    log(display(scroll), "を 読んだ。")
     SoundEffects.magic
 
     unless @naming_table.identified?(scroll.name)
@@ -3087,7 +3087,7 @@ EOD
 
     case scroll.name
     when "同定の巻物"
-      prevdesc = display_item(target)
+      prevdesc = display(target)
 
       if @naming_table.include?(target.name) && !@naming_table.identified?(target.name)
         @naming_table.identify!(target.name)
@@ -3104,9 +3104,9 @@ EOD
       end
 
       if did_identify || did_inspect
-        log(prevdesc, "は ", display_item(target), "だった。")
+        log(prevdesc, "は ", display(target), "だった。")
       else
-        log("これは ", display_item(target), "に 間違いない！")
+        log("これは ", display(target), "に 間違いない！")
       end
     when "パンの巻物"
       # 装備中のアイテムだったら装備状態を解除する。
@@ -3123,13 +3123,13 @@ EOD
       index = @hero.inventory.index { |i| target.equal?(i) }
       if index
         @hero.inventory[index] = Item.make_item("大きなパン")
-        log(display_item(target), "は ", display_item(@hero.inventory[index]), "に変わってしまった！")
+        log(display(target), "は ", display(@hero.inventory[index]), "に変わってしまった！")
       else # パンの巻物にパンの巻物を読んだ。
         log("しかし 何も起こらなかった。")
       end
     when "祈りの巻物"
       if target.type == :staff
-        old = display_item(target)
+        old = display(target)
         r = rand(1..5)
         target.number += r
         log(old, "の回数が#{r}増えた。")
@@ -3142,10 +3142,10 @@ EOD
         if !target.has_gold_seal? &&
            target.seals.size < target.nslots
           target.inspected = true
-          log(display_item(target), "に メッキがほどこされた！ ")
+          log(display(target), "に メッキがほどこされた！ ")
           target.seals.push(Seal.new("金", :red))
         else
-          log("しかし ", display_item(target), "はすでにメッキされている。")
+          log("しかし ", display(target), "はすでにメッキされている。")
         end
       else
         log("しかし 何も起こらなかった。")
@@ -3167,7 +3167,7 @@ EOD
              else
                " "
              end
-      addstr_ml(win, ["span", prefix, item.char, display_item(item)])
+      addstr_ml(win, ["span", prefix, item.char, display(item)])
     }
 
     menu = nil
@@ -3196,7 +3196,7 @@ EOD
 
   def read_nontargeted_scroll(item)
     remove_item_from_hero(item)
-    log(display_item(item), "を 読んだ。")
+    log(display(item), "を 読んだ。")
 
     SoundEffects.magic
 
@@ -3389,7 +3389,7 @@ EOD
     fail "not a herb" unless item.type == :herb
 
     if item.cursed
-      log(display_item(item), "は 呪われていて飲めない！")
+      log(display(item), "は 呪われていて飲めない！")
       return :nothing
     end
 
@@ -3397,7 +3397,7 @@ EOD
     @hero.increase_fullness(5.0)
 
     remove_item_from_hero(item)
-    log(display_item(item), "を 薬にして 飲んだ。")
+    log(display(item), "を 薬にして 飲んだ。")
 
     unless @naming_table.identified?(item.name)
       @naming_table.identify!(item.name)
@@ -3550,17 +3550,17 @@ EOD
     fail 'not in inventory' unless @hero.in_inventory?(item)
 
     if @hero.weapon&.cursed
-      log(display_item(@hero.weapon), "は 呪われていて 外れない！")
+      log(display(@hero.weapon), "は 呪われていて 外れない！")
     elsif @hero.weapon.equal?(item) # coreferential?
       @hero.weapon = nil
       log("武器を 外した。")
     elsif item.two_handed && @hero.shield&.cursed
-      log(display_item(@hero.shield), "は 呪われていて 外れない！")
+      log(display(@hero.shield), "は 呪われていて 外れない！")
     else
       # 両手盾を装備していれば、まず外すことが必要。
       if @hero.shield&.two_handed
         if @hero.shield.cursed
-          log(display_item(@hero.shield), "は 呪われていて 外れない！")
+          log(display(@hero.shield), "は 呪われていて 外れない！")
           return
         else
           @hero.shield = nil
@@ -3574,10 +3574,10 @@ EOD
       if item.two_handed
         @hero.shield = nil
       end
-      log(display_item(item), "を 装備した。")
+      log(display(item), "を 装備した。")
       SoundEffects.weapon
       if item.cursed
-        log("なんと！ ", display_item(item), "は呪われていた！")
+        log("なんと！ ", display(item), "は呪われていた！")
       end
     end
   end
@@ -3587,17 +3587,17 @@ EOD
     fail 'not in inventory' unless @hero.in_inventory?(item)
 
     if @hero.shield&.cursed
-      log(display_item(@hero.shield), "は 呪われていて 外れない！")
+      log(display(@hero.shield), "は 呪われていて 外れない！")
     elsif @hero.shield.equal?(item)
       @hero.shield = nil
       log("盾を 外した。")
     elsif item.two_handed && @hero.weapon&.cursed
-      log(display_item(@hero.weapon), "は 呪われていて 外れない！")
+      log(display(@hero.weapon), "は 呪われていて 外れない！")
     else
       # 両手武器を装備していれば、まず外すことが必要。
       if @hero.weapon&.two_handed
         if @hero.weapon.cursed
-          log(display_item(@hero.weapon), "は 呪われていて 外れない！")
+          log(display(@hero.weapon), "は 呪われていて 外れない！")
           return
         else
           @hero.weapon = nil
@@ -3611,10 +3611,10 @@ EOD
       if item.two_handed
         @hero.weapon = nil
       end
-      log(display_item(item), "を 装備した。")
+      log(display(item), "を 装備した。")
       SoundEffects.weapon
       if item.cursed
-        log("なんと！ ", display_item(item), "は呪われていた！")
+        log("なんと！ ", display(item), "は呪われていた！")
       end
     end
   end
@@ -3630,17 +3630,17 @@ EOD
     fail 'not in inventory' unless @hero.in_inventory?(item)
 
     if @hero.ring&.cursed
-      log(display_item(@hero.ring), "は 呪われていて 外れない！")
+      log(display(@hero.ring), "は 呪われていて 外れない！")
     elsif @hero.ring.equal?(item)
       @hero.ring = nil
-      log(display_item(item), "を 外した。")
+      log(display(item), "を 外した。")
       resolve_position()
     else
       @hero.ring = item
-      log(display_item(item), "を 装備した。")
+      log(display(item), "を 装備した。")
       SoundEffects.weapon
       if item.cursed
-        log("なんと！ ", display_item(item), "は呪われていた！")
+        log("なんと！ ", display(item), "は呪われていた！")
       end
     end
   end
@@ -3651,10 +3651,10 @@ EOD
 
     if @hero.projectile.equal?(item)
       @hero.projectile = nil
-      log(display_item(item), "を 外した。")
+      log(display(item), "を 外した。")
     else
       @hero.projectile = item
-      log(display_item(item), "を 装備した。")
+      log(display(item), "を 装備した。")
       SoundEffects.weapon
     end
   end
@@ -3780,7 +3780,7 @@ EOD
     one_line_message_box("階段の途中で行商人に出会った。")
     Curses.stdscr.clear
     Curses.stdscr.refresh
-    shop = Shop.new(@hero, method(:display_item), method(:addstr_ml))
+    shop = Shop.new(@hero, method(:display), method(:addstr_ml))
     shop.run
   end
 
@@ -3829,6 +3829,17 @@ EOD
     c = Curses.getch
     Curses.curs_set(1)
     return c
+  end
+
+  def display(obj)
+    case obj
+    when Character
+      display_character(obj)
+    when Item
+      display_item(obj)
+    else
+      obj.to_s
+    end
   end
 
   def display_character(character)
@@ -4168,7 +4179,7 @@ EOD
   # Returns: Curses::Window
   def create_status_window(winy = 1, winx = 0)
     until_next_lv = exp_until_next_lv ? exp_until_next_lv.to_s : "∞"
-    disp = proc { |item| item.nil? ? 'なし' : display_item(item) }
+    disp = proc { |item| item.nil? ? 'なし' : display(item) }
     text =
       [
         ["span", "   攻撃力 %d" % [get_hero_attack]],
@@ -4494,9 +4505,9 @@ EOD
     attack = get_monster_attack(m)
 
     if attack == 0
-      log("#{display_character(m)}は 様子を見ている。")
+      log("#{display(m)}は 様子を見ている。")
     else
-      log("#{display_character(m)}の こうげき！ ")
+      log("#{display(m)}の こうげき！ ")
       if rand() < MONSTER_TERON_RATE
         SoundEffects.miss
         log("#{@hero.name}は ひらりと身をかわした。")
@@ -4526,14 +4537,14 @@ EOD
       damage = ( ( attack * (15.0/16.0)**defender.defense ) * (112 + rand(32))/128.0 ).to_i
 
       if attack == 0
-        log("#{display_character(assailant)}は 様子を見ている。")
+        log("#{display(assailant)}は 様子を見ている。")
       else
-        log("#{display_character(assailant)}の こうげき！ ")
+        log("#{display(assailant)}の こうげき！ ")
         on_monster_attacked(defender)
         monster_take_damage(defender, damage, assailant)
       end
     else
-      log("#{display_character(assailant)}の攻撃は むなしく 空を切った。")
+      log("#{display(assailant)}の攻撃は むなしく 空を切った。")
       # 誰もいない
     end
   end
@@ -4557,7 +4568,7 @@ EOD
     else
       unless patient.confused?
         patient.status_effects.push(StatusEffect.new(:confused, 10))
-        log(display_character(patient), "は 混乱した。")
+        log(display(patient), "は 混乱した。")
       end
     end
   end
@@ -4665,7 +4676,7 @@ EOD
       end
 
     when "目玉", "目玉2", "目玉3"
-      log("目玉は ", display_character(@hero), "を にらんだ。")
+      log("目玉は ", display(@hero), "を にらんだ。")
       SoundEffects.magic
       hypnotize(@hero)
 
@@ -4676,7 +4687,7 @@ EOD
         item = candidates.sample
         remove_item_from_hero(item)
         m.item = item
-        log("#{m.name}は ", display_item(item), "を盗んでワープした。")
+        log("#{m.name}は ", display(item), "を盗んでワープした。")
 
         unless m.hallucinating?
           m.status_effects << StatusEffect.new(:hallucination, Float::INFINITY)
@@ -4706,13 +4717,13 @@ EOD
         contents = Syntheiss.heterosynthesis_add(m.contents, item)
         m.contents.replace(contents)
         m.capacity -= 1
-        log("#{m.name}は ", display_item(item), "を吸い込んだ！")
+        log("#{m.name}は ", display(item), "を吸い込んだ！")
       else
         log("#{m.name}は 何も吸い込めなかった。")
       end
 
     when "小坊主", "小坊主2", "小坊主3"
-      log(display_character(m), "は いのった。")
+      log(display(m), "は いのった。")
 
       if @hero.weakening?
         log("#{@hero.name}は ますます具合がわるくなった。")
@@ -4726,7 +4737,7 @@ EOD
       end
 
     when "カエル", "カエル2", "カエル3"
-      log(display_character(m), "は ", display_character(@hero), "を ひきよせた。")
+      log(display(m), "は ", display(@hero), "を ひきよせた。")
       render
 
       mpos = @level.pos_of(m)
@@ -4740,7 +4751,7 @@ EOD
       end
 
     when "からかさおばけ", "からかさおばけ2", "からかさおばけ3", "からかさおばけ4"
-      log(display_character(m), "は おどりをおどった。")
+      log(display(m), "は おどりをおどった。")
       SoundEffects.fanfare2
       case m.name
       when "からかさおばけ"
@@ -4752,17 +4763,17 @@ EOD
       when "からかさおばけ4"
         decrement = @hero.decrease_max_fullness(5)
       end
-      log(display_character(@hero), "の 腹が減った。")
+      log(display(@hero), "の 腹が減った。")
 
     when "ウーパンルーパン2"
       candidates = @hero.inventory.reject { |i| @hero.equipped?(i) }
       fail unless candidates.any?
 
-      log(display_character(m), "は ワキをワキワキさせた。")
+      log(display(m), "は ワキをワキワキさせた。")
       target = candidates.sample
       index = @hero.inventory.index { |item| item.equal?(target) }
       @hero.inventory[index] = Item.make_item("大きなパン")
-      log(display_item(target), "は ", display_item(@hero.inventory[index]), "に変わってしまった！")
+      log(display(target), "は ", display(@hero.inventory[index]), "に変わってしまった！")
 
     when "ウーパンルーパン3", "ウーパンルーパン4"
       log("特技未実装。")
@@ -4881,17 +4892,17 @@ EOD
   def on_status_effect_expire(character, effect)
     case effect.type
     when :paralysis
-      log("#{display_character(character)}の かなしばりがとけた。")
+      log("#{display(character)}の かなしばりがとけた。")
     when :sleep
-      log("#{display_character(character)}は 目をさました。")
+      log("#{display(character)}は 目をさました。")
     when :held
-      log("#{display_character(character)}の 足が抜けた。")
+      log("#{display(character)}の 足が抜けた。")
     when :confused
-      log("#{display_character(character)}の 混乱がとけた。")
+      log("#{display(character)}の 混乱がとけた。")
     when :quick
-      log("#{display_character(character)}の 足はもう速くない。")
+      log("#{display(character)}の 足はもう速くない。")
     else
-      log("#{display_character(character)}の #{effect.name}状態がとけた。")
+      log("#{display(character)}の #{effect.name}状態がとけた。")
     end
   end
 
