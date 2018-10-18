@@ -2447,6 +2447,10 @@ EOD
     log(display_character(monster), "のちからが 0 になった。")
   end
 
+  def gold_hits_monster(item, monster, thrower)
+    monster_take_damage(monster, item.amount / 10, thrower)
+  end
+
   # 投擲武器がモンスターに当たる。
   def projectile_hits_monster(item, monster, thrower)
     on_monster_attacked(monster)
@@ -2493,6 +2497,8 @@ EOD
       weapon_hits_monster(item, monster, thrower)
     when :projectile
       projectile_hits_monster(item, monster, thrower)
+    when :gold
+      gold_hits_monster(item, monster, thrower)
     else
       fail "case not covered"
     end
