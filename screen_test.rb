@@ -135,7 +135,7 @@ class Program
 
   # ゲームの状態をリセット。
   def reset
-    @hero = Hero.new(nil, nil, 15, 15, 8, 8, 0, 0, 100.0, 100.0, 1)
+    @hero = Hero.new(15, 15, 8, 8, 0, 0, 100.0, 100.0, 1)
     @hero.inventory << Item.make_item("大きなパン")
     if debug?
       @hero.inventory << Item.make_item("エンドゲーム")
@@ -184,6 +184,10 @@ class Program
     end
 
     @overlayed_tiles = []
+  end
+
+  def hero_pos
+    @level.pos_of(@hero)
   end
 
   def addstr_ml(win = Curses, ml)
@@ -416,7 +420,7 @@ class Program
   def on_monster_taking_damage(monster)
     unless monster.nullified?
       if monster.divide? && rand() < 0.5
-        x, y = @level.coordinates_of(monster)
+        x, y = @level.pos_of(monster)
         monster_split(monster)
       elsif monster.teleport_on_attack?
         log("#{display_character(monster)}は ワープした。")
@@ -428,9 +432,9 @@ class Program
   def monster_explode(monster)
     log("#{display_character(monster)}は 爆発した！")
 
-    mx, my = @level.coordinates_of(monster)
+    mx, my = @level.pos_of(monster)
 
-    if Vec.chess_distance([mx,my], @hero.pos) <= 1
+    if Vec.chess_distance([mx,my], hero_pos) <= 1
       take_damage((@hero.hp / 2.0).ceil)
     end
 
@@ -510,7 +514,7 @@ class Program
   end
 
   def remove_object_from_board(object)
-    x, y = @level.coordinates_of(object)
+    x, y = @level.pos_of(object)
     cell = @level.cell(x, y)
     cell.remove_object(object)
   end
@@ -545,7 +549,7 @@ class Program
     end
     monster.reveal_self! # 化けの皮を剥ぐ。
 
-    x, y = @level.coordinates_of(monster)
+    x, y = @level.pos_of(monster)
     remove_object_from_board(monster)
 
     if monster.contents.any?
@@ -569,7 +573,7 @@ class Program
 
     get_exp(causer, monster)
 
-    (@level.all_monsters_with_position + [[@hero, *@hero.pos]]).each do |char, x, y|
+    (@level.all_monsters_with_position + [[@hero, *hero_pos]]).each do |char, x, y|
       char.status_effects.reject! { |e|
         if e.caster.equal?(monster)
           on_status_effect_expire(char, e)
@@ -640,7 +644,7 @@ class Program
   }
 
   def hero_can_move_to?(target)
-    return false unless Vec.chess_distance(@hero.pos, target) == 1
+    return false unless Vec.chess_distance(hero_pos, target) == 1
     return false unless @level.in_dungeon?(*target)
 
     if @hero.kabenuke?
@@ -651,16 +655,17 @@ class Program
   end
 
   def hero_can_move_to_normally?(target)
-    return false unless Vec.chess_distance(@hero.pos, target) == 1
+    return false unless Vec.chess_distance(hero_pos, target) == 1
     return false unless @level.in_dungeon?(*target)
 
-    dx, dy = Vec.minus(target, @hero.pos)
+    hx, hy = hero_pos
+    dx, dy = Vec.minus(target, hero_pos)
     if dx * dy != 0
-      return @level.passable?(@hero.x + dx, @hero.y + dy) &&
-        @level.uncornered?(@hero.x + dx, @hero.y) &&
-        @level.uncornered?(@hero.x, @hero.y + dy)
+      return @level.passable?(hx + dx, hy + dy) &&
+        @level.uncornered?(hx + dx, hy) &&
+        @level.uncornered?(hx, hy + dy)
     else
-      return @level.passable?(@hero.x + dx, @hero.y + dy)
+      return @level.passable?(hx + dx, hy + dy)
     end
   end
 
@@ -689,7 +694,7 @@ class Program
       vec = DIRECTIONS.sample
     end
 
-    target = Vec.plus(@hero.pos, vec)
+    target = Vec.plus(hero_pos, vec)
     unless hero_can_move_to?(target)
       return :nothing
     end
@@ -773,11 +778,17 @@ class Program
     @dash_direction = nil
   end
 
-  def hero_change_position(x1, y1)
-    @hero.prev = @hero.pos
-    @hero.x, @hero.y = x1, y1
+  def hero_change_position(x, y)
+    prev = hero_pos
+    if prev
+      @hero.prev = prev
+      @level.move_object(@hero, x, y)
+    else
+      @hero.prev = prev
+      @level.put_object(@hero, x, y)
+    end
     @hero.status_effects.reject! { |e| e.type == :held }
-    @level.update_lighting(x1, y1)
+    @level.update_lighting(x, y)
     if @last_room != current_room
       walk_in_or_out_of_room
       @last_room = current_room
@@ -829,9 +840,9 @@ class Program
     count = 0
     candidates = @hero.inventory.reject { |x| @hero.equipped?(x) }
     candidates.shuffle!
-    [[0,-1], [1,-1], [1,0], [1,1], [0,1], [-1,1], [-1,0], [-1,-1]].each do |dx, dy|
+    [[0,-1], [1,-1], [1,0], [1,1], [0,1], [-1,1], [-1,0], [-1,-1]].each do |d|
       break if candidates.empty?
-      x, y = @hero.x + dx, @hero.y + dy
+      x, y = Vec.plus(hero_pos, d)
       if @level.in_dungeon?(x, y) &&
          @level.cell(x, y).can_place?
         item = candidates.shift
@@ -864,7 +875,7 @@ class Program
   def hero_teleport
     SoundEffects.teleport
 
-    fov = @level.fov(@hero.x, @hero.y)
+    fov = @level.fov(*hero_pos)
     x, y = @level.find_random_place { |cell, x, y|
       cell.type == :FLOOR && !cell.monster && !fov.include?(x, y)
     }
@@ -914,7 +925,7 @@ class Program
     when "毒矢のワナ"
       arrow_trap_activate(trap, "毒矢")
     when "地雷"
-      x, y = @level.coordinates_of(trap)
+      x, y = @level.pos_of(trap)
       mine_explosion_effect(x, y)
       log("足元で爆発が起こった！ ")
       mine_activate(trap)
@@ -931,7 +942,7 @@ class Program
       fail "trap behaviour not defined: #{trap.name}"
     end
 
-    tx, ty = @level.coordinates_of(trap)
+    tx, ty = @level.pos_of(trap)
     if rand() < trap.break_rate
       @level.remove_object(trap, tx, ty)
     end
@@ -939,7 +950,7 @@ class Program
 
   def arrow_trap_activate(trap, name)
     dx, dy = Vec.rotate_clockwise_45(@hero.facing, 2)
-    tx, ty = @level.coordinates_of(trap)
+    tx, ty = @level.pos_of(trap)
     x, y = tx, ty
     while true
       if @level.cell(x + dx, y + dy).wall?
@@ -988,7 +999,7 @@ class Program
 
   # 地雷が発動する。
   def mine_activate(mine)
-    tx, ty = @level.coordinates_of(mine)
+    tx, ty = @level.pos_of(mine)
     rect = @level.surroundings(tx, ty)
     rect.each_coords do |x, y|
       if @level.in_dungeon?(x, y)
@@ -1016,7 +1027,7 @@ class Program
           render
           check_monster_dead(cell.monster)
         end
-        if @hero.pos == [x, y]
+        if hero_pos == [x, y]
           take_damage([(@hero.hp / 2.0).floor, 1.0].max)
         end
       end
@@ -1058,7 +1069,7 @@ class Program
 
   # 周り8マスをワナチェックする
   def search
-    x, y = @hero.x, @hero.y
+    x, y = hero_pos
     [[0,-1], [1,-1], [1,0], [1,1], [0,1], [-1,1], [-1,0], [-1,-1]].each do |xoff, yoff|
       # 敵の下のワナは発見されない。
       if @level.in_dungeon?(x+xoff, y+yoff) &&
@@ -1071,7 +1082,7 @@ class Program
 
   # 足元にある物の種類に応じて行動する。
   def activate_underfoot
-    cell = @level.cell(@hero.x, @hero.y)
+    cell = @level.cell(*hero_pos)
     if cell.staircase
       return go_downstairs()
     elsif cell.item
@@ -1097,7 +1108,7 @@ class Program
   # -> :nothing | ...
   def underfoot_menu
     # 足元にワナがある場合、階段がある場合、アイテムがある場合、なにもない場合。
-    cell = @level.cell(@hero.x, @hero.y)
+    cell = @level.cell(*hero_pos)
     if cell.trap
       return trap_menu(cell.trap)
     elsif cell.staircase
@@ -1416,7 +1427,7 @@ class Program
       if cell.monster&.visible
         res << display_character(cell.monster)
       end
-      if @hero.pos == [x,y]
+      if hero_pos == [x,y]
         res << @hero.name
       end
     end
@@ -1425,7 +1436,7 @@ class Program
 
   def look_out()
     Curses.timeout = -1
-    cx, cy = @hero.x, @hero.y
+    cx, cy = hero_pos
     Placard.open("みわたす", x: 0, y: 0) do |title|
       Placard.open(" " * 20, x: 12, y: 0) do |desc|
         while true
@@ -1506,12 +1517,12 @@ class Program
             # このターンに行動できるようにする。
             m.action_point = m.action_point_recovery_rate
             placed = false
-            rect = @level.surroundings(@hero.x, @hero.y)
+            rect = @level.surroundings(*hero_pos)
             rect.each_coords do |x, y|
               cell = @level.cell(x, y)
               if (cell.type == :PASSAGE || cell.type == :FLOOR) &&
                  !cell.monster &&
-                 !(x==@hero.x && y==@hero.y)
+                 hero_pos != [x,y]
                 @level.put_object(m, x, y)
                 placed = true
                 break
@@ -1540,7 +1551,7 @@ class Program
       vec = @hero.facing
     end
 
-    target = Vec.plus(@hero.pos, vec)
+    target = Vec.plus(hero_pos, vec)
     unless @level.in_dungeon?(*target)
       log("Error: target = #{target.inspect}")
       return
@@ -1620,7 +1631,7 @@ class Program
                     log(display_item(item), "を 手に入れた。")
                     return
                   else
-                    item_land(item, @hero.x, @hero.y, false)
+                    item_land(item, *hero_pos, false)
                   end
                 end
               else
@@ -1757,7 +1768,7 @@ EOD
   def try_place_item(item)
     fail 'not in inventory' unless @hero.in_inventory?(item)
 
-    if @level.cell(@hero.x, @hero.y).can_place?
+    if @level.cell(*hero_pos).can_place?
       if (@hero.weapon.equal?(item) || @hero.shield.equal?(item) || @hero.ring.equal?(item)) &&
          item.cursed
         log(display_item(item), "は 呪われていて 外れない！")
@@ -1768,7 +1779,7 @@ EOD
       if item.name == "結界の巻物"
         stick_scroll(item)
       end
-      @level.put_object(item, @hero.x, @hero.y)
+      @level.put_object(item, *hero_pos)
       log(display_item(item), "を 置いた。")
     else
       log("ここには 置けない。")
@@ -1881,7 +1892,7 @@ EOD
 
   # 足元かインベントリからアイテムを削除する。
   def remove_item_from_hero(item)
-    cell = @level.cell(*@hero.pos)
+    cell = @level.cell(*hero_pos)
     if cell&.item.equal?(item) ||
        cell&.gold.equal?(item)
       cell.remove_object(item)
@@ -1936,7 +1947,7 @@ EOD
         log("なんと！ #{jar.name}だった！")
       end
 
-      tpos = Vec.plus(@hero.pos, @hero.facing)
+      tpos = Vec.plus(hero_pos, @hero.facing)
       cell = @level.cell(*tpos)
       if jar.contents.size == jar.capacity
         log("#{jar.name}は いっぱいだ。")
@@ -1987,12 +1998,12 @@ EOD
     fail unless jar.name == "水がめ"
 
     if jar.contents.size > 0
-      tpos = Vec.plus(@hero.pos, @hero.facing)
+      tpos = Vec.plus(hero_pos, @hero.facing)
       cell = @level.cell(*tpos)
       if wettable_cell?(cell)
         wet_cell(cell, jar)
       else
-        wet_cell(@level.cell(*@hero.pos), jar)
+        wet_cell(@level.cell(*hero_pos), jar)
       end
     else
       log("水がめに 水は入っていない。")
@@ -2027,7 +2038,7 @@ EOD
     when "置く"
       try_place_item(item)
     when "拾う"
-      x, y = @level.coordinates_of(item)
+      x, y = @level.pos_of(item)
       cell = @level.cell(x, y)
       pick(cell, item)
       return :action
@@ -2411,7 +2422,7 @@ EOD
 
   # 杖がモンスターに当たった時の効果。
   def staff_hits_monster(item, monster, thrower, dir)
-    mx, my = @level.coordinates_of(monster)
+    mx, my = @level.pos_of(monster)
 
     fail if mx.nil?
     magic_bullet_hits_monster(item, monster, thrower, dir)
@@ -2529,7 +2540,7 @@ EOD
       when :WALL, :HORIZONTAL_WALL, :VERTICAL_WALL, :STATUE
         break
       when :FLOOR, :PASSAGE
-        if [x+dx, y+dy] == [@hero.x, @hero.y]
+        if [x+dx, y+dy] == hero_pos
           damage = rand(17..23)
           if @hero.shield&.name == "ドラゴンシールド"
             damage /= 2
@@ -2573,7 +2584,7 @@ EOD
         break
       when :FLOOR, :PASSAGE, :WATER
         # TODO: 水の場合は、水中か浮遊かの場合分け。
-        if cell.monster || @hero.pos == [x+dx,y+dy]
+        if cell.monster || hero_pos == [x+dx,y+dy]
           character = cell.monster || @hero
 
           if character.attrs.include?(:counter_projectile)
@@ -2659,10 +2670,10 @@ EOD
       one = Item.make_item(item.name)
       one.number = 1
       item.number -= 1
-      do_throw_item(one, @hero.pos, dir, @hero)
+      do_throw_item(one, hero_pos, dir, @hero)
     else
       remove_item_from_hero(item)
-      do_throw_item(item, @hero.pos, dir, @hero)
+      do_throw_item(item, hero_pos, dir, @hero)
     end
     return :action
   end
@@ -2696,15 +2707,15 @@ EOD
   # モンスターがワープする。
   def monster_teleport(monster)
     SoundEffects.teleport
-    cell = @level.cell(*@level.coordinates_of(monster))
-    fov = @level.fov(@hero.x, @hero.y)
+    cell = @level.cell(*@level.pos_of(monster))
+    fov = @level.fov(*hero_pos)
     x, y = @level.find_random_place { |cell, x, y|
-      cell.type == :FLOOR && !cell.monster && !(x==@hero.x && y==@hero.y) && !fov.include?(x, y)
+      cell.type == :FLOOR && !cell.monster && hero_pos != [x,y] && !fov.include?(x, y)
     }
     if x.nil?
       # 視界内でも良い条件でもう一度検索。
       x, y = @level.find_random_place { |cell, x, y|
-        cell.type == :FLOOR && !cell.monster && !(x==@hero.x && y==@hero.y)
+        cell.type == :FLOOR && !cell.monster && hero_pos != [x,y]
       }
     end
     cell.remove_object(monster)
@@ -2714,7 +2725,7 @@ EOD
 
   # モンスターが変化する。
   def monster_metamorphose(monster)
-    x, y = @level.coordinates_of(monster)
+    x, y = @level.pos_of(monster)
     while true
       m = @dungeon.make_monster_from_dungeon
       break if m.name != monster.name
@@ -2729,7 +2740,7 @@ EOD
 
   # モンスターが分裂する。
   def monster_split(monster)
-    x, y = @level.coordinates_of(monster)
+    x, y = @level.pos_of(monster)
     cell = @level.cell(x, y)
     m = Monster.make_monster(monster.name)
     m.state = :awake
@@ -2739,7 +2750,7 @@ EOD
       cell = @level.cell(x, y)
       if (cell.type == :PASSAGE || cell.type == :FLOOR) &&
          !cell.monster &&
-         !(x==@hero.x && y==@hero.y)
+         hero_pos != [x,y]
         @level.put_object(m, x, y)
         placed = true
         break
@@ -2753,7 +2764,7 @@ EOD
   end
 
   def monster_fall_over(monster, caster)
-    x, y = @level.coordinates_of(monster)
+    x, y = @level.pos_of(monster)
 
     item = monster.item || (if monster.drop_rate > 0 then @dungeon.make_item(@level_number) else nil end)
 
@@ -2838,7 +2849,7 @@ EOD
 
   def blast_off_monster(monster, caster, dir)
     dx, dy = dir
-    x, y = @level.coordinates_of(monster)
+    x, y = @level.pos_of(monster)
     range = 10
 
     while true
@@ -2854,7 +2865,7 @@ EOD
         set_position_of(monster, x, y)
         break
       when :FLOOR, :PASSAGE
-        if cell.monster || @hero.pos == [x+dx,y+dy]
+        if cell.monster || hero_pos == [x+dx,y+dy]
           character = cell.monster || @hero
 
           set_position_of(monster, x+dx, y+dy)
@@ -2866,7 +2877,7 @@ EOD
             monster_take_damage(character, 5, caster)
           end
 
-          if @hero.pos == [x+dx,y+dy] ||
+          if hero_pos == [x+dx,y+dy] ||
              !cell.monster.equal?(monster)
             set_position_of(monster, x, y)
           else
@@ -2901,7 +2912,7 @@ EOD
     fail unless cell
 
     # TODO: モンスターの特性によって許可されるタイルを変える。
-    if !cell.wall? && !cell.monster && [x,y]!=@hero.pos
+    if !cell.wall? && !cell.monster && [x,y]!=hero_pos
       return true
     else
       return false
@@ -2932,7 +2943,7 @@ EOD
     when Hero
       character.pos
     when Monster
-      @level.coordinates_of(character)
+      @level.pos_of(character)
     else fail
     end
   end
@@ -2942,7 +2953,7 @@ EOD
     when Hero
       hero_change_position(x, y)
     when Monster
-      old = @level.coordinates_of(character)
+      old = @level.pos_of(character)
       @level.remove_object(character, *old)
       @level.put_object(character, x, y)
       character.goal = nil
@@ -2957,7 +2968,7 @@ EOD
   end
 
   def level_up_monster(monster)
-    cell = @level.cell(*@level.coordinates_of(monster))
+    cell = @level.cell(*@level.pos_of(monster))
     descendant = monster.descendant
     if descendant
       m = Monster.make_monster(descendant)
@@ -2975,7 +2986,7 @@ EOD
   end
 
   def level_down_monster(monster)
-    cell = @level.cell(*@level.coordinates_of(monster))
+    cell = @level.cell(*@level.pos_of(monster))
     ancestor = monster.ancestor
     if ancestor
       m = Monster.make_monster(ancestor)
@@ -2995,7 +3006,7 @@ EOD
   # 杖を振る。
   def do_zap_staff(staff, dir)
     dx, dy = dir
-    x, y = @hero.x, @hero.y
+    x, y = hero_pos
 
     while true
       fail unless @level.in_dungeon?(x+dx, y+dy)
@@ -3229,7 +3240,7 @@ EOD
       end
     when "ざわざわの巻物"
       monsters = []
-      rect = @level.surroundings(@hero.x, @hero.y)
+      rect = @level.surroundings(*hero_pos)
       rect.each_coords do |x, y|
         if @level.in_dungeon?(x, y)
           m = @level.cell(x, y).monster
@@ -3248,7 +3259,7 @@ EOD
       end
     when "かなしばりの巻物"
       monsters = []
-      rect = @level.surroundings(@hero.x, @hero.y)
+      rect = @level.surroundings(*hero_pos)
       rect.each_coords do |x, y|
         if @level.in_dungeon?(x, y)
           m = @level.cell(x, y).monster
@@ -3297,7 +3308,7 @@ EOD
         end
       end
       @level.rooms.replace([Room.new(0, 23, 0, 79)])
-      @level.update_lighting(@hero.x, @hero.y)
+      @level.update_lighting(*hero_pos)
       log("ダンジョンの壁がくずれた！ ")
     when "解呪の巻物"
       cursed_items = @hero.inventory.select(&:cursed)
@@ -3366,7 +3377,7 @@ EOD
 
   # 爆発の巻物の効果。視界全体に攻撃。
   def attack_monsters_in_room(range)
-    rect = @level.fov(@hero.x, @hero.y)
+    rect = @level.fov(*hero_pos)
     rect.each_coords do |x, y|
       if @level.in_dungeon?(x, y)
         cell = @level.cell(x, y)
@@ -3461,7 +3472,7 @@ EOD
       log("#{@hero.name}は 口から火を はいた！ ")
 
       vec = @hero.facing
-      tx, ty = Vec.plus([@hero.x, @hero.y], vec)
+      tx, ty = Vec.plus(hero_pos, vec)
       fail unless @level.in_dungeon?(tx, ty)
       cell = @level.cell(tx, ty)
 
@@ -3616,7 +3627,7 @@ EOD
   end
 
   def resolve_position
-    if !@hero.kabenuke? && @level.cell(*@hero.pos).wall?
+    if !@hero.kabenuke? && @level.cell(*hero_pos).wall?
       hero_teleport
     end
   end
@@ -3760,7 +3771,7 @@ EOD
   # 階段を降りる。
   # () -> :nothing
   def go_downstairs
-    st = @level.cell(@hero.x, @hero.y).staircase
+    st = @level.cell(*hero_pos).staircase
     if st
       SoundEffects.staircase
       new_level(st.upwards ? -1 : +1)
@@ -3788,7 +3799,7 @@ EOD
       clear_message
       @quitting = true
     else
-      @level = @dungeon.make_level(@level_number, @hero)
+      @level = @dungeon.make_level(@level_number)
 
       # 状態異常のクリア
       @hero.status_effects.clear
@@ -3804,7 +3815,7 @@ EOD
       end
 
       # 視界
-      @level.update_lighting(@hero.x, @hero.y)
+      @level.update_lighting(*hero_pos)
 
       # 行動ポイントの回復。上の階で階段を降りる時にあまったポイントに
       # 影響されたくないので下の代入文で合ってる。
@@ -3837,6 +3848,8 @@ EOD
 
   def visible_to_hero?(obj, lit, globally_lit, explored)
     case obj
+    when Hero
+      !obj.invisible
     when Trap
       obj.visible && (explored || globally_lit)
     when Monster
@@ -3859,42 +3872,38 @@ EOD
   end
 
   def dungeon_char(x, y)
-    if @hero.x == x && @hero.y == y
-      @hero.char
-    else
-      obj = @level.first_visible_object(x, y, method(:visible_to_hero?))
+    obj = @level.first_visible_object(x, y, method(:visible_to_hero?))
 
-      if @hero.audition_enhanced?
-        obj ||= @level.cell(x, y).monster
-      end
-      if @hero.olfaction_enhanced?
-        obj ||= @level.cell(x, y).item || @level.cell(x, y).gold
-      end
+    if @hero.audition_enhanced?
+      obj ||= @level.cell(x, y).monster
+    end
+    if @hero.olfaction_enhanced?
+      obj ||= @level.cell(x, y).item || @level.cell(x, y).gold
+    end
 
-      if obj
-        if @hero.hallucinating?
-          case obj
-          when Monster
-            "\u{10417e}\u{10417f}" # 色違いの主人公
-          when Trap, StairCase, Gold, Item
-            "\u{10416a}\u{10416b}" # 花
-          else
-            '??'
-          end
+    if obj
+      if @hero.hallucinating?
+        case obj
+        when Monster
+          "\u{10417e}\u{10417f}" # 色違いの主人公
+        when Trap, StairCase, Gold, Item
+          "\u{10416a}\u{10416b}" # 花
         else
-          obj.char
+          '??'
         end
       else
-        tile = @level.background_char(x, y)
-        if @hero.hallucinating?
-          if tile == '􄄤􄄥'
-            "\u{104168}\u{104169}"
-          else
-            tile
-          end
+        obj.char
+      end
+    else
+      tile = @level.background_char(x, y)
+      if @hero.hallucinating?
+        if tile == '􄄤􄄥'
+          "\u{104168}\u{104169}"
         else
           tile
         end
+      else
+        tile
       end
     end
   end
@@ -3934,8 +3943,7 @@ EOD
   def take_screen_shot
     (-2).upto(2).map do |dy|
       (-7).upto(7).map do |dx|
-        y1 = @hero.y + dy
-        x1 = @hero.x + dx
+        x1, y1 = Vec.plus(hero_pos, [dx,dy])
         if @level.in_dungeon?(x1, y1)
           dungeon_char(x1, y1)
         else
@@ -3954,7 +3962,11 @@ EOD
   DELAY_SECONDS = 0.4
 
   # 画面の表示。
-  def render(cx = @hero.x, cy = @hero.y)
+  def render(cx = nil, cy = nil)
+    unless cx
+      cx, cy = hero_pos
+    end
+
     wait_delay
 
     render_map(cx, cy)
@@ -4214,12 +4226,12 @@ EOD
     when :none
       return false
     when :sight
-      return @level.fov(mx, my).include?(@hero.x, @hero.y)
+      return @level.fov(mx, my).include?(*hero_pos)
     when :line
-      return @level.fov(mx, my).include?(@hero.x, @hero.y) &&
-        aligned?([mx, my], [@hero.x, @hero.y])
+      return @level.fov(mx, my).include?(*hero_pos) &&
+        aligned?([mx, my], hero_pos)
     when :reach
-      return @level.can_attack?(m, mx, my, @hero.x, @hero.y)
+      return @level.can_attack?(m, mx, my, *hero_pos)
     else
       fail
     end
@@ -4227,7 +4239,7 @@ EOD
 
   # 特技を使う条件が満たされているか？
   def trick_applicable?(m)
-    mx, my = @level.coordinates_of(m)
+    mx, my = @level.pos_of(m)
     return trick_in_range?(m, mx, my) &&
            case m.name
            when "目玉"
@@ -4256,13 +4268,13 @@ EOD
   end
 
   def frog_trick_applicable?(mpos, range)
-    unless Vec.chess_distance(mpos, @hero.pos).between?(2,range)
+    unless Vec.chess_distance(mpos, hero_pos).between?(2,range)
       return false
     end
 
-    dir = Vec.normalize(Vec.minus(@hero.pos, mpos))
+    dir = Vec.normalize(Vec.minus(hero_pos, mpos))
     pos = Vec.plus(mpos, dir)
-    while pos != @hero.pos
+    while pos != hero_pos
       cell = @level.cell(*pos)
       if cell.wall? || cell.monster
         return false
@@ -4280,8 +4292,8 @@ EOD
     end
 
     # * モンスターの視界内にヒーローが居れば目的地を再設定。
-    if !(!m.nullified? && m.hallucinating?) && @level.fov(mx, my).include?(@hero.x, @hero.y)
-      m.goal = [@hero.x, @hero.y]
+    if !(!m.nullified? && m.hallucinating?) && @level.fov(mx, my).include?(*hero_pos)
+      m.goal = hero_pos
     end
 
     # * 目的地がある場合...
@@ -4294,10 +4306,10 @@ EOD
 
     if m.goal
       if !(!m.nullified? && m.hallucinating?) &&
-         @level.fov(mx, my).include?(@hero.x, @hero.y) &&
+         @level.fov(mx, my).include?(*hero_pos) &&
          m.attrs.include?(:dancing_move)
-        dir = Vec.normalize(Vec.minus(@hero.prev || @hero.pos, [mx, my]))
-        tpos = Vec.plus(@hero.pos, dir)
+        dir = Vec.normalize(Vec.minus(@hero.prev || hero_pos, [mx, my]))
+        tpos = Vec.plus(hero_pos, dir)
 
         if @level.passable?(*tpos) &&
            !@level.cell(*tpos).monster &&
@@ -4313,7 +4325,7 @@ EOD
         DIRECTIONS[j % 8]
       }.each do |dx, dy|
         if @level.can_move_to?(m, mx, my, mx+dx, my+dy) &&
-           [mx+dx, my+dy] != [@hero.x, @hero.y] &&
+           [mx+dx, my+dy] != hero_pos &&
            @level.cell(mx+dx, my+dy).item&.name != "結界の巻物"
           return Action.new(:move, [dx, dy])
         end
@@ -4355,7 +4367,7 @@ EOD
         ].shuffle
         dirs.each do |dx, dy|
           if @level.can_move_to?(m, mx, my, mx+dx, my+dy) &&
-             [mx+dx, my+dy] != [@hero.x, @hero.y] &&
+             [mx+dx, my+dy] != hero_pos &&
              @level.cell(mx+dx, my+dy).item&.name != "結界の巻物"
             return Action.new(:move, [dx,dy])
           end
@@ -4377,7 +4389,7 @@ EOD
       next unless @level.in_dungeon?(x, y) &&
                   (@level.cell(x, y).type == :FLOOR ||
                    @level.cell(x, y).type == :PASSAGE)
-      if [x,y] != [@hero.x,@hero.y] &&
+      if [x,y] != hero_pos &&
          @level.can_move_to?(m, mx, my, x, y) &&
          @level.cell(x, y).item&.name != "結界の巻物"
         candidates << [x, y]
@@ -4405,7 +4417,7 @@ EOD
     end
     if candidates.any?
       x, y = candidates.sample
-      if [x,y] == @hero.pos || @level.cell(x,y).monster
+      if [x,y] == hero_pos || @level.cell(x,y).monster
         return Action.new(:attack, [x-mx, y-my])
       else
         return Action.new(:move, [x - mx, y - my])
@@ -4429,7 +4441,7 @@ EOD
       when :asleep
         # ヒーローがに周囲8マスに居れば1/2の確率で起きる。
         if @hero.ring&.name != "盗賊の指輪" &&
-           @level.surroundings(mx, my).include?(@hero.x, @hero.y)
+           @level.surroundings(mx, my).include?(*hero_pos)
           if rand() < 0.5
             m.state = :awake
           end
@@ -4450,17 +4462,17 @@ EOD
           return monster_move_action(m, mx, my)
         elsif !m.nullified? && m.tipsy? && rand() < 0.5 # ちどり足。
           return monster_tipsy_move_action(m, mx, my)
-        elsif adjacent?([mx, my], [@hero.x, @hero.y]) &&
-              @level.cell(@hero.x, @hero.y).item&.name == "結界の巻物"
+        elsif adjacent?([mx, my], hero_pos) &&
+              @level.cell(*hero_pos).item&.name == "結界の巻物"
           return monster_move_action(m, mx, my) # Action.new(:rest, nil)
         elsif !m.nullified? && trick_applicable?(m) && rand() < m.trick_rate
           return Action.new(:trick, nil)
-        elsif @level.can_attack?(m, mx, my, @hero.x, @hero.y)
+        elsif @level.can_attack?(m, mx, my, *hero_pos)
           # * ヒーローに隣接していればヒーローに攻撃。
           if m.name == "動くモアイ像"
             m.status_effects.reject! { |x| x.type == :held }
           end
-          return Action.new(:attack, Vec.minus([@hero.x, @hero.y], [mx, my]))
+          return Action.new(:attack, Vec.minus(hero_pos, [mx, my]))
         else
           return monster_move_action(m, mx, my)
         end
@@ -4505,12 +4517,12 @@ EOD
 
   def get_character(pos)
     @level.cell(*pos).monster ||
-      ((@hero.pos == pos) ? @hero : nil)
+      ((hero_pos == pos) ? @hero : nil)
   end
 
   # モンスターが攻撃する。
   def monster_attack(assailant, dir)
-    mx, my = @level.coordinates_of(assailant)
+    mx, my = @level.pos_of(assailant)
     dir_ = assailant.zawazawa? ? Vec.negate(dir) : dir
     target = Vec.plus([mx, my], dir_)
     defender = get_character(target)
@@ -4604,26 +4616,26 @@ EOD
       end
 
     when "ピューシャン"
-      mx, my = @level.coordinates_of(m)
-      dir = Vec.normalize(Vec.minus([@hero.x, @hero.y], [mx, my]))
+      mx, my = @level.pos_of(m)
+      dir = Vec.normalize(Vec.minus(hero_pos, [mx, my]))
       arrow = Item.make_item("木の矢")
       arrow.number = 1
       do_throw_item(arrow, [mx,my], dir, m)
     when "ピューシャン2"
-      mx, my = @level.coordinates_of(m)
-      dir = Vec.normalize(Vec.minus([@hero.x, @hero.y], [mx, my]))
+      mx, my = @level.pos_of(m)
+      dir = Vec.normalize(Vec.minus(hero_pos, [mx, my]))
       arrow = Item.make_item("鉄の矢")
       arrow.number = 1
       do_throw_item(arrow, [mx,my], dir, m)
     when "ピューシャン3"
-      mx, my = @level.coordinates_of(m)
-      dir = Vec.normalize(Vec.minus([@hero.x, @hero.y], [mx, my]))
+      mx, my = @level.pos_of(m)
+      dir = Vec.normalize(Vec.minus(hero_pos, [mx, my]))
       arrow = Item.make_item("鉄の矢")
       arrow.number = 1
       do_throw_item(arrow, [mx,my], dir, m)
     when "ピューシャン4"
-      mx, my = @level.coordinates_of(m)
-      dir = Vec.normalize(Vec.minus([@hero.x, @hero.y], [mx, my]))
+      mx, my = @level.pos_of(m)
+      dir = Vec.normalize(Vec.minus(hero_pos, [mx, my]))
       arrow = Item.make_item("鉄の矢")
       arrow.number = 1
       do_throw_item(arrow, [mx,my], dir, m)
@@ -4677,14 +4689,14 @@ EOD
           m.status_effects << StatusEffect.new(:hallucination, Float::INFINITY)
         end
 
-        monster_teleport(m, @level.cell(*@level.coordinates_of(m)))
+        monster_teleport(m, @level.cell(*@level.pos_of(m)))
       else
         log("#{@hero.name}は 何も持っていない。")
       end
 
     when "竜"
-      mx, my = @level.coordinates_of(m)
-      dir = Vec.normalize(Vec.minus([@hero.x, @hero.y], [mx, my]))
+      mx, my = @level.pos_of(m)
+      dir = Vec.normalize(Vec.minus(hero_pos, [mx, my]))
       log("#{m.name}は 火を吐いた。")
       breath_of_fire(m, mx, my, dir)
 
@@ -4724,8 +4736,8 @@ EOD
       log(display_character(m), "は ", display_character(@hero), "を ひきよせた。")
       render
 
-      mpos = @level.coordinates_of(m)
-      dir = Vec.normalize(Vec.minus(@hero.pos, mpos))
+      mpos = @level.pos_of(m)
+      dir = Vec.normalize(Vec.minus(hero_pos, mpos))
       tpos = Vec.plus(mpos, dir)
       hero_change_position(*tpos)
 
@@ -4840,12 +4852,12 @@ EOD
 
   # 64ターンに1回の敵湧き。
   def spawn_monster
-    @dungeon.place_monster(@level, @level_number, @level.fov(@hero.x, @hero.y))
+    @dungeon.place_monster(@level, @level_number, @level.fov(*hero_pos))
   end
 
   # ヒーローが居る部屋。
   def current_room
-    @level.room_at(@hero.x, @hero.y)
+    @level.room_at(*hero_pos)
   end
 
   # 部屋の出入りでモンスターが起きる。
@@ -5244,10 +5256,10 @@ EOD
   end
 
   def should_keep_dashing?
-    target = Vec.plus(@hero.pos, @dash_direction)
+    target = Vec.plus(hero_pos, @dash_direction)
     index = DIRECTIONS.index(@dash_direction)
     forward_area = (-2..+2).map { |ioff|
-      Vec.plus(@hero.pos, DIRECTIONS[(index+ioff) % 8])
+      Vec.plus(hero_pos, DIRECTIONS[(index+ioff) % 8])
     }
 
     # if @hero.status_effects.any?
@@ -5262,12 +5274,12 @@ EOD
       cell.staircase || cell.item || cell.gold || cell.trap&.visible || cell.monster || cell.type == :STATUE
     }
       return false
-    elsif current_room && @level.first_cells_in(current_room).include?(@hero.pos)
+    elsif current_room && @level.first_cells_in(current_room).include?(hero_pos)
       return false
     elsif current_room.nil? && @level.room_at(*target) &&
           @level.first_cells_in(@level.room_at(*target)).include?(target)
       return false
-    elsif fork?(@hero.pos)
+    elsif fork?(hero_pos)
       return false
     else
       return true
@@ -5276,7 +5288,7 @@ EOD
 
   def hero_dash
     if should_keep_dashing?
-      hero_walk(*Vec.plus(@hero.pos, @dash_direction), false)
+      hero_walk(*Vec.plus(hero_pos, @dash_direction), false)
       return :move
     else
       @dash_direction = nil
@@ -5322,7 +5334,7 @@ EOD
   end
 
   def kabe_damage
-    if @level.cell(*@hero.pos).wall?
+    if @level.cell(*hero_pos).wall?
       if @hero.kabenuke?
         take_damage((@hero.max_hp * 0.05).round)
       end

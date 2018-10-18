@@ -120,7 +120,7 @@ class Dungeon
   end
 
   def spawn_other_three(m, cell, level)
-    x, y = level.coordinates_of(m)
+    x, y = level.pos_of(m)
     offsets = [
       [[1,0],[0,1],[1,1]],     # 最初が左上
       [[1,0],[0,-1],[1,-1]],   # 最初が左下
@@ -369,7 +369,7 @@ class Dungeon
     end
   end
 
-  def make_level(level_number, hero)
+  def make_level(level_number)
     fail unless level_number.is_a? Integer and level_number >= 1
 
     if rand() < 0.01

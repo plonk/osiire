@@ -102,7 +102,7 @@ class Cell
 
   def score(object)
     case object
-    when Monster
+    when Monster, Hero
       10
     when Gold, Item, StairCase, Trap
       20
@@ -642,6 +642,12 @@ class Level
     @dungeon[y][x].remove_object(object)
   end
 
+  def move_object(object, x, y)
+    ox, oy = pos_of(object)
+    @dungeon[oy][ox].remove_object(object)
+    @dungeon[y][x].put_object(object)
+  end
+
   def stairs_going_up=(bool)
     (0 ... height).each do |y|
       (0 ... width).each do |x|
@@ -725,7 +731,7 @@ class Level
     return nil
   end
 
-  def coordinates_of(obj)
+  def pos_of(obj)
     (0 ... height).each do |y|
       (0 ... width).each do |x|
         if @dungeon[y][x].objects.any? { |z| z.equal?(obj) }

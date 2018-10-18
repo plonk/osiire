@@ -2,7 +2,7 @@ require_relative 'monster'
 require_relative 'seal'
 
 class Hero
-  attr_accessor :x, :y, :hp, :max_hp, :strength, :max_strength,
+  attr_accessor :hp, :max_hp, :strength, :max_strength,
                 :gold, :exp, :fullness, :max_fullness, :lv
   attr_accessor :inventory
   attr_accessor :weapon, :shield, :ring, :projectile
@@ -15,8 +15,7 @@ class Hero
   include StatusEffectPredicates
 
   def initialize(*args)
-    @x, @y, @hp, @max_hp, @strength, @max_strength,
-    @gold, @exp, @fullness, @max_fullness, @lv = *args
+    @hp, @max_hp, @strength, @max_strength, @gold, @exp, @fullness, @max_fullness, @lv = *args
 
     @inventory = []
     @status_effects = []
@@ -184,10 +183,6 @@ class Hero
         i.equal?(item)
       end
     }
-  end
-
-  def pos
-    [x, y]
   end
 
   def critical?
