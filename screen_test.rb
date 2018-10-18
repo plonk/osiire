@@ -2266,7 +2266,7 @@ EOD
 
   # 投げられたアイテムが着地する。
   def item_land(item, x, y, activate_trap = false)
-    if item.type == :jar && !item.unbreakable
+    if activate_trap && item.type == :jar && !item.unbreakable
       log(display(item), "は 割れた！")
       item.contents.each do |subitem|
         item_land(subitem, x, y, false)
