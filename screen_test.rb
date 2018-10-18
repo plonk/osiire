@@ -2829,6 +2829,7 @@ EOD
       level_down_monster(monster)
     when "ばしがえの杖"
       swap_places(monster, caster)
+      render # 敵が移動する前に表示する。
     when "いちしのの杖"
       send_to_staircase_paralyzing(monster)
     when "ふきとばの杖"
@@ -2931,31 +2932,19 @@ EOD
     paralyze_monster(monster)
   end
 
-  def position_of(character)
-    case character
-    when Hero
-      character.pos
-    when Monster
-      @level.pos_of(character)
-    else fail
-    end
-  end
-
   def set_position_of(character, x, y)
     case character
     when Hero
       hero_change_position(x, y)
     when Monster
-      old = @level.pos_of(character)
-      @level.remove_object(character, *old)
-      @level.put_object(character, x, y)
+      @level.move_object(character, x, y)
       character.goal = nil
     end
   end
 
   def swap_places(character_1, character_2)
-    p1 = position_of(character_1)
-    p2 = position_of(character_2)
+    p1 = @level.pos_of(character_1)
+    p2 = @level.pos_of(character_2)
     set_position_of(character_1, *p2)
     set_position_of(character_2, *p1)
   end
