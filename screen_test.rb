@@ -4745,7 +4745,7 @@ EOD
       when "からかさおばけ3"
         decrement = @hero.decrease_fullness(30)
       when "からかさおばけ4"
-        decrement = @hero.decrease_max_fullness(30)
+        decrement = @hero.decrease_max_fullness(5)
       end
       log(display_character(@hero), "の 腹が減った。")
 
