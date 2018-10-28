@@ -209,10 +209,10 @@ module DungeonGeneration
     level = Level.new(tileset)
 
     case type
-    when :bigmaze
+    when :bigmaze # 大迷路
       level.rooms = []
       make_maze(level, Room.new(1, 21, 25, 54))
-    when :grid9
+    when :grid9 # 9分割
       # 0 1 2
       # 3 4 5
       # 6 7 8
@@ -259,7 +259,7 @@ module DungeonGeneration
           conn.draw(level.dungeon)
         end
       end
-    when :grid2
+    when :grid2 # 2分割。MH用
       # 0 1
       level.rooms = []
       level.rooms << Room.new(1, 22, 20, 38)
@@ -279,7 +279,24 @@ module DungeonGeneration
         level.render_room(room)
       end
       level.connections[0].draw(level.dungeon)
-    when :grid4
+    when :dumbbell # 眼鏡マップ
+      # 0 1
+      r = rand(4..10)
+      s = rand(4..10)
+      level.rooms = []
+      level.rooms << Room.new(12 - r, 12+r+1, 20 - r, 20+r+1)
+      level.rooms << Room.new(12 - s, 12+s+1, 40 - s, 40+s+1)
+
+      level.connections = []
+
+      level.render_circular_room(level.rooms[0], r)
+      level.render_circular_room(level.rooms[1], s)
+
+      my = (level.rooms[0].top+level.rooms[0].bottom)/2
+      (level.rooms[0].right .. level.rooms[1].left).each do |x|
+        level.dungeon[my][x].type = :PASSAGE
+      end
+    when :grid4 # アルティメット4分割
       # 0 1
       # 2 3
       level.rooms = []
@@ -310,7 +327,7 @@ module DungeonGeneration
       level.connections.each do |conn|
         conn.draw(level.dungeon)
       end
-    when :grid10
+    when :grid10 # まんなかで通路が交差している10分割
       # 0 1 2 3
       # 4     5
       # 6 7 8 9
@@ -377,6 +394,7 @@ module DungeonGeneration
     return level
   end
 
+  # 部屋の内部を迷路にする。
   def make_maze(level, room)
     ((room.top) .. (room.bottom)).each do |y|
       ((room.left) .. (room.right)).each do |x|
@@ -404,6 +422,7 @@ module DungeonGeneration
     f.(room.left + 1, room.top + 1)
   end
 
+  # マップの外周を壊れない壁にする。
   def harden_perimeter(level)
     (0...level.dungeon.size).each do |y|
       (0...level.dungeon[0].size).each do |x|
@@ -546,6 +565,21 @@ class Level
         elsif x == room.left || x == room.right
           @dungeon[y][x] = Cell.new(:VERTICAL_WALL)
         else
+          @dungeon[y][x] = Cell.new(:FLOOR)
+        end
+      end
+    end
+  end
+
+  def render_circular_room(room, radius)
+    my = (room.top + room.bottom)/2.0
+    mx = (room.left + room.right)/2.0
+    h = room.bottom - my
+    w = room.right - mx
+
+    (room.top .. room.bottom).each do |y|
+      (room.left .. room.right).each do |x|
+        if Math.sqrt((mx-x)**2 + (my-y)**2) <= radius
           @dungeon[y][x] = Cell.new(:FLOOR)
         end
       end

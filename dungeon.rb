@@ -275,6 +275,8 @@ class Dungeon
       ((room.left+1)..(room.right-1)).map { |x|
         [x, y]
       }
+    }.reject { |x, y|
+      level.cell(x,y).type != :FLOOR
     }
     points.sample(nmonsters).each do |x, y|
       m = make_monster(level_number)
@@ -369,38 +371,51 @@ class Dungeon
     end
   end
 
+  def maze_possible?(type)
+    case type
+    when :dumbbell
+      false
+    else
+      true
+    end
+  end
+
+  def party_room_prob(type)
+    case type
+    when :grid10, :grid9, :dumbbell
+      0.15
+    when :grid4, :grid2
+      1.0
+    else
+      0.0
+    end
+  end
+
   def make_level(level_number)
     fail unless level_number.is_a? Integer and level_number >= 1
 
     if rand() < 0.01
       type = :bigmaze
     else
-      type = [*[:grid10, :grid9]*4, :grid4, :grid2].sample
-    end
-
-    case type
-    when :grid10, :grid9
-      party_room_prob = 0.15
-    when :grid4, :grid2
-      party_room_prob = 1.0
-    else
-      party_room_prob = 0.0
+      type = [*[:grid10, :grid9]*4, :grid4, :grid2, :dumbbell].sample
     end
 
     level = DungeonGeneration.generate(tileset(level_number), type)
 
     mazes = []
-    odd_rooms = level.rooms.select { |r|
-      (r.right - r.left + 1).odd? && (r.top - r.bottom + 1).odd?
-    }
-    if odd_rooms.any?
-      r = odd_rooms.sample
-      DungeonGeneration.make_maze(level, r)
-      mazes << r
+    if maze_possible?(type)
+      odd_rooms = level.rooms.select { |r|
+        (r.right - r.left + 1).odd? && (r.top - r.bottom + 1).odd?
+      }
+      if odd_rooms.any?
+        r = odd_rooms.sample
+        DungeonGeneration.make_maze(level, r)
+        mazes << r
+      end
     end
 
     # place_statues(level, level_number)
-    place_water(level, level_number)
+    #place_water(level, level_number)
 
     place_staircase(level)
     place_items(level, level_number)
@@ -412,7 +427,7 @@ class Dungeon
       level.rooms.delete(r)
     end
 
-    if level.rooms.any? && rand() < party_room_prob
+    if level.rooms.any? && rand() < party_room_prob(type)
       r = level.rooms.sample
       level.party_room = r
 
