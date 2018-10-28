@@ -12,8 +12,16 @@ class Hero < Character
   attr_accessor :facing
   attr_accessor :prev
 
-  def initialize(*args)
-    @hp, @max_hp, @strength, @max_strength, @gold, @exp, @fullness, @max_fullness, @lv = *args
+  def initialize(definition = {})
+    @hp           = definition[:hp] || 15
+    @max_hp       = definition[:max_hp] || 15
+    @strength     = definition[:strength] || 8
+    @max_strength = definition[:max_strength] || 8
+    @gold         = definition[:gold] || 0
+    @exp          = definition[:exp] || 0
+    @fullness     = definition[:fullness] || 100.0
+    @max_fullness = definition[:max_fullness] || 100.0
+    @lv           = definition[:lv] || 1
 
     @inventory = []
     @status_effects = []
