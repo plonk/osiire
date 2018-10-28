@@ -387,7 +387,7 @@ class Dungeon
       party_room_prob = 0.0
     end
 
-    level = Level.new(tileset(level_number), type)
+    level = DungeonGeneration.generate(tileset(level_number), type)
 
     mazes = []
     odd_rooms = level.rooms.select { |r|
@@ -395,7 +395,7 @@ class Dungeon
     }
     if odd_rooms.any?
       r = odd_rooms.sample
-      level.make_maze(r)
+      DungeonGeneration.make_maze(level, r)
       mazes << r
     end
 

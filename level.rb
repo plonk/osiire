@@ -202,208 +202,188 @@ class Rect
   end
 end
 
-class Level
-  attr_reader :stairs_going_up
-  attr_accessor :whole_level_lit
-  attr_accessor :turn
-  attr_accessor :party_room
-  attr_reader :rooms
-  attr :tileset
+module DungeonGeneration
+  module_function
 
-  def initialize(tileset, type = :grid2)
-    @dungeon = Array.new(24) { Array.new(80) { Cell.new(:WALL) } }
+  def generate(tileset, type)
+    level = Level.new(tileset)
 
     case type
     when :bigmaze
-      @rooms = []
-      make_maze(Room.new(1, 21, 25, 54))
+      level.rooms = []
+      make_maze(level, Room.new(1, 21, 25, 54))
     when :grid9
       # 0 1 2
       # 3 4 5
       # 6 7 8
-      @rooms = []
-      @rooms << Room.new(0, 7, 0, 24)
-      @rooms << Room.new(0, 7, 26, 51)
-      @rooms << Room.new(0, 7, 53, 79)
-      @rooms << Room.new(9, 15, 0, 24)
-      @rooms << Room.new(9, 15, 26, 51)
-      @rooms << Room.new(9, 15, 53, 79)
-      @rooms << Room.new(17, 23, 0, 24)
-      @rooms << Room.new(17, 23, 26, 51)
-      @rooms << Room.new(17, 23, 53, 79)
+      level.rooms = []
+      level.rooms << Room.new(0, 7, 0, 24)
+      level.rooms << Room.new(0, 7, 26, 51)
+      level.rooms << Room.new(0, 7, 53, 79)
+      level.rooms << Room.new(9, 15, 0, 24)
+      level.rooms << Room.new(9, 15, 26, 51)
+      level.rooms << Room.new(9, 15, 53, 79)
+      level.rooms << Room.new(17, 23, 0, 24)
+      level.rooms << Room.new(17, 23, 26, 51)
+      level.rooms << Room.new(17, 23, 53, 79)
 
-      @connections = []
+      level.connections = []
 
-      add_connection(@rooms[0], @rooms[1], :horizontal)
-      add_connection(@rooms[0], @rooms[3], :vertical)
-      add_connection(@rooms[1], @rooms[2], :horizontal)
-      add_connection(@rooms[1], @rooms[4], :vertical)
-      add_connection(@rooms[2], @rooms[5], :vertical)
-      add_connection(@rooms[3], @rooms[4], :horizontal)
-      add_connection(@rooms[3], @rooms[6], :vertical)
-      add_connection(@rooms[4], @rooms[5], :horizontal)
-      add_connection(@rooms[4], @rooms[7], :vertical)
-      add_connection(@rooms[5], @rooms[8], :vertical)
-      add_connection(@rooms[6], @rooms[7], :horizontal)
-      add_connection(@rooms[7], @rooms[8], :horizontal)
+      level.add_connection(level.rooms[0], level.rooms[1], :horizontal)
+      level.add_connection(level.rooms[0], level.rooms[3], :vertical)
+      level.add_connection(level.rooms[1], level.rooms[2], :horizontal)
+      level.add_connection(level.rooms[1], level.rooms[4], :vertical)
+      level.add_connection(level.rooms[2], level.rooms[5], :vertical)
+      level.add_connection(level.rooms[3], level.rooms[4], :horizontal)
+      level.add_connection(level.rooms[3], level.rooms[6], :vertical)
+      level.add_connection(level.rooms[4], level.rooms[5], :horizontal)
+      level.add_connection(level.rooms[4], level.rooms[7], :vertical)
+      level.add_connection(level.rooms[5], level.rooms[8], :vertical)
+      level.add_connection(level.rooms[6], level.rooms[7], :horizontal)
+      level.add_connection(level.rooms[7], level.rooms[8], :horizontal)
 
-      until all_connected?(@rooms)
-        conn = @connections.sample
+      until level.all_rooms_connected?
+        conn = level.connections.sample
         conn.realized = true
       end
 
-      @rooms.each do |room|
+      level.rooms.each do |room|
         room.distort!
       end
 
-      @rooms.each do |room|
-        render_room(@dungeon, room)
+      level.rooms.each do |room|
+        level.render_room(room)
       end
-      @connections.each do |conn|
+      level.connections.each do |conn|
         if conn.realized
-          conn.draw(@dungeon)
+          conn.draw(level.dungeon)
         end
       end
     when :grid2
       # 0 1
-      @rooms = []
-      @rooms << Room.new(1, 22, 20, 38)
-      @rooms << Room.new(1, 22, 40, 58)
+      level.rooms = []
+      level.rooms << Room.new(1, 22, 20, 38)
+      level.rooms << Room.new(1, 22, 40, 58)
 
-      @connections = []
+      level.connections = []
 
-      add_connection(@rooms[0], @rooms[1], :horizontal)
+      level.add_connection(level.rooms[0], level.rooms[1], :horizontal)
 
-      @connections[0].realized = true
+      level.connections[0].realized = true
 
-      @rooms.each do |room|
+      level.rooms.each do |room|
         room.distort!(min_width: 15, min_height: 18)
       end
 
-      @rooms.each do |room|
-        render_room(@dungeon, room)
+      level.rooms.each do |room|
+        level.render_room(room)
       end
-      @connections[0].draw(@dungeon)
+      level.connections[0].draw(level.dungeon)
     when :grid4
       # 0 1
       # 2 3
-      @rooms = []
-      @rooms << Room.new(0, 10, 0, 38)
-      @rooms << Room.new(0, 10, 40, 78)
-      @rooms << Room.new(12, 22, 0, 38)
-      @rooms << Room.new(12, 22, 40, 78)
+      level.rooms = []
+      level.rooms << Room.new(0, 10, 0, 38)
+      level.rooms << Room.new(0, 10, 40, 78)
+      level.rooms << Room.new(12, 22, 0, 38)
+      level.rooms << Room.new(12, 22, 40, 78)
 
-      @connections = []
+      level.connections = []
 
-      add_connection(@rooms[0], @rooms[1], :horizontal)
-      add_connection(@rooms[2], @rooms[3], :horizontal)
-      add_connection(@rooms[0], @rooms[2], :vertical)
-      add_connection(@rooms[1], @rooms[3], :vertical)
+      level.add_connection(level.rooms[0], level.rooms[1], :horizontal)
+      level.add_connection(level.rooms[2], level.rooms[3], :horizontal)
+      level.add_connection(level.rooms[0], level.rooms[2], :vertical)
+      level.add_connection(level.rooms[1], level.rooms[3], :vertical)
 
-      @connections.each do |conn|
+      level.connections.each do |conn|
         conn.realized = true
       end
 
-      @rooms.each do |room|
+      level.rooms.each do |room|
         room.distort!(min_width: 30, min_height: 8)
       end
 
-      @rooms.each do |room|
-        render_room(@dungeon, room)
+      level.rooms.each do |room|
+        level.render_room(room)
       end
 
-      @connections.each do |conn|
-        conn.draw(@dungeon)
+      level.connections.each do |conn|
+        conn.draw(level.dungeon)
       end
     when :grid10
       # 0 1 2 3
       # 4     5
       # 6 7 8 9
-      @rooms = []
-      @rooms << Room.new(0, 6, 0, 18)
-      @rooms << Room.new(0, 6, 20, 38)
-      @rooms << Room.new(0, 6, 40, 58)
-      @rooms << Room.new(0, 6, 60, 78)
-      @rooms << Room.new(8, 14, 0, 18)
-      @rooms << Room.new(8, 14, 60, 78)
-      @rooms << Room.new(16, 22, 0, 18)
-      @rooms << Room.new(16, 22, 20, 38)
-      @rooms << Room.new(16, 22, 40, 58)
-      @rooms << Room.new(16, 22, 60, 78)
+      level.rooms = []
+      level.rooms << Room.new(0, 6, 0, 18)
+      level.rooms << Room.new(0, 6, 20, 38)
+      level.rooms << Room.new(0, 6, 40, 58)
+      level.rooms << Room.new(0, 6, 60, 78)
+      level.rooms << Room.new(8, 14, 0, 18)
+      level.rooms << Room.new(8, 14, 60, 78)
+      level.rooms << Room.new(16, 22, 0, 18)
+      level.rooms << Room.new(16, 22, 20, 38)
+      level.rooms << Room.new(16, 22, 40, 58)
+      level.rooms << Room.new(16, 22, 60, 78)
 
-      @connections = []
+      level.connections = []
 
-      add_connection(@rooms[1], @rooms[7], :vertical)
-      add_connection(@rooms[2], @rooms[8], :vertical)
-      add_connection(@rooms[4], @rooms[5], :horizontal)
-      @connections.each do |conn|
+      level.add_connection(level.rooms[1], level.rooms[7], :vertical)
+      level.add_connection(level.rooms[2], level.rooms[8], :vertical)
+      level.add_connection(level.rooms[4], level.rooms[5], :horizontal)
+      level.connections.each do |conn|
         conn.realized = true
       end
 
-      add_connection(@rooms[0], @rooms[1], :horizontal)
-      add_connection(@rooms[1], @rooms[2], :horizontal)
-      add_connection(@rooms[2], @rooms[3], :horizontal)
+      level.add_connection(level.rooms[0], level.rooms[1], :horizontal)
+      level.add_connection(level.rooms[1], level.rooms[2], :horizontal)
+      level.add_connection(level.rooms[2], level.rooms[3], :horizontal)
 
-      add_connection(@rooms[6], @rooms[7], :horizontal)
-      add_connection(@rooms[7], @rooms[8], :horizontal)
-      add_connection(@rooms[8], @rooms[9], :horizontal)
+      level.add_connection(level.rooms[6], level.rooms[7], :horizontal)
+      level.add_connection(level.rooms[7], level.rooms[8], :horizontal)
+      level.add_connection(level.rooms[8], level.rooms[9], :horizontal)
 
-      add_connection(@rooms[0], @rooms[4], :vertical)
-      add_connection(@rooms[4], @rooms[6], :vertical)
+      level.add_connection(level.rooms[0], level.rooms[4], :vertical)
+      level.add_connection(level.rooms[4], level.rooms[6], :vertical)
 
-      add_connection(@rooms[3], @rooms[5], :vertical)
-      add_connection(@rooms[5], @rooms[9], :vertical)
+      level.add_connection(level.rooms[3], level.rooms[5], :vertical)
+      level.add_connection(level.rooms[5], level.rooms[9], :vertical)
 
 
-      until all_connected?(@rooms)
-        conn = @connections.sample
+      until level.all_rooms_connected?
+        conn = level.connections.sample
         conn.realized = true
       end
 
-      @rooms.each do |room|
+      level.rooms.each do |room|
         room.distort!(min_width: 5, min_height: 5)
       end
 
-      @rooms.each do |room|
-        render_room(@dungeon, room)
+      level.rooms.each do |room|
+        level.render_room(room)
       end
 
-      @connections.each do |conn|
+      level.connections.each do |conn|
         if conn.realized
-          conn.draw(@dungeon)
+          conn.draw(level.dungeon)
         end
       end
     else
       fail "unknown type #{type}"
     end
 
-    @stairs_going_up = false
-    @whole_level_lit = false
-    @turn = 0
+    harden_perimeter(level)
 
-    @tileset = tileset
-
-    harden_perimeter
+    return level
   end
 
-  def harden_perimeter
-    (0...@dungeon.size).each do |y|
-      (0...@dungeon[0].size).each do |x|
-        if (x == 0 || x == @dungeon[0].size-1) ||
-           (y == 0 || y == @dungeon.size-1)
-          @dungeon[y][x].unbreakable = true
-        end
-      end
-    end
-  end
-
-  def make_maze(room)
+  def make_maze(level, room)
     ((room.top) .. (room.bottom)).each do |y|
       ((room.left) .. (room.right)).each do |x|
-        case @dungeon[y][x].type
+        case level.dungeon[y][x].type
         when :PASSAGE
         else
-          @dungeon[y][x].type = :WALL
+          level.dungeon[y][x].type = :WALL
         end
       end
     end
@@ -411,17 +391,50 @@ class Level
     visited = {}
 
     f = proc do |x, y|
-      @dungeon[y][x].type = :FLOOR
+      level.dungeon[y][x].type = :FLOOR
       visited[[x,y]] = true
       [[-2,0], [0,-2], [+2,0], [0,+2]].shuffle.each do |dx, dy|
         unless !room.properly_in?(x+dx, y+dy) || visited[[x+dx,y+dy]]
-          @dungeon[y+dy/2][x+dx/2].type = :FLOOR
+          level.dungeon[y+dy/2][x+dx/2].type = :FLOOR
           f.(x+dx, y+dy)
         end
       end
     end
 
     f.(room.left + 1, room.top + 1)
+  end
+
+  def harden_perimeter(level)
+    (0...level.dungeon.size).each do |y|
+      (0...level.dungeon[0].size).each do |x|
+        if (x == 0 || x == level.dungeon[0].size-1) ||
+           (y == 0 || y == level.dungeon.size-1)
+          level.dungeon[y][x].unbreakable = true
+        end
+      end
+    end
+  end
+
+end
+
+class Level
+  attr_accessor :stairs_going_up
+  attr_accessor :whole_level_lit
+  attr_accessor :turn
+  attr_accessor :party_room
+  attr_accessor :rooms
+  attr_accessor :tileset
+  attr_accessor :connections
+  attr_reader   :dungeon
+
+  def initialize(tileset)
+    @dungeon = Array.new(24) { Array.new(80) { Cell.new(:WALL) } }
+
+    @stairs_going_up = false
+    @whole_level_lit = false
+    @turn = 0
+
+    @tileset = tileset
   end
 
   def replace_floor_to_passage(room)
@@ -491,14 +504,6 @@ class Level
     end
   end
 
-  def r(n)
-    if false
-      0
-    else
-      rand(n)
-    end
-  end
-
   # add potential connection between rooms
   def add_connection(room1, room2, direction)
     conn = Connection.new(room1, room2, direction)
@@ -512,6 +517,10 @@ class Level
         res << conn.other_room(room)
       end
     end
+  end
+
+  def all_rooms_connected?
+    all_connected?(@rooms)
   end
 
   def all_connected?(rooms)
@@ -529,7 +538,7 @@ class Level
     return visited.size == rooms.size
   end
 
-  def render_room(dungeon, room)
+  def render_room(room)
     (room.top .. room.bottom).each do |y|
       (room.left .. room.right).each do |x|
         if y == room.top || y == room.bottom
