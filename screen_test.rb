@@ -985,18 +985,31 @@ class Program
     end
   end
 
+  def mine_does_damage_to(character)
+    case character
+    when Monster
+      character.hp = 0
+      render
+      check_monster_dead(character)
+    else
+      take_damage([(character.hp / 2.0).floor, 1.0].max)
+    end
+  end
+
   # 地雷が発動する。
   def mine_activate(mine)
     tx, ty = @level.pos_of(mine)
     rect = @level.surroundings(tx, ty)
+    # 壁が壊れる。
     rect.each_coords do |x, y|
       if @level.in_dungeon?(x, y)
         cell = @level.cell(x, y)
-        if cell.wall?
+        if cell.solid?
           cell.type = :PASSAGE
         end
       end
     end
+    # アイテムが消える。
     rect.each_coords do |x, y|
       if @level.in_dungeon?(x, y)
         cell = @level.cell(x, y)
@@ -1007,19 +1020,16 @@ class Program
         end
       end
     end
+    # 敵が消え、その他のキャラクターはHPが半分に。
     rect.each_coords do |x, y|
       if @level.in_dungeon?(x, y)
         cell = @level.cell(x, y)
-        if cell.monster
-          cell.monster.hp = 0
-          render
-          check_monster_dead(cell.monster)
-        end
-        if hero_pos == [x, y]
-          take_damage([(@hero.hp / 2.0).floor, 1.0].max)
+        if cell.character
+          mine_does_damage_to(cell.character)
         end
       end
     end
+    # 周囲の地雷が起爆される。
     rect.each_coords do |x, y|
       if @level.in_dungeon?(x, y)
         cell = @level.cell(x, y)
@@ -1033,7 +1043,9 @@ class Program
 
   # ヒーロー @hero が配列 objects の要素 item を拾おうとする。
   def pick(cell, item)
-    if item.stuck
+    if cell.type == :WATER
+      log("水中のアイテムには 手がとどかない。")
+    elsif item.stuck
       log(display(item), "は 床にはりついて 拾えない。")
     else
       case item
@@ -1187,50 +1199,62 @@ class Program
     end
   end
 
-  # String → :action | :move | :nothing
+  # Integer | String -> :nothing | :action | nil
+  def dispatch_debug_command(c)
+    case c
+    when '!'
+      require 'pry'
+      Curses.close_screen
+      self.pry
+      Curses.refresh
+      :nothing
+    when '\\'
+      hero_levels_up(true)
+      :nothing
+    when ']'
+      cheat_go_downstairs
+    when '['
+      cheat_go_upstairs
+    when 'p'
+      cheat_menu()
+      :nothing
+    when '`'
+      shop_interaction
+      :nothing
+    when 12 # ^L
+      Curses.close_screen
+      load(File.dirname(__FILE__) + "/screen_test.rb")
+      load(File.dirname(__FILE__) + "/dungeon.rb")
+      load(File.dirname(__FILE__) + "/monster.rb")
+      load(File.dirname(__FILE__) + "/item.rb")
+      load(File.dirname(__FILE__) + "/level.rb")
+      load(File.dirname(__FILE__) + "/shop.rb")
+      load(File.dirname(__FILE__) + "/trap.rb")
+      load(File.dirname(__FILE__) + "/menu.rb")
+      load(File.dirname(__FILE__) + "/hero.rb")
+      :nothing
+    else
+      nil
+    end
+
+  end
+
+  # Integer | String → :action | :move | :nothing
   def dispatch_command(c)
+    if debug?
+      result = dispatch_debug_command(c)
+      if result
+        return result
+      end
+    end
+
     case c
     when '.'
       :action
     when ','
       underfoot_menu
-    when '!'
-      if debug?
-        require 'pry'
-        Curses.close_screen
-        self.pry
-        Curses.refresh
-      end
-      :nothing
-    when '\\'
-      if debug?
-        hero_levels_up(true)
-      end
-      :nothing
-    when ']'
-      if debug?
-        cheat_go_downstairs
-      else
-        :nothing
-      end
-    when '['
-      if debug?
-        cheat_go_upstairs
-      else
-        :nothing
-      end
-    when 'p'
-      if debug?
-        cheat_menu()
-      end
-      :nothing
     when 'o'
       look_out
-      :nothing
-    when '`'
-      if debug?
-        shop_interaction
-      end
       :nothing
     when '?'
       help
@@ -1247,18 +1271,6 @@ class Program
       open_history_window
       :nothing
     when 12 # ^L
-      if debug?
-        Curses.close_screen
-        load(File.dirname(__FILE__) + "/screen_test.rb")
-        load(File.dirname(__FILE__) + "/dungeon.rb")
-        load(File.dirname(__FILE__) + "/monster.rb")
-        load(File.dirname(__FILE__) + "/item.rb")
-        load(File.dirname(__FILE__) + "/level.rb")
-        load(File.dirname(__FILE__) + "/shop.rb")
-        load(File.dirname(__FILE__) + "/trap.rb")
-        load(File.dirname(__FILE__) + "/menu.rb")
-        load(File.dirname(__FILE__) + "/hero.rb")
-      end
       render
       :nothing
     when 'i'
@@ -1760,11 +1772,16 @@ EOD
       end
 
       remove_item_from_hero(item)
-      if item.name == "結界の巻物"
-        stick_scroll(item)
-      end
       @level.put_object(item, *hero_pos)
-      log(display(item), "を 置いた。")
+      case @level.cell(*hero_pos).type
+      when :WATER
+        log(display(item), "は 水に落ちた。")
+      else
+        if item.name == "結界の巻物"
+          stick_scroll(item)
+        end
+        log(display(item), "を 置いた。")
+      end
     else
       log("ここには 置けない。")
     end

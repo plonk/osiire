@@ -100,6 +100,10 @@ class Cell
     end
   end
 
+  def solid?
+    @type==:STATUE || wall?
+  end
+
   def score(object)
     case object
     when Monster, Hero
