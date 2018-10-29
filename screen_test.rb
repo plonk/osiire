@@ -1368,7 +1368,7 @@ class Program
       else
         cell = @level.cell(x, y)
         case cell.type
-        when :VERTICAL_WALL, :HORIZONTAL_WALL, :WALL
+        when :WALL
           "壁"
         when :PASSAGE
           if cell.wet
@@ -2546,7 +2546,7 @@ EOD
 
       cell = @level.cell(x+dx, y+dy)
       case cell.type
-      when :WALL, :HORIZONTAL_WALL, :VERTICAL_WALL, :STATUE
+      when :WALL, :STATUE
         break
       when :FLOOR, :PASSAGE
         if [x+dx, y+dy] == hero_pos
@@ -2588,7 +2588,7 @@ EOD
       end
       cell = @level.cell(x+dx, y+dy)
       case cell.type
-      when :WALL, :HORIZONTAL_WALL, :VERTICAL_WALL, :STATUE
+      when :WALL, :STATUE
         item_land(item, x, y)
         break
       when :FLOOR, :PASSAGE, :WATER
@@ -2870,7 +2870,7 @@ EOD
       end
       cell = @level.cell(x+dx, y+dy)
       case cell.type
-      when :WALL, :HORIZONTAL_WALL, :VERTICAL_WALL, :STATUE
+      when :WALL, :STATUE
         set_position_of(monster, x, y)
         break
       when :FLOOR, :PASSAGE
@@ -3010,7 +3010,7 @@ EOD
 
       cell = @level.cell(x+dx, y+dy)
       case cell.type
-      when :WALL, :HORIZONTAL_WALL, :VERTICAL_WALL
+      when :WALL
         log("魔法弾は壁に当たって消えた。")
         break
       when :STATUE
@@ -3297,9 +3297,9 @@ EOD
     when "大部屋の巻物"
       @level.all_cells_and_positions.each do |cell, x, y|
         if x == 0 || x == 79
-          cell.type = :VERTICAL_WALL
+          cell.type = :WALL
         elsif  y == 0 || y == 23
-          cell.type = :HORIZONTAL_WALL
+          cell.type = :WALL
         else
           cell.type = :FLOOR
         end
@@ -3906,7 +3906,7 @@ EOD
       tile = @level.background_char(x, y)
       if @hero.hallucinating?
         if tile == '􄄤􄄥'
-          "\u{104168}\u{104169}"
+          "\u{104168}\u{104169}" # スタチュー
         else
           tile
         end
@@ -3935,7 +3935,7 @@ EOD
           end
         else
           if @level.whole_level_lit
-            Curses.addstr(@level.tileset[:WALL])
+            Curses.addstr(@level.tileset[:NOPPERI_WALL])
           else
             Curses.addstr("　")
           end

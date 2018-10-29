@@ -28,7 +28,7 @@ class Cell
     }
   end
 
-  def background_char(hero_sees_everything, tileset)
+  def background_char(hero_sees_everything, tileset, wall_map)
     lit = @lit || hero_sees_everything
     case @type
     when :STATUE
@@ -41,19 +41,17 @@ class Cell
       end
     when :WALL
       if lit || @explored
-        tileset[:WALL]
-      else
-        '　'
-      end
-    when :HORIZONTAL_WALL
-      if lit || @explored
-        tileset[:HORIZONTAL_WALL]
-      else
-        '　'
-      end
-    when :VERTICAL_WALL
-      if lit || @explored
-        tileset[:VERTICAL_WALL]
+        if (!wall_map[2] || !wall_map[6]) && (!wall_map[0] || !wall_map[4])
+          tileset[:WALL]
+        elsif !wall_map[2] || !wall_map[6]
+          tileset[:VERTICAL_WALL]
+        elsif !wall_map[0] || !wall_map[4]
+          tileset[:HORIZONTAL_WALL]
+        elsif wall_map.all?
+          tileset[:NOPPERI_WALL]
+        else
+          tileset[:WALL]
+        end
       else
         '　'
       end
@@ -93,7 +91,7 @@ class Cell
 
   def wall?
     case @type
-    when :WALL, :HORIZONTAL_WALL, :VERTICAL_WALL
+    when :WALL
       true
     else
       false
@@ -477,7 +475,14 @@ class Level
   end
 
   def background_char(x, y)
-    @dungeon[y][x].background_char(@whole_level_lit, @tileset)
+    wall_map = [[0,-1],[1,-1],[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1]].map do |dx,dy|
+      if in_dungeon?(x+dx, y+dy)
+        @dungeon[y+dy][x+dx].wall?
+      else
+        true
+      end
+    end
+    @dungeon[y][x].background_char(@whole_level_lit, @tileset, wall_map)
   end
 
   def width
@@ -566,9 +571,9 @@ class Level
     (room.top .. room.bottom).each do |y|
       (room.left .. room.right).each do |x|
         if y == room.top || y == room.bottom
-          @dungeon[y][x] = Cell.new(:HORIZONTAL_WALL)
+          @dungeon[y][x] = Cell.new(:WALL)
         elsif x == room.left || x == room.right
-          @dungeon[y][x] = Cell.new(:VERTICAL_WALL)
+          @dungeon[y][x] = Cell.new(:WALL)
         else
           @dungeon[y][x] = Cell.new(:FLOOR)
         end

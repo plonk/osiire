@@ -300,61 +300,73 @@ class Dungeon
         :WALL            => '􄅦􄅧',
         :HORIZONTAL_WALL => '􄅠􄅡',
         :VERTICAL_WALL   => '􄅢􄅣',
+        :NOPPERI_WALL    => "未",
       },
       {
         :WALL            => '􄅘􄅙',
         :HORIZONTAL_WALL => '􄅔􄅕',
         :VERTICAL_WALL   => '􄅖􄅗',
+        :NOPPERI_WALL    => "\u{104460}\u{104461}",
       },
       {
         :WALL            => '􄅞􄅟',
         :HORIZONTAL_WALL => '􄅚􄅛',
         :VERTICAL_WALL   => '􄅜􄅝',
+        :NOPPERI_WALL    => "\u{10446a}\u{10446b}",
       },
       {
         :WALL            => '􄅰􄅱',
         :HORIZONTAL_WALL => '􄅬􄅭',
         :VERTICAL_WALL   => '􄅮􄅯',
+        :NOPPERI_WALL    => "未",
       },
       {
         :HORIZONTAL_WALL => "\u{104240}\u{104241}",
         :VERTICAL_WALL   => "\u{104242}\u{104243}",
         :WALL            => "\u{104244}\u{104245}",
+        :NOPPERI_WALL    => "未",
       },
       {
         :HORIZONTAL_WALL => '􄅲􄅳',
         :VERTICAL_WALL   => '􄅴􄅵',
         :WALL            => '􄅶􄅷',
+        :NOPPERI_WALL    => "未",
       },
       {
         :WALL            => '􄈪􄈫',
         :HORIZONTAL_WALL => '􄈦􄈧',
         :VERTICAL_WALL   => '􄈨􄈩',
+        :NOPPERI_WALL    => "\u{104468}\u{104469}",
       },
       {
         :WALL            => '􄅌􄅍',
         :HORIZONTAL_WALL => '􄅈􄅉',
         :VERTICAL_WALL   => '􄅊􄅋',
+        :NOPPERI_WALL    => "未",
       },
       {
         :WALL            => '􄅒􄅓',
         :HORIZONTAL_WALL => '􄅐􄅑',
         :VERTICAL_WALL   => '􄅎􄅏',
+        :NOPPERI_WALL    => "\u{104464}\u{104465}",
       },
       {
         :HORIZONTAL_WALL => '􄈠􄈡',
         :VERTICAL_WALL   => '􄈢􄈣',
         :WALL            => '􄈤􄈥',
+        :NOPPERI_WALL    => "\u{104466}\u{104467}",
       },
       {
         :HORIZONTAL_WALL => '􄅸􄅹',
         :VERTICAL_WALL   => '􄅺􄅻',
         :WALL            => '􄅼􄅽',
+        :NOPPERI_WALL    => "\u{104462}\u{104463}",
       },
       {
         :WALL            => '􄁀􄁁',
         :HORIZONTAL_WALL => '􄀢􄀣',
         :VERTICAL_WALL   => '􄀼􄀽',
+        :NOPPERI_WALL    => "未",
       }
     ]
 
