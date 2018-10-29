@@ -4558,7 +4558,7 @@ EOD
         @hero.facing = arg
         hero_swing
       when :item
-        action = actions_for_item(arg)[0]
+        action = actions_for_item(arg, false)[0]
         # XXX: 「どれを」のアイテムでターゲットが選択されない。
         try_do_action_on_item(action, arg)
       else fail
