@@ -4712,7 +4712,7 @@ EOD
       item = @hero.inventory.reject { |i| @hero.equipped?(i) }.sample
       if item
         @hero.remove_from_inventory(item)
-        contents = Syntheiss.heterosynthesis_add(m.contents, item)
+        contents = Synthesis.heterosynthesis_add(m.contents, item)
         m.contents.replace(contents)
         m.capacity -= 1
         log("#{m.name}は ", display(item), "を吸い込んだ！")
