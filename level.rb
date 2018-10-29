@@ -281,16 +281,21 @@ module DungeonGeneration
       level.connections[0].draw(level.dungeon)
     when :dumbbell # 眼鏡マップ
       # 0 1
-      r = rand(4..10)
-      s = rand(4..10)
+      w = (7..23).select(&:odd?).sample
+      v = (7..[(80 - w - 1), 23].min).select(&:odd?).sample
+      m = [80 - w - v, 15].min
+
+
       level.rooms = []
-      level.rooms << Room.new(12 - r, 12+r+1, 20 - r, 20+r+1)
-      level.rooms << Room.new(12 - s, 12+s+1, 40 - s, 40+s+1)
+      level.rooms << Room.new(12 - w/2, 12 + (w/2.0).ceil - 1,
+                              0, w - 1)
+      level.rooms << Room.new(12 - v/2, 12 + (v/2.0).ceil - 1,
+                              w + m, w + m + v - 1)
 
       level.connections = []
 
-      level.render_circular_room(level.rooms[0], r)
-      level.render_circular_room(level.rooms[1], s)
+      level.render_circular_room(level.rooms[0], w/2.0 - 1)
+      level.render_circular_room(level.rooms[1], v/2.0 - 1)
 
       my = (level.rooms[0].top+level.rooms[0].bottom)/2
       (level.rooms[0].right .. level.rooms[1].left).each do |x|
@@ -574,12 +579,10 @@ class Level
   def render_circular_room(room, radius)
     my = (room.top + room.bottom)/2.0
     mx = (room.left + room.right)/2.0
-    h = room.bottom - my
-    w = room.right - mx
 
     (room.top .. room.bottom).each do |y|
       (room.left .. room.right).each do |x|
-        if Math.sqrt((mx-x)**2 + (my-y)**2) <= radius
+        if Math.sqrt((mx-x)**2 + (my-y)**2) < radius
           @dungeon[y][x] = Cell.new(:FLOOR)
         end
       end
