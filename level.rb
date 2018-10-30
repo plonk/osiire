@@ -471,12 +471,12 @@ class Level
       end
     when :PASSAGE
       if lit
-        if @wet
+        if c.wet
           "\u{10433e}\u{10433f}"
         else
           '􄀤􄀥' # 通路
         end
-      elsif @explored
+      elsif c.explored
         '􄀾􄀿' # 薄闇
       else
         '　'
