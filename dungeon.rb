@@ -30,7 +30,9 @@ class Dungeon
   def make_random_item_or_gold(level_number)
     if rand < 0.1
       # アイテムではなく金を置く。
-      Gold.new(rand(100..1000))
+      # 1F 200 ゴールド程度、深層で 2000 ゴールド程度欲しい。
+      amount = rand(0.875 .. 1.125) * (200 + 1800 * (level_number / 100.0))
+      Gold.new([amount.to_i, 1].max)
     else
       make_item(level_number)
     end
