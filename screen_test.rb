@@ -2293,7 +2293,7 @@ EOD
     else
       cell = @level.cell(x, y)
 
-      if cell.trap
+      if activate_trap && cell.trap
         cell.trap.visible = true
         cell.put_object(item)
         trap_do_activate(cell.trap)
