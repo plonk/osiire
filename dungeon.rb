@@ -253,7 +253,7 @@ class Dungeon
       end
     end
 
-    n = [(cells.size * 0.3).round, 50].min
+    n = [(cells.size * 0.1).round, 50].min
     cells.sample(n).each do |cell|
       cell.put_object(Trap.new(Trap::TRAPS.keys.sample, false))
     end
