@@ -1872,7 +1872,7 @@ EOD
           end
         end
       when :nicknamed
-        ["span", cursed, display_by_nickname(item)]
+        ["span", cursed, display_item_by_nickname(item)]
       when :unidentified
         ["span", cursed, ["unidentified", @naming_table.false_name(item.name)]]
       else fail
