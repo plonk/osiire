@@ -947,13 +947,9 @@ class Program
     dx, dy = Vec.rotate_clockwise_45(@hero.facing, 2)
     tx, ty = @level.pos_of(trap)
     x, y = tx, ty
-    while true
-      if @level.cell(x + dx, y + dy).wall?
-        break
-      else
-        x += dx
-        y += dy
-      end
+    until @level.cell(x, y).wall?
+      x += dx
+      y += dy
     end
 
     arrow = Item.make_item(name)
