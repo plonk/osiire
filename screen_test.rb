@@ -2288,7 +2288,7 @@ EOD
   end
 
   # 投げられたアイテムが着地する。
-  def item_land(item, x, y, activate_trap = false)
+  def item_land(item, x, y, activate_trap)
     if activate_trap && item.type == :jar && !item.unbreakable
       log(display(item), "は 割れた！")
       item.contents.each do |subitem|
@@ -2590,13 +2590,13 @@ EOD
       fail unless @level.in_dungeon?(x+dx, y+dy)
 
       if range <= 0
-        item_land(item, x, y)
+        item_land(item, x, y, true)
         break
       end
       cell = @level.cell(x+dx, y+dy)
       case cell.type
       when :WALL, :STATUE
-        item_land(item, x, y)
+        item_land(item, x, y, true)
         break
       when :FLOOR, :PASSAGE, :WATER
         # TODO: 水の場合は、水中か浮遊かの場合分け。
@@ -2611,7 +2611,7 @@ EOD
           elsif rand() < projectile_miss_rate(item, actor, character)
             SoundEffects.miss
             log(display(item), "は 外れた。")
-            item_land(item, x+dx, y+dy)
+            item_land(item, x+dx, y+dy, true)
           else
             SoundEffects.hit
             item_hits_character(item, character, actor, [dx,dy])
