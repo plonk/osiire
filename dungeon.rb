@@ -350,7 +350,7 @@ class Dungeon
         :WALL            => '􄅌􄅍',
         :HORIZONTAL_WALL => '􄅈􄅉',
         :VERTICAL_WALL   => '􄅊􄅋',
-        :NOPPERI_WALL    => "未",
+        :NOPPERI_WALL    => "\u{104474}\u{104475}",
       },
       # 溶岩
       {
