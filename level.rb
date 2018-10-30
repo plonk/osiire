@@ -28,79 +28,6 @@ class Cell
     }
   end
 
-  # (true|false, Hash, [true|false]) → String
-  # wall_map: 北から右まわりに、周囲8マスが壁であるかを表わす8要素のリスト。
-  def background_char(hero_sees_everything, tileset, wall_map)
-    # assert hero_sees_everything, [:or, true, false],
-    #        tileset, [:map, { WALL: String,
-    #                          STATUE: String,
-    #                          FLOOR: String,
-    #                          PASSAGE: String,
-    #                          VERTICAL_WALL: String,
-    #                          HORIZONTAL_WALL: String }],
-    #        wall_map, [:list_of, [:or, true, false]]
-
-    lit = @lit || hero_sees_everything
-    case @type
-    when :STATUE
-      if lit
-        '􄄤􄄥' # モアイ像
-      elsif @explored
-        '􄀾􄀿' # 薄闇
-      else
-        '　'
-      end
-    when :WALL
-      if lit || @explored
-        if (!wall_map[Vec::IDX_EAST]  || !wall_map[Vec::IDX_WEST]) &&
-           (!wall_map[Vec::IDX_NORTH] || !wall_map[Vec::IDX_SOUTH])
-          tileset[:WALL]
-        elsif !wall_map[Vec::IDX_EAST] || !wall_map[Vec::IDX_WEST]
-          tileset[:VERTICAL_WALL]
-        elsif !wall_map[Vec::IDX_NORTH] || !wall_map[Vec::IDX_SOUTH]
-          tileset[:HORIZONTAL_WALL]
-        elsif wall_map.all?
-          tileset[:NOPPERI_WALL]
-        else
-          tileset[:WALL]
-        end
-      else
-        '　'
-      end
-    when :FLOOR
-      if lit
-        if @wet
-          "\u{10433e}\u{10433f}"
-        else
-          '􄀪􄀫' # 部屋の床
-        end
-      elsif @explored
-        '􄀾􄀿' # 薄闇
-      else
-        '　'
-      end
-    when :PASSAGE
-      if lit
-        if @wet
-          "\u{10433e}\u{10433f}"
-        else
-          '􄀤􄀥' # 通路
-        end
-      elsif @explored
-        '􄀾􄀿' # 薄闇
-      else
-        '　'
-      end
-    when :WATER
-      if lit || @explored
-        "\u{10433c}\u{10433d}"
-      else
-        '　'
-      end
-    else '？'
-    end
-  end
-
   def wall?
     case @type
     when :WALL
@@ -493,14 +420,75 @@ class Level
   end
 
   def background_char(x, y)
-    wall_map = [[0,-1],[1,-1],[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1]].map do |dx,dy|
-      if in_dungeon?(x+dx, y+dy)
-        @dungeon[y+dy][x+dx].wall?
+    c = cell(x,y)
+    lit = c.lit || @whole_level_lit
+
+    case c.type
+    when :STATUE
+      if lit
+        '􄄤􄄥' # モアイ像
+      elsif c.explored
+        '􄀾􄀿' # 薄闇
       else
-        true
+        '　'
       end
+    when :WALL
+      if lit || c.explored
+        wall_map = Vec::DIRS_CLOCKWISE.map do |dx,dy|
+          if in_dungeon?(x+dx, y+dy)
+            @dungeon[y+dy][x+dx].wall?
+          else
+            true
+          end
+        end
+
+        if (!wall_map[Vec::IDX_EAST]  || !wall_map[Vec::IDX_WEST]) &&
+           (!wall_map[Vec::IDX_NORTH] || !wall_map[Vec::IDX_SOUTH])
+          @tileset[:WALL]
+        elsif !wall_map[Vec::IDX_EAST] || !wall_map[Vec::IDX_WEST]
+          @tileset[:VERTICAL_WALL]
+        elsif !wall_map[Vec::IDX_NORTH] || !wall_map[Vec::IDX_SOUTH]
+          @tileset[:HORIZONTAL_WALL]
+        elsif wall_map.all?
+          @tileset[:NOPPERI_WALL]
+        else
+          @tileset[:WALL]
+        end
+      else
+        '　'
+      end
+    when :FLOOR
+      if lit
+        if c.wet
+          "\u{10433e}\u{10433f}"
+        else
+          '􄀪􄀫' # 部屋の床
+        end
+      elsif c.explored
+        '􄀾􄀿' # 薄闇
+      else
+        '　'
+      end
+    when :PASSAGE
+      if lit
+        if @wet
+          "\u{10433e}\u{10433f}"
+        else
+          '􄀤􄀥' # 通路
+        end
+      elsif @explored
+        '􄀾􄀿' # 薄闇
+      else
+        '　'
+      end
+    when :WATER
+      if lit || c.explored
+        "\u{10433c}\u{10433d}"
+      else
+        '　'
+      end
+    else '？'
     end
-    @dungeon[y][x].background_char(@whole_level_lit, @tileset, wall_map)
   end
 
   def width
@@ -657,7 +645,7 @@ class Level
   end
 
   def in_dungeon?(x, y)
-    return x.between?(0, width-1) && y.between?(0, height-1)
+    return x >= 0 && x < width && y >= 0 && y < height
   end
 
   # (x, y) と周辺の8マスを探索済みとしてマークする
