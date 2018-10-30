@@ -841,9 +841,7 @@ class Program
       if @level.in_dungeon?(x, y) &&
          @level.cell(x, y).can_place?
         item = candidates.shift
-        if item.name == "結界の巻物"
-          stick_scroll(item)
-        end
+        on_item_placed(item, x, y)
         @level.put_object(item, x, y)
         remove_item_from_hero(item)
         count += 1
@@ -1780,9 +1778,7 @@ EOD
       when :WATER
         log(display(item), "は 水に落ちた。")
       else
-        if item.name == "結界の巻物"
-          stick_scroll(item)
-        end
+        on_item_placed(item, *hero_pos)
         log(display(item), "を 置いた。")
       end
     else
@@ -2287,6 +2283,14 @@ EOD
                      cols: cols, y: 1, x: 27)
   end
 
+  def on_item_placed(item, x, y)
+    # TODO: 地形によって違うことを行う。
+
+    if item.name == "結界の巻物"
+      stick_scroll(item)
+    end
+  end
+
   # 投げられたアイテムが着地する。
   def item_land(item, x, y, activate_trap)
     if activate_trap && item.type == :jar && !item.unbreakable
@@ -2322,9 +2326,7 @@ EOD
             @level.cell(x+dx, y+dy).can_place?)
 
           @level.cell(x+dx, y+dy).put_object(item)
-          if item.name == "結界の巻物"
-            stick_scroll(item)
-          end
+          on_item_placed(item, x+dx, y+dy)
           if @level.cell(x+dx, y+dy).type == :WATER
             log(display(item), "は 水に落ちた。")
           else
