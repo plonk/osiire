@@ -296,72 +296,84 @@ class Dungeon
 
   TILESETS =
     [
+      # ペイズリー
       {
         :WALL            => '􄅦􄅧',
         :HORIZONTAL_WALL => '􄅠􄅡',
         :VERTICAL_WALL   => '􄅢􄅣',
         :NOPPERI_WALL    => "未",
       },
+      # 石づくり
       {
         :WALL            => '􄅘􄅙',
         :HORIZONTAL_WALL => '􄅔􄅕',
         :VERTICAL_WALL   => '􄅖􄅗',
         :NOPPERI_WALL    => "\u{104460}\u{104461}",
       },
+      # 木材
       {
         :WALL            => '􄅞􄅟',
         :HORIZONTAL_WALL => '􄅚􄅛',
         :VERTICAL_WALL   => '􄅜􄅝',
         :NOPPERI_WALL    => "\u{10446a}\u{10446b}",
       },
+      # 土砂
       {
         :WALL            => '􄅰􄅱',
         :HORIZONTAL_WALL => '􄅬􄅭',
         :VERTICAL_WALL   => '􄅮􄅯',
         :NOPPERI_WALL    => "未",
       },
+      # 泥
       {
         :HORIZONTAL_WALL => "\u{104240}\u{104241}",
         :VERTICAL_WALL   => "\u{104242}\u{104243}",
         :WALL            => "\u{104244}\u{104245}",
         :NOPPERI_WALL    => "未",
       },
+      # モアイを作る黒い石
       {
         :HORIZONTAL_WALL => '􄅲􄅳',
         :VERTICAL_WALL   => '􄅴􄅵',
         :WALL            => '􄅶􄅷',
         :NOPPERI_WALL    => "未",
       },
+      # ラスコー洞窟
       {
         :WALL            => '􄈪􄈫',
         :HORIZONTAL_WALL => '􄈦􄈧',
         :VERTICAL_WALL   => '􄈨􄈩',
         :NOPPERI_WALL    => "\u{104468}\u{104469}",
       },
+      # 氷
       {
         :WALL            => '􄅌􄅍',
         :HORIZONTAL_WALL => '􄅈􄅉',
         :VERTICAL_WALL   => '􄅊􄅋',
         :NOPPERI_WALL    => "未",
       },
+      # 溶岩
       {
         :WALL            => '􄅒􄅓',
         :HORIZONTAL_WALL => '􄅐􄅑',
         :VERTICAL_WALL   => '􄅎􄅏',
         :NOPPERI_WALL    => "\u{104464}\u{104465}",
       },
+      # 化石
       {
         :HORIZONTAL_WALL => '􄈠􄈡',
         :VERTICAL_WALL   => '􄈢􄈣',
         :WALL            => '􄈤􄈥',
         :NOPPERI_WALL    => "\u{104466}\u{104467}",
       },
+      # 水の湧き出る壁
       {
         :HORIZONTAL_WALL => '􄅸􄅹',
         :VERTICAL_WALL   => '􄅺􄅻',
         :WALL            => '􄅼􄅽',
         :NOPPERI_WALL    => "\u{104462}\u{104463}",
       },
+      # レンガ
       {
         :WALL            => '􄁀􄁁',
         :HORIZONTAL_WALL => '􄀢􄀣',
