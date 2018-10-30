@@ -1790,6 +1790,7 @@ EOD
     end
   end
 
+  # Item -> Markup
   def display_item(item)
     if item.is_a?(Gold)
       return item.to_s
@@ -1843,6 +1844,7 @@ EOD
     end
   end
 
+  # Item -> Markup
   def display_inspected_item(item)
     if item.cursed
       ["cursed", item.to_s]
@@ -1853,6 +1855,7 @@ EOD
     end
   end
 
+  # Item -> Markup
   def display_uninspected_item(item)
     if item.type != :ring && item.cursed
       cursed = "\u{10423C}" # ドクロ
@@ -1882,6 +1885,7 @@ EOD
     end
   end
 
+  # Item -> Markup
   def display_item_by_nickname(item)
     kind_label = case item.type
                  when :herb then "草"
