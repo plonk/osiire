@@ -3482,7 +3482,7 @@ EOD
       end
 
       if cell.monster
-        monster_take_damage(cell.monster, rand(65...75))
+        monster_take_damage(cell.monster, rand(65...75), @hero)
       end
     when "混乱草"
       unless @hero.confused?
