@@ -5451,6 +5451,10 @@ EOD
             @hero.action_point -= 2
           end
         elsif all_monsters_moved?
+          # フロアにモンスターが居ない場合にはここで踏んだワナが発動す
+          # る。
+          traps_activate
+
           next_turn
           earthquake
         else
