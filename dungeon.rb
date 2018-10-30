@@ -298,10 +298,10 @@ class Dungeon
     [
       # ペイズリー
       {
-        :WALL            => '􄅦􄅧',
+        :WALL            => "\u{104164}\u{104165}",
         :HORIZONTAL_WALL => '􄅠􄅡',
         :VERTICAL_WALL   => '􄅢􄅣',
-        :NOPPERI_WALL    => "未",
+        :NOPPERI_WALL    => '􄅦􄅧',
       },
       # 石づくり
       {
@@ -319,24 +319,24 @@ class Dungeon
       },
       # 土砂
       {
-        :WALL            => '􄅰􄅱',
+        :WALL            => "\u{10446c}\u{10446d}",
         :HORIZONTAL_WALL => '􄅬􄅭',
         :VERTICAL_WALL   => '􄅮􄅯',
-        :NOPPERI_WALL    => "未",
+        :NOPPERI_WALL    => '􄅰􄅱',
       },
       # 泥
       {
         :HORIZONTAL_WALL => "\u{104240}\u{104241}",
         :VERTICAL_WALL   => "\u{104242}\u{104243}",
         :WALL            => "\u{104244}\u{104245}",
-        :NOPPERI_WALL    => "未",
+        :NOPPERI_WALL    => "\u{10446e}\u{10446f}",
       },
       # モアイを作る黒い石
       {
         :HORIZONTAL_WALL => '􄅲􄅳',
         :VERTICAL_WALL   => '􄅴􄅵',
         :WALL            => '􄅶􄅷',
-        :NOPPERI_WALL    => "未",
+        :NOPPERI_WALL    => "\u{104470}\u{104471}",
       },
       # ラスコー洞窟
       {
@@ -378,7 +378,7 @@ class Dungeon
         :WALL            => '􄁀􄁁',
         :HORIZONTAL_WALL => '􄀢􄀣',
         :VERTICAL_WALL   => '􄀼􄀽',
-        :NOPPERI_WALL    => "未",
+        :NOPPERI_WALL    => "\u{104472}\u{104473}",
       }
     ]
 
