@@ -492,6 +492,11 @@ class Program
         damage *= 2
       end
       monster_take_damage(monster, damage, @hero)
+
+      if effective_seals(@hero.weapon).any? { |s| s.char == "捨" } &&
+         @hero.weapon.corrected_number > 0
+        @hero.weapon.correction -= 1
+      end
     end
   end
 
