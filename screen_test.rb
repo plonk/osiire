@@ -331,16 +331,18 @@ class Program
 
   # 経験値が溜まっていればヒーローのレベルアップをする。
   def check_level_up(silent = false)
-    while @hero.lv < exp_to_lv(@hero.exp)
+    if @hero.lv < exp_to_lv(@hero.exp)
       log("#{@hero.name}の レベルが 上がった。")
       unless silent
         SoundEffects.fanfare
         render
       end
-      @hero.lv += 1
-      hp_increase = 5
-      @hero.max_hp = [@hero.max_hp + 5, 999].min
-      @hero.hp = [@hero.max_hp, @hero.hp + 5].min
+      while @hero.lv < exp_to_lv(@hero.exp)
+        @hero.lv += 1
+        hp_increase = 5
+        @hero.max_hp = [@hero.max_hp + 5, 999].min
+        @hero.hp = [@hero.max_hp, @hero.hp + 5].min
+      end
     end
   end
 
