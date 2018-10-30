@@ -28,7 +28,18 @@ class Cell
     }
   end
 
+  # (true|false, Hash, [true|false]) → String
+  # wall_map: 北から右まわりに、周囲8マスが壁であるかを表わす8要素のリスト。
   def background_char(hero_sees_everything, tileset, wall_map)
+    # assert hero_sees_everything, [:or, true, false],
+    #        tileset, [:map, { WALL: String,
+    #                          STATUE: String,
+    #                          FLOOR: String,
+    #                          PASSAGE: String,
+    #                          VERTICAL_WALL: String,
+    #                          HORIZONTAL_WALL: String }],
+    #        wall_map, [:list_of, [:or, true, false]]
+
     lit = @lit || hero_sees_everything
     case @type
     when :STATUE
@@ -41,11 +52,12 @@ class Cell
       end
     when :WALL
       if lit || @explored
-        if (!wall_map[2] || !wall_map[6]) && (!wall_map[0] || !wall_map[4])
+        if (!wall_map[Vec::IDX_EAST]  || !wall_map[Vec::IDX_WEST]) &&
+           (!wall_map[Vec::IDX_NORTH] || !wall_map[Vec::IDX_SOUTH])
           tileset[:WALL]
-        elsif !wall_map[2] || !wall_map[6]
+        elsif !wall_map[Vec::IDX_EAST] || !wall_map[Vec::IDX_WEST]
           tileset[:VERTICAL_WALL]
-        elsif !wall_map[0] || !wall_map[4]
+        elsif !wall_map[Vec::IDX_NORTH] || !wall_map[Vec::IDX_SOUTH]
           tileset[:HORIZONTAL_WALL]
         elsif wall_map.all?
           tileset[:NOPPERI_WALL]
@@ -102,6 +114,7 @@ class Cell
     @type==:STATUE || wall?
   end
 
+  # 実際に描画するオブジェクトを選択する際の優先度。
   def score(object)
     case object
     when Monster, Hero
@@ -279,8 +292,12 @@ module DungeonGeneration
       level.connections[0].draw(level.dungeon)
     when :dumbbell # 眼鏡マップ
       # 0 1
+
+      # 部屋0の幅(=高さ)。
       w = (7..23).select(&:odd?).sample
+      # 部屋1の幅(=高さ)。
       v = (7..[(80 - w - 1), 23].min).select(&:odd?).sample
+      # 部屋0と部屋1をつなぐ通路の長さ。
       m = [80 - w - v, 15].min
 
 
@@ -295,6 +312,7 @@ module DungeonGeneration
       level.render_circular_room(level.rooms[0], w/2.0 - 1)
       level.render_circular_room(level.rooms[1], v/2.0 - 1)
 
+      # 通路を作成。
       my = (level.rooms[0].top+level.rooms[0].bottom)/2
       (level.rooms[0].right .. level.rooms[1].left).each do |x|
         level.dungeon[my][x].type = :PASSAGE
@@ -581,7 +599,9 @@ class Level
     end
   end
 
+  # 円形に部屋を掘る。
   def render_circular_room(room, radius)
+    # 部屋の中心。
     my = (room.top + room.bottom)/2.0
     mx = (room.left + room.right)/2.0
 
@@ -812,6 +832,8 @@ class Level
     light_up(rect)
   end
 
+  # Room → [[Integer,Integer]]
+  # 部屋の出入口の座標。
   def first_cells_in(room)
     res = []
     (room.left+1 .. room.right-1).each do |x|

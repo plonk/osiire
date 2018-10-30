@@ -38,6 +38,25 @@ module Vec
     j = (i + times) % 8
     return DIRS_CLOCKWISE[j]
   end
+
+  VEC_NORTH     = [0,-1]
+  VEC_NORTHEAST = [1,-1]
+  VEC_EAST      = [1,0]
+  VEC_SOUTHEAST = [1,1]
+  VEC_SOUTH     = [0,1]
+  VEC_SOUTHWEST = [-1,1]
+  VEC_WEST      = [-1,0]
+  VEC_NORTHWEST = [-1,-1]
+
+  IDX_NORTH     = 0
+  IDX_NORTHEAST = 1
+  IDX_EAST      = 2
+  IDX_SOUTHEAST = 3
+  IDX_SOUTH     = 4
+  IDX_SOUTHWEST = 5
+  IDX_WEST      = 6
+  IDX_NORTHWEST = 7
+
 end
 
 if __FILE__ == $0
