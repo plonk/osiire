@@ -5,6 +5,7 @@ class Dungeon
   # [[Integer, [String,Integer], [String,Integer]...]...]
   ITEM_TABLE = eval(IO.read(File.join(File.dirname(__FILE__), 'item_table.rb')))
 
+  # ランキングなどに表示されるダンジョンの名前。
   def name
     "じゃんじょん"
   end
@@ -49,6 +50,8 @@ class Dungeon
     end
   end
 
+  # [[項目,整数], ...] で定義される確率分布からランダムに項目を選択す
+  # る。
   def select(distribution)
     fail TypeError, 'Array expected' unless distribution.is_a?(Array)
     fail 'empty distribution' if distribution.empty?
@@ -121,43 +124,12 @@ class Dungeon
     spawn_monster(make_monster(level_number), cell, level)
   end
 
-  def spawn_other_three(m, cell, level)
-    x, y = level.pos_of(m)
-    offsets = [
-      [[1,0],[0,1],[1,1]],     # 最初が左上
-      [[1,0],[0,-1],[1,-1]],   # 最初が左下
-      [[-1,0],[0,1],[-1,1]],   # 最初が右上
-      [[-1,0],[0,-1],[-1,-1]], # 最初が右上
-    ].sort_by { |offsets|
-      offsets.count { |dx, dy|
-        cell = level.cell(x+dx, y+dy)
-        (cell.type == :FLOOR || cell.type == :PASSAGE) && cell.monster.nil?
-      }
-    }.reverse.first
-
-    group = Array.new
-    group << m
-    offsets.each do |dx, dy|
-      cell = level.cell(x+dx, y+dy)
-      if (cell.type == :FLOOR || cell.type == :PASSAGE) && cell.monster.nil?
-        friend = Monster.make_monster("四人トリオ")
-        group << friend
-        friend.group = group
-        cell.put_object(friend)
-      end
-    end
-    m.group = group
-  end
-
   def spawn_monster(m, cell, level)
     if m.is_a?(Item) && cell.can_place? # ミミック
       cell.put_object(m)
       return true
     elsif m.is_a?(Monster) && !cell.monster
       cell.put_object(m)
-      if cell.monster.name == "四人トリオ"
-        spawn_other_three(m, cell, level)
-      end
       return true
     else
       return false
@@ -170,43 +142,6 @@ class Dungeon
       cell = level.cell(*level.get_random_place(:FLOOR))
       m = make_monster(level_number)
       spawn_monster(m, cell, level)
-    end
-  end
-
-  def surrounded_by_empty_floor_tiles?(level, x, y)
-    level.surroundings(x, y).each_coords do |xx, yy|
-      c = level.cell(xx, yy)
-      unless c.type == :FLOOR && c.objects.none?
-        return false
-      end
-    end
-    return true
-  end
-
-  def place_statues(level, level_number)
-    num = rand(3..3)
-
-    until num == 0
-      x, y = level.get_random_place(:FLOOR)
-      if x.nil? # 部屋がない
-        return
-      end
-      if surrounded_by_empty_floor_tiles?(level, x, y)
-        level.cell(x, y).type = :STATUE
-      end
-      num -= 1
-    end
-  end
-
-  def place_objective(level, level_number)
-    loop do
-      cell = level.cell(*level.get_random_place(:FLOOR))
-      if cell.can_place?
-        objective = Item.make_item(OBJECTIVE_NAME)
-        objective.number = level_number
-        cell.put_object(objective)
-        return
-      end
     end
   end
 
@@ -242,7 +177,18 @@ class Dungeon
     end
   end
 
-  def place_traps_in_room(level, level_number, room)
+  # 部屋のMH化。
+  def make_party_room(level, level_number, room)
+    nitems = 10
+    nmonsters = 10
+
+    place_traps_in_party_room(level, level_number, room)
+    place_items_in_party_room(level, level_number, room, nitems)
+    place_monsters_in_party_room(level, level_number, room, nmonsters)
+  end
+
+  # MH罠配置。
+  def place_traps_in_party_room(level, level_number, room)
     cells = []
     ((room.top+1)..(room.bottom-1)).each do |y|
       ((room.left+1)..(room.right-1)).each do |x|
@@ -259,7 +205,8 @@ class Dungeon
     end
   end
 
-  def place_items_in_room(level, level_number, room, nitems)
+  # MHアイテム配置。
+  def place_items_in_party_room(level, level_number, room, nitems)
     points = ((room.top+1)..(room.bottom-1)).flat_map { |y|
       ((room.left+1)..(room.right-1)).map { |x|
         [x, y]
@@ -272,7 +219,8 @@ class Dungeon
     end
   end
 
-  def place_monsters_in_room(level, level_number, room, nmonsters)
+  # MHモンスター配置。
+  def place_monsters_in_party_room(level, level_number, room, nmonsters)
     points = ((room.top+1)..(room.bottom-1)).flat_map { |y|
       ((room.left+1)..(room.right-1)).map { |x|
         [x, y]
@@ -385,9 +333,10 @@ class Dungeon
     ]
 
   def tileset(level_number)
-    TILESETS.sample
+    TILESETS[(level_number - 1) % TILESETS.size]
   end
 
+  # 壁を水路に置き換える。
   def place_water(level, level_number)
     level.each_coords do |x, y|
       c = level.cell(x, y)
@@ -397,6 +346,7 @@ class Dungeon
     end
   end
 
+  # 部屋の迷路化が起こり得るマップタイプか。
   def maze_possible?(type)
     case type
     when :dumbbell
@@ -406,6 +356,7 @@ class Dungeon
     end
   end
 
+  # 指定のマップタイプでMHが配置される確率。
   def party_room_prob(type)
     case type
     when :grid10, :grid9, :dumbbell
@@ -420,11 +371,9 @@ class Dungeon
   def make_level(level_number)
     fail unless level_number.is_a? Integer and level_number >= 1
 
-    if rand() < 0.01
-      type = :bigmaze
-    else
-      type = [*[:grid10, :grid9]*4, :grid4, :grid2, :dumbbell].sample
-    end
+    type = select [[:bigmaze, 1.0/9],
+                   [:grid10, 4], [:grid9, 4],
+                   [:grid4, 1], [:grid2, 1], [:dumbbell, 1]]
 
     level = DungeonGeneration.generate(tileset(level_number), type)
 
@@ -440,7 +389,6 @@ class Dungeon
       end
     end
 
-    # place_statues(level, level_number)
     #place_water(level, level_number)
 
     place_staircase(level)
@@ -449,21 +397,17 @@ class Dungeon
     place_monsters(level, level_number)
 
     mazes.each do |r|
-      # level.replace_floor_to_passage(r)
       level.rooms.delete(r)
     end
 
     if level.rooms.any? && rand() < party_room_prob(type)
-      r = level.rooms.sample
-      level.party_room = r
+      room = level.rooms.sample
+      level.party_room = room
 
-      place_traps_in_room(level, level_number, r)
-      place_items_in_room(level, level_number, r, 10)
-      place_monsters_in_room(level, level_number, r, 10)
+      make_party_room(level, level_number, room)
     end
 
     return level
   end
-
 
 end

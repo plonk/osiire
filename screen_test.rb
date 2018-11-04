@@ -3359,18 +3359,6 @@ EOD
       monster.status_effects.reject! { |e|
         e.type == :held
       }
-    when "四人トリオ"
-      if monster.group # 単独湧きの場合は無い。
-        monster.group.each do |friend|
-          next if friend.equal?(monster) # 自分は処理しなくていい。
-
-          wake_monster(friend)
-          # かなしばり状態も解ける。
-          friend.status_effects.reject! { |e|
-            e.type == :paralysis
-          }
-        end
-      end
     end
   end
 

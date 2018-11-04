@@ -152,7 +152,7 @@ class Monster < Character
     @status_effects = []
     @item = nil
     case @name
-    when "催眠術師", "どろぼう猫", "四人トリオ"
+    when "催眠術師", "どろぼう猫"
       # 攻撃されるまで動き出さないモンスター
       @status_effects << StatusEffect.new(:paralysis, Float::INFINITY)
     when "ノーム"
@@ -195,7 +195,7 @@ class Monster < Character
   # させる。
   def on_party_room_intrusion
     case @name
-    when "催眠術師", "どろぼう猫", "四人トリオ"
+    when "催眠術師", "どろぼう猫"
       # 攻撃されるまで動き出さないモンスター
       @status_effects.reject! { |e| e.type == :paralysis }
     when "動くモアイ像"
@@ -255,7 +255,7 @@ class Monster < Character
 
   def single_attack?
     case @name
-    when "ツバメ", "四人トリオ"
+    when "ツバメ"
       true
     else
       false
