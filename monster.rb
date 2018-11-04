@@ -126,7 +126,6 @@ class Monster < Character
   attr :trick_range
   attr_accessor :invisible
   attr_accessor :action_point, :action_point_recovery_rate
-  attr_accessor :group
   attr_accessor :impersonating_name, :impersonating_char
   attr_reader :contents
   attr_accessor :capacity
