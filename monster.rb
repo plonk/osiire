@@ -304,9 +304,10 @@ class Monster < Character
     ["スライム", "スライム2", "スライム3"]
   ]
 
+  # 次のレベルのモンスター名。
+  # () -> String|nil
   def descendant
     PHYLOGENY.each do |series|
-      # 演算子の優先度がよくわかってない。
       if (i = series.index(@name)) && (i < series.size - 1)
         return series[i + 1]
       end
@@ -314,6 +315,8 @@ class Monster < Character
     return nil
   end
 
+  # 前のレベルのモンスター名。
+  # () -> String|nil
   def ancestor
     PHYLOGENY.each do |series|
       if (i = series.index(@name)) && (i > 0)
