@@ -5423,6 +5423,13 @@ EOD
     end
   end
 
+  def resurrect_hero
+    @hero.status_effects.clear
+    @hero.hp = @hero.max_hp
+    @hero.strength = @hero.max_strength
+    @hero.fullness = @hero.max_fullness
+  end
+
   # ダンジョンのプレイ。
   def play
     @start_time = Time.now
@@ -5453,6 +5460,13 @@ EOD
       end
     rescue HeroDied
       log("#{@hero.name}は ちからつきた。")
+      if @hero&.ring&.name == "身代わりの指輪"
+        ring = @hero.ring
+        @hero.remove_from_inventory(ring)
+        resurrect_hero
+        log("だが ", display(ring), "のおかげで復活した！")
+        retry
+      end
       render
       gameover_message
     end

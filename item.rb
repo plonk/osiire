@@ -144,6 +144,7 @@ class Item
  {:type=>:ring, :name=>"人形よけの指輪", :desc=>"敵にレベルやHPを下げられなくなる。"},
  {:type=>:ring, :name=>"ザメハの指輪"},
  {:type=>:ring, :name=>"壁抜けの指輪", :desc=>"壁に入れる。", :attrs=>[:kabenuke]},
+ {:type=>:ring, :name=>"身代わりの指輪", :desc=>"死んでも生きかえる。"},
  {:type=>:food, :name=>"パン", :desc=>"満腹度が50%回復する。", :seal=>"飯"},
  {:type=>:food, :name=>"大きなパン", :desc=>"満腹度が100%回復する。", :seal=>"飯"},
  {:type=>:food, :name=>"くさったパン", :desc=>"満腹度100%回復。ダメージを受けてちからが減る。"},
