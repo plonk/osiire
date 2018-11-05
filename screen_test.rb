@@ -981,19 +981,21 @@ class Program
       log("足元で爆発が起こった！ ")
       mine_activate(trap)
     when "落とし穴"
-      SoundEffects.trapdoor
       if cell.character
         case cell.character
         when Hero
           log("落とし穴だ！ ")
+          SoundEffects.trapdoor
           wait_delay
           new_level(+1)
           return # ワナ破損処理をスキップする
         else
+          SoundEffects.trapdoor
           log(display(cell.character), "は 落とし穴に落ちていった。")
           cell.remove_object(cell.character)
         end
       elsif cell.item
+        SoundEffects.trapdoor
         log(display(cell.item), "は 落とし穴に落ちていった。")
         cell.remove_object(cell.item)
       end
@@ -3148,6 +3150,7 @@ EOD
       m = Monster.make_monster(descendant)
 
       # TODO: いくらかの状態は元のモンスターから継承するべき。(封印状態など)
+      m.status_effects.replace(monster.status_effects.select { |se| se.heritable? })
       m.action_point = monster.action_point
       m.state = :awake # 起きている。
 
@@ -3166,6 +3169,7 @@ EOD
       m = Monster.make_monster(ancestor)
 
       # TODO: いくらかの状態は元のモンスターから継承するべき。(封印状態など)
+      m.status_effects.replace(monster.status_effects.select { |se| se.heritable? })
       m.action_point = monster.action_point
       m.state = :awake # 起きている。
 
@@ -3508,10 +3512,46 @@ EOD
         @hero.status_effects << StatusEffect.new(:olfaction_enhancement)
         log("アイテムを 嗅ぎ付けられるようになった。")
       end
+    when "パーティールームの巻物"
+      read_party_room_scroll
+    when "混乱の巻物"
+      read_confusion_scroll
     else
       log("実装してないよ。")
     end
     return :action
+  end
+
+  def make_party_room(room)
+    @dungeon.place_traps_in_party_room(@level, @level_number, room)
+    @dungeon.place_items_in_party_room(@level, @level_number, room, 10)
+    @dungeon.place_monsters_in_party_room(@level, @level_number, room, 10)
+  end
+
+  def read_confusion_scroll
+    @level.fov(*hero_pos).each_coords do |x, y|
+      if @level.in_dungeon?(x,y) && (cell = @level.cell(x,y))
+        if cell.monster
+          unless cell.monster.confused?
+            cell.monster.status_effects.push(StatusEffect.new(:confused, 20))
+          end
+        end
+      end
+    end
+  end
+
+  def read_party_room_scroll
+    if @level.rooms.any?
+      room = @level.rooms.sample
+      @level.party_room = room
+      x, y = @level.find_random_place { |cell, x, y|
+        room.properly_in?(x, y) && cell.type == :FLOOR && !cell.character
+      }
+      make_party_room(room)
+      hero_change_position(x, y)
+    else
+      log("しかし何も起こらなかった。")
+    end
   end
 
   # モンスターが攻撃された時の処理。起きる。

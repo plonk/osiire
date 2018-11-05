@@ -8,6 +8,35 @@ class StatusEffect
     @remaining_duration = remaining_duration
   end
 
+  def heritable?
+    case type
+    when :zawazawa
+      true
+    when :sleep
+      true
+    when :paralysis
+      true
+    when :held
+      true
+    when :confused
+      true
+    when :hallucination
+      true
+    when :quick
+      false
+    when :bomb
+      true
+    when :audition_enhancement
+      false
+    when :olfaction_enhancement
+      false
+    when :weakening
+      false
+    else
+      true
+    end
+  end
+
   def name
     case type
     when :zawazawa
