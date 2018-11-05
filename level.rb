@@ -46,8 +46,10 @@ class Cell
     case object
     when Monster, Hero
       10
-    when Item, StairCase, Trap
+    when Item
       20
+    when StairCase, Trap
+      30
     else
       fail object.class.to_s
     end

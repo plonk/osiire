@@ -802,37 +802,29 @@ class Program
   end
 
   # 盾が錆びる。
-  def take_damage_shield
-    if @hero.shield
-      if @hero.shield.rustproof?
-        log("しかし ", display(@hero.shield), "は錆びなかった。")
-      else
-        if @hero.shield.number + @hero.shield.correction > 0
-          @hero.shield.correction -= 1
-          log("盾が錆びてしまった！ ")
-        else
-          log("しかし ", display(@hero.shield), "はもう錆びない。")
-        end
-      end
+  def take_damage_shield(shield)
+    if shield.rustproof?
+      log("しかし ", display(shield), "は錆びなかった。")
     else
-      log("しかし なんともなかった。")
+      if shield.number + shield.correction > 0
+        shield.correction -= 1
+        log("盾が錆びてしまった！ ")
+      else
+        log("しかし ", display(shield), "はもう錆びない。")
+      end
     end
   end
 
-  def take_damage_weapon
-    if @hero.weapon
-      if @hero.weapon.rustproof?
-        log("しかし ", display(@hero.weapon), "は錆びなかった。")
-      else
-        if @hero.weapon.number + @hero.weapon.correction > 0
-          @hero.weapon.correction -= 1
-          log("武器が錆びてしまった！ ")
-        else
-          log("しかし ", display(@hero.weapon), "はもう錆びない。")
-        end
-      end
+  def take_damage_weapon(weapon)
+    if weapon.rustproof?
+      log("しかし ", display(weapon), "は錆びなかった。")
     else
-      log("しかし なんともなかった。")
+      if weapon.number + weapon.correction > 0
+        weapon.correction -= 1
+        log("武器が錆びてしまった！ ")
+      else
+        log("しかし ", display(weapon), "はもう錆びない。")
+      end
     end
   end
 
@@ -893,6 +885,67 @@ class Program
     hero_change_position(x, y)
   end
 
+  def teleport_trap_activate(cell)
+    if cell.character.equal?(@hero)
+      log("ワープゾーンだ！ ")
+      wait_delay
+      hero_teleport
+    elsif cell.item
+      item_teleport(cell.item)
+    end
+  end
+
+  def rust_trap_activate(cell)
+    if cell.character.equal?(@hero)
+      log("足元から酸がわき出ている！ ")
+      if !@hero.weapon && !@hero.shield
+        log("しかし なんともなかった。")
+      else
+        take_damage_weapon(@hero.weapon) if @hero.weapon
+        take_damage_shield(@hero.shield) if @hero.shield
+      end
+    elsif cell.item
+      case cell.item.type
+      when :weapon
+        take_damage_weapon(cell.item)
+      when :shield
+        take_damage_shield(cell.item)
+      end
+    end
+  end
+
+  def bear_trap_activate(cell)
+    if cell.character.equal?(@hero)
+      log("トラばさみに かかってしまった！ ")
+      unless @hero.held?
+        @hero.status_effects << StatusEffect.new(:held, 7)
+      end
+    elsif cell.item&.name == "大砲の弾"
+      cannonball = cell.item
+      x, y = @level.pos_of(cannonball)
+      if cannonball.cursed
+        cell.remove_object(cannonball)
+        item_land(cannonball, x, y, false)
+      else
+        cell.remove_object(cannonball)
+        cannonball_explode(cannonball, x, y, :trap)
+      end
+    end
+  end
+
+  def sleep_trap_activate(cell)
+    if cell.character.equal?(@hero)
+      log("足元から 霧が出ている！ ")
+      hero_fall_asleep()
+    end
+  end
+
+  def trip_trap_activate(cell)
+    if cell.character.equal?(@hero)
+      log("石にけつまずいた！ ")
+      strew_items
+    end
+  end
 
   # ヒーローに踏まれた罠が発動する。
   def trap_do_activate(trap)
@@ -902,26 +955,20 @@ class Program
       return
     end
 
+    render
+    cell = @level.cell(*@level.pos_of(trap))
+
     case trap.name
     when "ワープゾーン"
-      log("ワープゾーンだ！ ")
-      wait_delay
-      hero_teleport
+      teleport_trap_activate(cell)
     when "硫酸"
-      log("足元から酸がわき出ている！ ")
-      take_damage_weapon
-      take_damage_shield
+      rust_trap_activate(cell)
     when "トラばさみ"
-      log("トラばさみに かかってしまった！ ")
-      unless @hero.held?
-        @hero.status_effects << StatusEffect.new(:held, 7)
-      end
+      bear_trap_activate(cell)
     when "眠りガス"
-      log("足元から 霧が出ている！ ")
-      hero_fall_asleep()
+      sleep_trap_activate(cell)
     when "石ころ"
-      log("石にけつまずいた！ ")
-      strew_items
+      trip_trap_activate(cell)
     when "木の矢のワナ"
       arrow_trap_activate(trap, "木の矢")
     when "鉄の矢のワナ"
@@ -934,14 +981,24 @@ class Program
       log("足元で爆発が起こった！ ")
       mine_activate(trap)
     when "落とし穴"
-      log("落とし穴だ！ ")
       SoundEffects.trapdoor
-      wait_delay
-      new_level(+1)
-      return # ワナ破損処理をスキップする
+      if cell.character
+        case cell.character
+        when Hero
+          log("落とし穴だ！ ")
+          wait_delay
+          new_level(+1)
+          return # ワナ破損処理をスキップする
+        else
+          log(display(cell.character), "は 落とし穴に落ちていった。")
+          cell.remove_object(cell.character)
+        end
+      elsif cell.item
+        log(display(cell.item), "は 落とし穴に落ちていった。")
+        cell.remove_object(cell.item)
+      end
     when "呪いの罠"
-      log("呪いの罠を踏んだ！")
-      curse_trap_activate(trap)
+      curse_trap_activate(cell)
     else
       fail "trap behaviour not defined: #{trap.name}"
     end
@@ -970,14 +1027,20 @@ class Program
     item.is_a?(Projectile) && item.penetrating? && !item.cursed
   end
 
-  def curse_trap_activate(trap)
-    uncursed = @hero.inventory.select { |i| !i.cursed }
-    if uncursed.empty?
-      log("しかし なんともなかった。")
-    else
-      item = uncursed.sample
-      log(display(item), "は 呪われてしまった。")
-      item.cursed = true
+  def curse_trap_activate(cell)
+    if cell.character.equal?(@hero)
+      log("呪いの罠が発動した！")
+      uncursed = @hero.inventory.select { |i| !i.cursed }
+      if uncursed.empty?
+        log("しかし なんともなかった。")
+      else
+        item = uncursed.sample
+        log(display(item), "は 呪われてしまった。")
+        item.cursed = true
+      end
+    elsif cell.item
+      log(display(cell.item), "は 呪われた。")
+      cell.item.cursed = true
     end
   end
 
@@ -2612,6 +2675,43 @@ EOD
     return (thrower==:trap ? 0.0 : DEFAULT_PROJECTILE_MISS_RATE)
   end
 
+  def cannonball_explode(item, x, y, thrower)
+    mine_explosion_effect(x, y)
+    log(display(item), "は 爆発した！")
+    render
+
+    rect = @level.surroundings(x, y)
+    # 壁が壊れる。
+    rect.each_coords do |x, y|
+      if @level.in_dungeon?(x, y)
+        cell = @level.cell(x, y)
+        if cell.solid? && !cell.unbreakable
+          cell.type = :PASSAGE
+        end
+      end
+    end
+    # 敵に40ポイントの爆発ダメージ。
+    rect.each_coords do |x, y|
+      if @level.in_dungeon?(x, y)
+        cell = @level.cell(x, y)
+        if cell.character
+          explosive_damage_to(cell.character, 40, thrower)
+        end
+      end
+    end
+  end
+
+  def explosive_damage_to(char, amount, thrower)
+    # TODO: 爆弾状態の敵を爆発させる場合はここ。
+
+    case char
+    when Monster
+      monster_take_damage(char, 40, thrower)
+    else
+      take_damage(amount)
+    end
+  end
+
   # (Item, Array, Array, Hero|:trap, Integer)
   def do_throw_item(item, origin, dir, actor, range)
     x, y = origin
@@ -2631,7 +2731,11 @@ EOD
 
       cell = @level.cell(x+dx, y+dy)
       if cell.solid? && !penetrating
-        item_land(item, x, y, true)
+        if item.name == "大砲の弾" && !item.cursed
+          cannonball_explode(item, x, y, actor)
+        else
+          item_land(item, x, y, true)
+        end
         break
       elsif cell.character
         char = cell.character
@@ -2645,24 +2749,43 @@ EOD
           log(display(item), "は 外れた。")
           item_land(item, x+dx, y+dy, true) unless penetrating
         else
-          SoundEffects.hit
           item_hits_character(item, char, actor, [dx,dy])
         end
 
         break unless penetrating
       end
+
       x, y = x+dx, y+dy
       range -= 1
+
+      if item.name == "大砲の弾" && cell.trap
+        case cell.trap.name
+        when "落とし穴", "トラばさみ", "ワープゾーン"
+          # 即時発動
+          cell.put_object(item)
+          cell.trap.visible = true
+          trap_do_activate(cell.trap)
+          break
+        else
+          # 発動予約
+          cell.trap.visible = true
+          cell.trap.trodden = true
+        end
+      end
     end
   end
 
-  def item_hits_character(item, character, actor, dir)
-    case character
-    when Hero
-      # dir 無いけどどうしよう…
-      item_hits_hero(item, actor)
+  def item_hits_character(item, char, actor, dir)
+    if item.name == "大砲の弾" && !item.cursed
+      cannonball_explode(item, *@level.pos_of(char), actor)
     else
-      item_hits_monster(item, character, actor, dir)
+      case char
+      when Hero
+        # dir 無いけどどうしよう…
+        item_hits_hero(item, actor)
+      else
+        item_hits_monster(item, char, actor, dir)
+      end
     end
   end
 
@@ -2767,6 +2890,23 @@ EOD
     cell.remove_object(monster)
     @level.put_object(monster, x, y)
     monster.goal = nil
+  end
+
+  def item_teleport(item)
+    SoundEffects.teleport
+    cell = @level.cell(*@level.pos_of(item))
+    fov = @level.fov(*hero_pos)
+    x, y = @level.find_random_place { |cell, x, y|
+      cell.type == :FLOOR && !cell.item && !cell.staircase && !cell.trap && !fov.include?(x, y)
+    }
+    if x.nil?
+      # 視界内でも良い条件でもう一度検索。
+      x, y = @level.find_random_place { |cell, x, y|
+        cell.type == :FLOOR && !cell.item && !cell.staircase && !cell.trap
+      }
+    end
+    cell.remove_object(item)
+    @level.put_object(item, x, y)
   end
 
   # モンスターが変化する。
@@ -3715,6 +3855,7 @@ EOD
     if opts[:quiet]
       stop_dashing
     else
+      SoundEffects.hit
       log("%.0f ポイントの ダメージを受けた。" % [amount])
     end
     @hero.hp -= amount
@@ -3953,16 +4094,18 @@ EOD
         # 画面座標から、レベル座標に変換する。
         y1 = y + cy - Curses.lines/2
         x1 = x + cx - Curses.cols/4
+        tile = @overlayed_tiles.find { |t| t.x == x1 && t.y == y1 }
         if y1 >= 0 && y1 < @level.height &&
            x1 >= 0 && x1 < @level.width
-          tile = @overlayed_tiles.find { |t| t.x == x1 && t.y == y1 }
           if tile
             Curses.addstr(tile.char)
           else
             Curses.addstr(dungeon_char(x1, y1))
           end
         else
-          if @level.whole_level_lit
+          if tile
+            Curses.addstr(tile.char)
+          elsif @level.whole_level_lit
             Curses.addstr(@level.tileset[:NOPPERI_WALL])
           else
             Curses.addstr("　")
@@ -4543,7 +4686,6 @@ EOD
         SoundEffects.miss
         log("#{@hero.name}は ひらりと身をかわした。")
       else
-        SoundEffects.hit
         damage = attack_to_hero_damage(attack)
         take_damage(damage)
       end
@@ -4673,7 +4815,7 @@ EOD
     when "アクアター"
       log("#{m.name}は 酸を浴せた。")
       if @hero.shield
-        take_damage_shield
+        take_damage_shield(@hero.shield)
       end
 
     when "パペット"

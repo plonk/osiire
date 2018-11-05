@@ -529,7 +529,7 @@ class Projectile < Item
   def char
     case name
     when "大砲の弾"
-      "()"
+      "\u{104452}\u{104453}"
     else
       "􄁌􄁍" # 矢
     end
