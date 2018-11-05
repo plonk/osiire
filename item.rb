@@ -41,10 +41,10 @@ class Item
   :two_handed=>true, :number=>10, :nslots=>7},
  {:type=>:weapon, :name=>"木づち",             :seal=>"木", :two_handed=>true, :number=>10, :nslots=>4},
  {:type=>:weapon, :name=>"ミノタウロスの斧",   :seal=>"会", :two_handed=>true, :number=>20, :nslots=>8},
- {:type=>:projectile, :name=>"木の矢"},
- {:type=>:projectile, :name=>"鉄の矢"},
+ {:type=>:projectile, :strength=>5, :name=>"木の矢", :desc=>"強さ5の矢"},
+ {:type=>:projectile, :strength=>9, :name=>"鉄の矢", :desc=>"強さ9の矢"},
  {:type=>:projectile, :name=>"毒矢"},
- {:type=>:projectile, :name=>"銀の矢"},
+ {:type=>:projectile, :strength=>11, :name=>"銀の矢",:desc=>"強さ11の矢。敵を貫通する。", :penetrating=>true},
  {:type=>:projectile, :name=>"大砲の弾"},
  {:type=>:shield, :name=>"鍛えた木の盾", :number=>2, :nslots=>1},
  {:type=>:shield, :name=>"みやびやかな盾", :number=>2, :nslots=>7},
@@ -76,6 +76,7 @@ class Item
  {:type=>:shield, :name=>"グランドカウンター", :unsealifiable=>true, :seal=>"グ", :number=>9, :nslots=>9, :two_handed=>true},
  {:type=>:herb, :name=>"薬草", :desc=>"HPを25回復する。", :seal=>"薬"},
  {:type=>:herb, :name=>"高級薬草", :desc=>"HPを100回復する。", :seal=>"高"},
+ {:type=>:herb, :name=>"命の草", :desc=>"最大HPを5上げる。", :seal=>"命"},
  {:type=>:herb, :name=>"毒けし草", :desc=>"ちからが回復する。", :seal=>"消"},
  {:type=>:herb, :name=>"ちからの種", :desc=>"ちからが満タンの時に最大値を1つ増やす。", :seal=>"ち"},
  {:type=>:herb, :name=>"幸せの種", :desc=>"レベルが1つ上がる。", :seal=>"幸"},
@@ -166,7 +167,6 @@ class Item
     :box => "􄄺􄄻",
     :food => "􄀶􄀷",
     :herb => "􄀰􄀱",
-    :projectile => "􄁌􄁍",
     :ring => "􄀸􄀹",
     :scroll => "􄀴􄀵",
     :shield => "􄀮􄀯",
@@ -184,6 +184,8 @@ class Item
         item = Jar.new(definition)
       when :water
         item = Water.new(definition)
+      when :projectile
+        item = Projectile.new(definition)
       else
         item = Item.new(definition)
       end
@@ -198,7 +200,16 @@ class Item
           item.number = 3 + rand(5)
         end
       when :projectile
-        item.number = rand(5..15)
+        case item.name
+        when "木の矢"
+          item.number = rand(10..20)
+        when "鉄の矢"
+          item.number = rand(5..15)
+        when "銀の矢"
+          item.number = rand(5..10)
+        else
+          item.number = rand(5..15)
+        end
       when :weapon
         r = rand(-1..+3)
         item.correction = r
@@ -317,12 +328,6 @@ class Item
       "#{prefix}#{name}#{ws_num_fmt.(@correction)}"
     when :staff
       "#{name}[#{number}]"
-    when :projectile
-      if number == 1
-        name
-      else
-        "#{number}本の#{name}"
-      end
     else
       name
     end
@@ -394,11 +399,6 @@ class Item
     else
       fail "unknown item type #{type}"
     end
-  end
-
-  def projectile_strength
-    fail unless type == :projectile
-    return 5
   end
 
   def desc
@@ -513,3 +513,36 @@ class Gold < Item
 
 end
 
+class Projectile < Item
+  attr_reader :strength
+
+  def initialize(definition)
+    super
+    @strength = definition[:strength] || 0
+    @penetrating = definition[:penetrating] || false
+  end
+
+  def penetrating?
+    @penetrating
+  end
+
+  def char
+    case name
+    when "大砲の弾"
+      "()"
+    else
+      "􄁌􄁍" # 矢
+    end
+  end
+
+  def to_s
+    if number == 1
+      name
+    elsif name == "大砲の弾"
+      "#{number}個の#{name}"
+    else
+      "#{number}本の#{name}"
+    end
+  end
+
+end

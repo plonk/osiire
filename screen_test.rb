@@ -276,7 +276,7 @@ class Program
     }
     herbs_false = ["黒い草", "白い草", "赤い草", "青い草", "黄色い草", "緑色の草",
                    "まだらの草", "スベスベの草", "チクチクの草", "空色の草", "しおれた草",
-                   "くさい草", "茶色い草", "ピンクの草"]
+                   "くさい草", "茶色い草", "ピンクの草", "オレンジ色の草"]
     scrolls_false = ["ウナギの絵の巻物", "入道の絵の巻物", "金魚の絵の巻物", "カエルの絵の巻物",
                      "スイカの絵の巻物", "猫の絵の巻物", "火鉢の絵の巻物", "トカゲの絵の巻物",
                      "餓鬼の絵の巻物", "岩の絵の巻物", "滝の絵の巻物", "幽霊の絵の巻物",
@@ -378,8 +378,13 @@ class Program
 
   # ヒーローの投擲攻撃力。
   def get_hero_projectile_attack(projectile_strength)
-    basic = lv_to_attack(exp_to_lv(@hero.exp))
-    (basic + basic * (projectile_strength - 8)/16.0).round
+    level_part = Math.log(@hero.lv.fdiv(2)+1, 1.6)**2
+    strength_part = if @hero.strength < 8 then
+                      Math.log(3,1.6)**2 * @hero.strength
+                    else
+                      Math.log(@hero.strength.fdiv(2)-1, 1.6)**2
+                    end
+    (level_part + strength_part + projectile_strength).round
   end
 
   def effective_seals(weapon_or_shield)
@@ -493,9 +498,15 @@ class Program
       end
       monster_take_damage(monster, damage, @hero)
 
+      # 捨印
       if effective_seals(@hero.weapon).any? { |s| s.char == "捨" } &&
          @hero.weapon.corrected_number > 0
         @hero.weapon.correction -= 1
+      end
+
+      # 回復印
+      if effective_seals(@hero.weapon).any? { |s| s.char == "回" }
+        @hero.hp += [@hero.max_hp - @hero.hp, damage/3].min
       end
     end
   end
@@ -953,6 +964,10 @@ class Program
     arrow = Item.make_item(name)
     arrow.number = 1
     do_throw_item(arrow, [x,y], [-dx,-dy], :trap, Float::INFINITY)
+  end
+
+  def penetrating_throw?(actor, item)
+    item.is_a?(Projectile) && item.penetrating? && !item.cursed
   end
 
   def curse_trap_activate(trap)
@@ -1551,8 +1566,9 @@ class Program
     target = Vec.plus(hero_pos, vec)
     unless @level.in_dungeon?(*target)
       log("Error: target = #{target.inspect}")
-      return
+      return :nothing
     end
+
     cell = @level.cell(*target)
     if cell.wall? &&
        vec[0]*vec[1] == 0 && # ナナメを向いていない。
@@ -1566,15 +1582,28 @@ class Program
           log(display(@hero.weapon), "は 壊れてしまった!")
           @hero.remove_from_inventory(@hero.weapon)
         end
-        return :action
       end
     elsif cell.monster
       hero_attack(cell.monster)
-      return :action
     else
       reveal_trap(*target)
-      return :action
     end
+
+    # 2マス先攻撃。「すたちゅーの攻撃！」や経験値メッセージが2回出るの
+    # がいやだけど、解法がわからない。
+    if effective_seals(@hero.weapon).any?{|s| s.char=="槍"} &&
+       !cell.solid?
+      target2 = Vec.plus(hero_pos, vec.map(&2.method(:*)))
+      if @level.in_dungeon?(*target2)
+        cell2 = @level.cell(*target2)
+        unless cell2.solid?
+          if cell2.monster
+            hero_attack(cell2.monster)
+          end
+        end
+      end
+    end
+    return :action
   end
 
   def open_history_window
@@ -2468,7 +2497,7 @@ EOD
     on_monster_attacked(monster)
     case thrower
     when @hero
-      attack = get_hero_projectile_attack(item.projectile_strength)
+      attack = get_hero_projectile_attack(item.strength)
       damage = attack_to_damage(attack, monster.defense)
       monster_take_damage(monster, damage, thrower)
     when Monster
@@ -2535,7 +2564,7 @@ EOD
       end
     when Monster
       if item.type == :projectile
-        take_damage(attack_to_hero_damage(item.projectile_strength))
+        take_damage(attack_to_hero_damage(item.strength))
       elsif item.type == :weapon || item.type == :shield
         take_damage(attack_to_hero_damage(item.number))
       else
@@ -2584,44 +2613,43 @@ EOD
   end
 
   # (Item, Array, Array, Hero|:trap, Integer)
-  def do_throw_item(item, origin, dir, actor, range = 10)
-    dx, dy = dir
+  def do_throw_item(item, origin, dir, actor, range)
     x, y = origin
+    dx, dy = dir
+    penetrating = penetrating_throw?(actor, item)
+    range = Float::INFINITY if penetrating
 
     while true
-      fail unless @level.in_dungeon?(x+dx, y+dy)
-
       if range <= 0
         item_land(item, x, y, true)
         break
       end
+      unless @level.in_dungeon?(x+dx,y+dy)
+        log(display(item), "は どこかへ消えてしまった。")
+        break
+      end
+
       cell = @level.cell(x+dx, y+dy)
-      case cell.type
-      when :WALL, :STATUE
+      if cell.solid? && !penetrating
         item_land(item, x, y, true)
         break
-      when :FLOOR, :PASSAGE, :WATER
-        # TODO: 水の場合は、水中か浮遊かの場合分け。
-        if cell.character
-          character = cell.character
-
-          if character.attrs.include?(:counter_projectile)
-            log(display(character), "は ", display(item), "をはねかえした！")
-            SoundEffects.magic
-            render
-            do_throw_item(item, [x, y], Vec.negate(dir), character, range)
-          elsif rand() < projectile_miss_rate(item, actor, character)
-            SoundEffects.miss
-            log(display(item), "は 外れた。")
-            item_land(item, x+dx, y+dy, true)
-          else
-            SoundEffects.hit
-            item_hits_character(item, character, actor, [dx,dy])
-          end
-          break
+      elsif cell.character
+        char = cell.character
+        if !penetrating && char.attrs.include?(:counter_projectile)
+          log(display(char), "は ", display(item), "をはねかえした！")
+          SoundEffects.magic
+          render
+          do_throw_item(item, [x, y], Vec.negate(dir), char, range)
+        elsif rand() < projectile_miss_rate(item, actor, char)
+          SoundEffects.miss
+          log(display(item), "は 外れた。")
+          item_land(item, x+dx, y+dy, true) unless penetrating
+        else
+          SoundEffects.hit
+          item_hits_character(item, char, actor, [dx,dy])
         end
-      else
-        fail "case not covered"
+
+        break unless penetrating
       end
       x, y = x+dx, y+dy
       range -= 1
@@ -2688,10 +2716,10 @@ EOD
       one = Item.make_item(item.name)
       one.number = 1
       item.number -= 1
-      do_throw_item(one, hero_pos, dir, @hero)
+      do_throw_item(one, hero_pos, dir, @hero, 10)
     else
       remove_item_from_hero(item)
-      do_throw_item(item, hero_pos, dir, @hero)
+      do_throw_item(item, hero_pos, dir, @hero, 10)
     end
     return :action
   end
@@ -3412,6 +3440,9 @@ EOD
       use_health_item(@hero, 100, 4)
       remove_status_effect(@hero, :confused)
       remove_status_effect(@hero, :hallucination)
+    when "命の草"
+      SoundEffects.heal
+      increase_max_hp(character, 5)
     when "毒けし草"
       unless @hero.strength_maxed?
         recover_strength()
@@ -4619,25 +4650,25 @@ EOD
       dir = Vec.normalize(Vec.minus(hero_pos, [mx, my]))
       arrow = Item.make_item("木の矢")
       arrow.number = 1
-      do_throw_item(arrow, [mx,my], dir, m)
+      do_throw_item(arrow, [mx,my], dir, m, 10)
     when "ピューシャン2"
       mx, my = @level.pos_of(m)
       dir = Vec.normalize(Vec.minus(hero_pos, [mx, my]))
       arrow = Item.make_item("鉄の矢")
       arrow.number = 1
-      do_throw_item(arrow, [mx,my], dir, m)
+      do_throw_item(arrow, [mx,my], dir, m, 10)
     when "ピューシャン3"
       mx, my = @level.pos_of(m)
       dir = Vec.normalize(Vec.minus(hero_pos, [mx, my]))
       arrow = Item.make_item("鉄の矢")
       arrow.number = 1
-      do_throw_item(arrow, [mx,my], dir, m)
+      do_throw_item(arrow, [mx,my], dir, m, 10)
     when "ピューシャン4"
       mx, my = @level.pos_of(m)
       dir = Vec.normalize(Vec.minus(hero_pos, [mx, my]))
       arrow = Item.make_item("鉄の矢")
       arrow.number = 1
-      do_throw_item(arrow, [mx,my], dir, m)
+      do_throw_item(arrow, [mx,my], dir, m, 10)
 
     when "アクアター"
       log("#{m.name}は 酸を浴せた。")
