@@ -246,85 +246,85 @@ class Dungeon
 
   TILESETS =
     [
-      # ペイズリー
       {
+        :name => "ペイズリー",
         :WALL            => "\u{104164}\u{104165}",
         :HORIZONTAL_WALL => '􄅠􄅡',
         :VERTICAL_WALL   => '􄅢􄅣',
         :NOPPERI_WALL    => '􄅦􄅧',
       },
-      # 石づくり
       {
+        :name => "石づくり",
         :WALL            => '􄅘􄅙',
         :HORIZONTAL_WALL => '􄅔􄅕',
         :VERTICAL_WALL   => '􄅖􄅗',
         :NOPPERI_WALL    => "\u{104460}\u{104461}",
       },
-      # 木材
       {
+        :name => "木材",
         :WALL            => '􄅞􄅟',
         :HORIZONTAL_WALL => '􄅚􄅛',
         :VERTICAL_WALL   => '􄅜􄅝',
         :NOPPERI_WALL    => "\u{10446a}\u{10446b}",
       },
-      # 土砂
       {
+        :name => "土砂",
         :WALL            => "\u{10446c}\u{10446d}",
         :HORIZONTAL_WALL => '􄅬􄅭',
         :VERTICAL_WALL   => '􄅮􄅯',
         :NOPPERI_WALL    => '􄅰􄅱',
       },
-      # 泥
       {
+        :name => "泥",
         :HORIZONTAL_WALL => "\u{104240}\u{104241}",
         :VERTICAL_WALL   => "\u{104242}\u{104243}",
         :WALL            => "\u{104244}\u{104245}",
         :NOPPERI_WALL    => "\u{10446e}\u{10446f}",
       },
-      # モアイを作る黒い石
       {
+        :name => "黒い石",
         :HORIZONTAL_WALL => '􄅲􄅳',
         :VERTICAL_WALL   => '􄅴􄅵',
         :WALL            => '􄅶􄅷',
         :NOPPERI_WALL    => "\u{104470}\u{104471}",
       },
-      # ラスコー洞窟
       {
+        :name => "洞窟",
         :WALL            => '􄈪􄈫',
         :HORIZONTAL_WALL => '􄈦􄈧',
         :VERTICAL_WALL   => '􄈨􄈩',
         :NOPPERI_WALL    => "\u{104468}\u{104469}",
       },
-      # 氷
       {
+        :name => "氷",
         :WALL            => '􄅌􄅍',
         :HORIZONTAL_WALL => '􄅈􄅉',
         :VERTICAL_WALL   => '􄅊􄅋',
         :NOPPERI_WALL    => "\u{104474}\u{104475}",
       },
-      # 溶岩
       {
+        :name => "溶岩",
         :WALL            => '􄅒􄅓',
         :HORIZONTAL_WALL => '􄅐􄅑',
         :VERTICAL_WALL   => '􄅎􄅏',
         :NOPPERI_WALL    => "\u{104464}\u{104465}",
       },
-      # 化石
       {
+        :name => "化石",
         :HORIZONTAL_WALL => '􄈠􄈡',
         :VERTICAL_WALL   => '􄈢􄈣',
         :WALL            => '􄈤􄈥',
         :NOPPERI_WALL    => "\u{104466}\u{104467}",
       },
-      # 水の湧き出る壁
       {
+        :name => "湧き水",
         :HORIZONTAL_WALL => '􄅸􄅹',
         :VERTICAL_WALL   => '􄅺􄅻',
         :WALL            => '􄅼􄅽',
         :NOPPERI_WALL    => "\u{104462}\u{104463}",
       },
-      # レンガ
       {
+        :name => "レンガ",
         :WALL            => '􄁀􄁁',
         :HORIZONTAL_WALL => '􄀢􄀣',
         :VERTICAL_WALL   => '􄀼􄀽',
@@ -337,7 +337,7 @@ class Dungeon
   end
 
   # 壁を水路に置き換える。
-  def place_water(level, level_number)
+  def place_water(level)
     level.each_coords do |x, y|
       c = level.cell(x, y)
       if c.wall? && !c.unbreakable
@@ -387,6 +387,33 @@ class Dungeon
     end
   end
 
+  def place_central_pond(level)
+    cx = level.width / 2.0
+    cy = level.height / 2.0
+    level.all_cells_and_positions.each do |cell, x, y|
+      if cell.wall?
+        if Math.sqrt((x - cx)**2 + (y - cy)**2) <= 11
+          cell.type = :WATER
+        end
+      end
+    end
+  end
+
+  # 部屋の床を濡らす。
+  def wet_room(level, room)
+    for x in (room.left + 1) .. (room.right - 1)
+      for y in (room.top + 1) .. (room.bottom - 1)
+        cell = level.cell(x, y)
+        if cell.type == :FLOOR && !cell.staircase
+          if rand < 0.5
+            cell.remove_object(cell.trap) if cell.trap
+            cell.wet = true
+          end
+        end
+      end
+    end
+  end
+
   def make_level(level_number)
     fail unless level_number.is_a? Integer and level_number >= 1
 
@@ -408,7 +435,7 @@ class Dungeon
       end
     end
 
-    if statue_possible?(type) # && rand < 0.3
+    if statue_possible?(type) && rand < 0.33
       odd_sized_rooms = level.rooms.select { |r|
         (r.right - r.left + 1).odd? && (r.top - r.bottom + 1).odd? &&
           r.width >= 7 && r.height >= 7
@@ -421,7 +448,17 @@ class Dungeon
       end
     end
 
-    #place_water(level, level_number)
+    case select [[:partial,1], [:full,1], [:no,8]]
+    when :partial
+      place_central_pond(level)
+    when :full
+      place_water(level)
+    end
+
+    if level.rooms.any? && rand < 0.2
+      room = level.rooms.sample
+      wet_room(level, room)
+    end
 
     place_staircase(level)
     place_items(level, level_number)
