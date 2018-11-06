@@ -2004,6 +2004,12 @@ EOD
     end
   end
 
+  def max_out_hp(char)
+    log(display(char), "の HPが満タンになった。")
+    SoundEffects.heal
+    char.hp = char.max_hp
+  end
+
   # (Jar, Item) -> :action | :nothing
   def put_in_jar(jar, target)
     if jar.capacity <= jar.contents.size
@@ -2029,6 +2035,10 @@ EOD
       when "保存の壺"
         remove_item_from_hero(target)
         jar.contents.push(target)
+      when "回復の壺"
+        remove_item_from_hero(target)
+        max_out_hp(@hero)
+        jar.capacity -= 1
       else
         log("#{jar.name}の入れるは実装してないよ。")
         return :nothing
