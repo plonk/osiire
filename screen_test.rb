@@ -135,6 +135,10 @@ class Program
 
   # ゲームの状態をリセット。
   def reset
+    if debug?
+      srand(0)
+    end
+
     @hero = Hero.new
     @hero.inventory << Item.make_item("大きなパン")
     if debug?
