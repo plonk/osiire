@@ -1686,13 +1686,13 @@ class Program
       "武器" => :weapon,
       "盾" => :shield,
       "指輪" => :ring,
-      "投げ物" => :projectile,
+      "矢" => :projectile,
       "草" => :herb,
       "巻物" => :scroll,
       "杖" => :staff,
       "食べ物" => :food,
       "壺" => :jar,
-      "箱" => :box,
+      "ワナ" => :trap,
     }
 
     menu = Menu.new(item_kinds.keys, cols: 10)
@@ -2038,6 +2038,9 @@ EOD
       when "回復の壺"
         remove_item_from_hero(target)
         max_out_hp(@hero)
+        jar.capacity -= 1
+      when "底抜けの壺"
+        remove_item_from_hero(target)
         jar.capacity -= 1
       else
         log("#{jar.name}の入れるは実装してないよ。")
@@ -2396,18 +2399,35 @@ EOD
   def on_item_placed(item, x, y)
     # TODO: 地形によって違うことを行う。
 
-    if item.name == "結界の巻物"
-      stick_scroll(item)
+    if item.is_a?(TrapItem)
+      @level.cell(x,y).remove_object(item)
+      @level.cell(x,y).put_object(item.to_trap(visible: true))
+    else
+      case item.name
+      when "結界の巻物"
+        stick_scroll(item)
+      end
+    end
+  end
+
+  def jar_breaks(jar, x, y)
+    log(display(jar), "は 割れた！")
+    jar.contents.each do |item|
+      item_land(item, x, y, false)
+    end
+
+    case jar.name
+    when "底抜けの壺"
+      jar.capacity.times do
+        item_land(Item.make_item("落とし穴"), x, y, false)
+      end
     end
   end
 
   # 投げられたアイテムが着地する。
   def item_land(item, x, y, activate_trap)
     if activate_trap && item.type == :jar && !item.unbreakable
-      log(display(item), "は 割れた！")
-      item.contents.each do |subitem|
-        item_land(subitem, x, y, false)
-      end
+      jar_breaks(item, x, y)
     else
       cell = @level.cell(x, y)
 

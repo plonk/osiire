@@ -163,7 +163,9 @@ class Item
  {:type=>:jar, :name=>"底抜けの壺", :desc=>"割ると落とし穴が出る。"},
  {:type=>:jar, :name=>"水がめ", :desc=>"水を汲んで持ち運べる。"},
  {:type=>:jar, :name=>"やりすごしの壺", :desc=>"中に入ってモンスターをやりすごせる。"},
- {:type=>:water, :name=>"水", :desc=>"ワナを消す。かけると効果のあるモンスターもいる。"}]
+ {:type=>:water, :name=>"水", :desc=>"ワナを消す。かけると効果のあるモンスターもいる。"},
+ {:type=>:trap, :name=>"落とし穴", :desc=>"次のフロアに落ちてしまう。"},
+]
 
   CHARS = {
     :box => "􄄺􄄻",
@@ -188,6 +190,8 @@ class Item
         item = Water.new(definition)
       when :projectile
         item = Projectile.new(definition)
+      when :trap
+        item = TrapItem.new(definition)
       else
         item = Item.new(definition)
       end
@@ -548,3 +552,19 @@ class Projectile < Item
   end
 
 end
+
+class TrapItem < Item
+
+  def initialize(definition)
+    super
+  end
+
+  def to_trap(opts = {})
+    Trap.new(@name, opts[:visible] || false)
+  end
+
+  def char
+    Trap::TRAPS[@name][:char]
+  end
+end
+
