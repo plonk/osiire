@@ -3868,7 +3868,8 @@ EOD
   end
 
   def resolve_position
-    if !@hero.kabenuke? && @level.cell(*hero_pos).wall?
+    if !@hero.kabenuke? &&
+       (@level.cell(*hero_pos).solid? || @level.cell(*hero_pos).type == :WATER)
       hero_teleport
     end
   end
