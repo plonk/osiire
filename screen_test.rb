@@ -1923,7 +1923,7 @@ EOD
         when :identified
           ["span", item.to_s]
         when :nicknamed
-          ["span", display_by_nickname(item),
+          ["span", display_item_by_nickname(item),
            ["nicknamed", "[#{item.capacity - item.contents.size}]"]]
         when :unidentified
           ["unidentified", @naming_table.false_name(item.name),
