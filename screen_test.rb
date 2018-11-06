@@ -1639,7 +1639,7 @@ class Program
     end
 
     cell = @level.cell(*target)
-    if cell.wall? &&
+    if cell.solid? &&
        vec[0]*vec[1] == 0 && # ナナメを向いていない。
        effective_seals(@hero.weapon).any? { |s| s.char == "堀" || s.char == "サ"  }
       if cell.unbreakable
