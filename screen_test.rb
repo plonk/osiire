@@ -5582,7 +5582,7 @@ EOD
   end
 
   def kabe_damage
-    if @level.cell(*hero_pos).wall?
+    if @level.cell(*hero_pos).solid?
       if @hero.kabenuke?
         take_damage((@hero.max_hp * 0.05).round)
       end
