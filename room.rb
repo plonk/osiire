@@ -31,6 +31,15 @@ class Room < Struct.new(:top, :bottom, :left, :right)
     self.left   = rand(left .. (left+l))
     self.right  = rand((right-r) .. right)
   end
+
+  def width
+    right - left + 1
+  end
+
+  def height
+    bottom - top + 1
+  end
+
 end
 
 class Connection

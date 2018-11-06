@@ -356,6 +356,15 @@ class Dungeon
     end
   end
 
+  def statue_possible?(type)
+    case type
+    when :dumbbell
+      false
+    else
+      true
+    end
+  end
+
   # 指定のマップタイプでMHが配置される確率。
   def party_room_prob(type)
     case type
@@ -365,6 +374,16 @@ class Dungeon
       1.0
     else
       0.0
+    end
+  end
+
+  def place_statues(level, room)
+    ((room.left + 1) .. (room.right - 1)).each do |x|
+      ((room.top + 1) .. (room.bottom - 1)).each do |y|
+        if (x - room.left).even? && (y - room.top).even?
+          level.cell(x,y).type = :STATUE
+        end
+      end
     end
   end
 
@@ -379,13 +398,26 @@ class Dungeon
 
     mazes = []
     if maze_possible?(type)
-      odd_rooms = level.rooms.select { |r|
+      odd_sized_rooms = level.rooms.select { |r|
         (r.right - r.left + 1).odd? && (r.top - r.bottom + 1).odd?
       }
-      if odd_rooms.any?
-        r = odd_rooms.sample
+      if odd_sized_rooms.any?
+        r = odd_sized_rooms.sample
         DungeonGeneration.make_maze(level, r)
         mazes << r
+      end
+    end
+
+    if statue_possible?(type) # && rand < 0.3
+      odd_sized_rooms = level.rooms.select { |r|
+        (r.right - r.left + 1).odd? && (r.top - r.bottom + 1).odd? &&
+          r.width >= 7 && r.height >= 7
+      }.reject { |r|
+        mazes.any? { |s| s.equal?(r) }
+      }
+      if odd_sized_rooms.any?
+        r = odd_sized_rooms.sample
+        place_statues(level, r)
       end
     end
 
