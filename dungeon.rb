@@ -392,7 +392,7 @@ class Dungeon
     cy = level.height / 2.0
     level.all_cells_and_positions.each do |cell, x, y|
       if cell.wall?
-        if Math.sqrt((x - cx)**2 + (y - cy)**2) <= 11
+        if Math.sqrt((x - cx)**2 + (y - cy)**2) < 11
           cell.type = :WATER
         end
       end
