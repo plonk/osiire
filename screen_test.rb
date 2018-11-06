@@ -3927,6 +3927,29 @@ EOD
     end
   end
 
+  def take_damage_ring(amount, breaking)
+    return unless @hero.ring
+
+    was_not_cracked = @hero.ring.life > 5
+    name = display(@hero.ring)
+
+    if breaking
+      @hero.ring.life -= amount
+    else
+      @hero.ring.life = [@hero.ring.life - amount, 1].max
+    end
+
+    if was_not_cracked && @hero.ring.life <= 5
+      log(name, "に ヒビが入った！")
+    end
+
+    if @hero.ring.life <= 0
+      @hero.remove_from_inventory(@hero.ring)
+      log(name, "は 壊れてしまった！")
+      resolve_position
+    end
+  end
+
   # ヒーローがダメージを受ける。
   def take_damage(amount, opts = {})
     if opts[:quiet]
@@ -3934,7 +3957,11 @@ EOD
     else
       SoundEffects.hit
       log("%.0f ポイントの ダメージを受けた。" % [amount])
+
+      # 指輪ダメージ。
+      take_damage_ring(1, true)
     end
+
     @hero.hp -= amount
     if @hero.hp < 1.0
       @hero.hp = 0.0

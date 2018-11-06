@@ -192,6 +192,8 @@ class Item
         item = Projectile.new(definition)
       when :trap
         item = TrapItem.new(definition)
+      when :ring
+        item = Ring.new(definition)
       else
         item = Item.new(definition)
       end
@@ -318,11 +320,6 @@ class Item
     end
 
     case type
-    when :ring
-      if @cursed
-        prefix = "\u{10423C}"
-      end
-      "#{prefix}#{name}"
     when :weapon, :shield
       prefix = ""
       if @cursed
@@ -554,7 +551,6 @@ class Projectile < Item
 end
 
 class TrapItem < Item
-
   def initialize(definition)
     super
   end
@@ -565,6 +561,29 @@ class TrapItem < Item
 
   def char
     Trap::TRAPS[@name][:char]
+  end
+end
+
+class Ring < Item
+  attr_accessor :life
+
+  def initialize(definition)
+    super
+    @life = 25
+  end
+
+  def cracked?
+    @life <= 5
+  end
+
+  def to_s
+    if @cursed
+      prefix = "\u{10423C}"
+    end
+    if cracked?
+      suffix = "(\u{104454}\u{104455})"
+    end
+    "#{prefix}#{name}#{suffix}"
   end
 end
 
