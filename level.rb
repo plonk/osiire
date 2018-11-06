@@ -157,33 +157,39 @@ module DungeonGeneration
       # 3 4 5
       # 6 7 8
       level.rooms = []
-      level.rooms << Room.new(0, 7, 0, 24)
-      level.rooms << Room.new(0, 7, 26, 51)
-      level.rooms << Room.new(0, 7, 53, 79)
-      level.rooms << Room.new(9, 15, 0, 24)
-      level.rooms << Room.new(9, 15, 26, 51)
-      level.rooms << Room.new(9, 15, 53, 79)
-      level.rooms << Room.new(17, 23, 0, 24)
-      level.rooms << Room.new(17, 23, 26, 51)
-      level.rooms << Room.new(17, 23, 53, 79)
+      [[0, 7, 0, 24],
+       [0, 7, 26, 51],
+       [0, 7, 53, 79],
+       [9, 15, 0, 24],
+       [9, 15, 26, 51],
+       [9, 15, 53, 79],
+       [17, 23, 0, 24],
+       [17, 23, 26, 51],
+       [17, 23, 53, 79],
+      ].each do |top, bottom, left, right|
+        level.rooms << Room.new(top, bottom, left, right)
+      end
 
-      level.connections = []
+      connections = []
 
-      level.add_connection(level.rooms[0], level.rooms[1], :horizontal)
-      level.add_connection(level.rooms[0], level.rooms[3], :vertical)
-      level.add_connection(level.rooms[1], level.rooms[2], :horizontal)
-      level.add_connection(level.rooms[1], level.rooms[4], :vertical)
-      level.add_connection(level.rooms[2], level.rooms[5], :vertical)
-      level.add_connection(level.rooms[3], level.rooms[4], :horizontal)
-      level.add_connection(level.rooms[3], level.rooms[6], :vertical)
-      level.add_connection(level.rooms[4], level.rooms[5], :horizontal)
-      level.add_connection(level.rooms[4], level.rooms[7], :vertical)
-      level.add_connection(level.rooms[5], level.rooms[8], :vertical)
-      level.add_connection(level.rooms[6], level.rooms[7], :horizontal)
-      level.add_connection(level.rooms[7], level.rooms[8], :horizontal)
+      [[0, 1, :horizontal],
+       [0, 3, :vertical],
+       [1, 2, :horizontal],
+       [1, 4, :vertical],
+       [2, 5, :vertical],
+       [3, 4, :horizontal],
+       [3, 6, :vertical],
+       [4, 5, :horizontal],
+       [4, 7, :vertical],
+       [5, 8, :vertical],
+       [6, 7, :horizontal],
+       [7, 8, :horizontal],
+      ].each do |first, second, orientation|
+        connections << Connection.new(level.rooms[first], level.rooms[second], orientation)
+      end
 
-      until level.all_rooms_connected?
-        conn = level.connections.sample
+      until all_connected?(level.rooms, connections)
+        conn = connections.sample
         conn.realized = true
       end
 
@@ -194,7 +200,7 @@ module DungeonGeneration
       level.rooms.each do |room|
         level.render_room(room)
       end
-      level.connections.each do |conn|
+      connections.each do |conn|
         if conn.realized
           conn.draw(level.dungeon)
         end
@@ -205,11 +211,11 @@ module DungeonGeneration
       level.rooms << Room.new(1, 22, 20, 38)
       level.rooms << Room.new(1, 22, 40, 58)
 
-      level.connections = []
+      connections = []
 
-      level.add_connection(level.rooms[0], level.rooms[1], :horizontal)
+      connections << Connection.new(level.rooms[0], level.rooms[1], :horizontal)
 
-      level.connections[0].realized = true
+      connections[0].realized = true
 
       level.rooms.each do |room|
         room.distort!(min_width: 15, min_height: 18)
@@ -218,7 +224,7 @@ module DungeonGeneration
       level.rooms.each do |room|
         level.render_room(room)
       end
-      level.connections[0].draw(level.dungeon)
+      connections[0].draw(level.dungeon)
     when :dumbbell # 眼鏡マップ
       # 0 1
 
@@ -236,7 +242,7 @@ module DungeonGeneration
       level.rooms << Room.new(12 - v/2, 12 + (v/2.0).ceil - 1,
                               w + m, w + m + v - 1)
 
-      level.connections = []
+      connections = []
 
       level.render_circular_room(level.rooms[0], w/2.0 - 1)
       level.render_circular_room(level.rooms[1], v/2.0 - 1)
@@ -255,14 +261,14 @@ module DungeonGeneration
       level.rooms << Room.new(12, 22, 0, 38)
       level.rooms << Room.new(12, 22, 40, 78)
 
-      level.connections = []
+      connections = []
 
-      level.add_connection(level.rooms[0], level.rooms[1], :horizontal)
-      level.add_connection(level.rooms[2], level.rooms[3], :horizontal)
-      level.add_connection(level.rooms[0], level.rooms[2], :vertical)
-      level.add_connection(level.rooms[1], level.rooms[3], :vertical)
+      connections << Connection.new(level.rooms[0], level.rooms[1], :horizontal)
+      connections << Connection.new(level.rooms[2], level.rooms[3], :horizontal)
+      connections << Connection.new(level.rooms[0], level.rooms[2], :vertical)
+      connections << Connection.new(level.rooms[1], level.rooms[3], :vertical)
 
-      level.connections.each do |conn|
+      connections.each do |conn|
         conn.realized = true
       end
 
@@ -274,7 +280,7 @@ module DungeonGeneration
         level.render_room(room)
       end
 
-      level.connections.each do |conn|
+      connections.each do |conn|
         conn.draw(level.dungeon)
       end
     when :grid10 # まんなかで通路が交差している10分割
@@ -293,32 +299,32 @@ module DungeonGeneration
       level.rooms << Room.new(16, 22, 40, 58)
       level.rooms << Room.new(16, 22, 60, 78)
 
-      level.connections = []
+      connections = []
 
-      level.add_connection(level.rooms[1], level.rooms[7], :vertical)
-      level.add_connection(level.rooms[2], level.rooms[8], :vertical)
-      level.add_connection(level.rooms[4], level.rooms[5], :horizontal)
-      level.connections.each do |conn|
+      connections << Connection.new(level.rooms[1], level.rooms[7], :vertical)
+      connections << Connection.new(level.rooms[2], level.rooms[8], :vertical)
+      connections << Connection.new(level.rooms[4], level.rooms[5], :horizontal)
+      connections.each do |conn|
         conn.realized = true
       end
 
-      level.add_connection(level.rooms[0], level.rooms[1], :horizontal)
-      level.add_connection(level.rooms[1], level.rooms[2], :horizontal)
-      level.add_connection(level.rooms[2], level.rooms[3], :horizontal)
+      connections << Connection.new(level.rooms[0], level.rooms[1], :horizontal)
+      connections << Connection.new(level.rooms[1], level.rooms[2], :horizontal)
+      connections << Connection.new(level.rooms[2], level.rooms[3], :horizontal)
 
-      level.add_connection(level.rooms[6], level.rooms[7], :horizontal)
-      level.add_connection(level.rooms[7], level.rooms[8], :horizontal)
-      level.add_connection(level.rooms[8], level.rooms[9], :horizontal)
+      connections << Connection.new(level.rooms[6], level.rooms[7], :horizontal)
+      connections << Connection.new(level.rooms[7], level.rooms[8], :horizontal)
+      connections << Connection.new(level.rooms[8], level.rooms[9], :horizontal)
 
-      level.add_connection(level.rooms[0], level.rooms[4], :vertical)
-      level.add_connection(level.rooms[4], level.rooms[6], :vertical)
+      connections << Connection.new(level.rooms[0], level.rooms[4], :vertical)
+      connections << Connection.new(level.rooms[4], level.rooms[6], :vertical)
 
-      level.add_connection(level.rooms[3], level.rooms[5], :vertical)
-      level.add_connection(level.rooms[5], level.rooms[9], :vertical)
+      connections << Connection.new(level.rooms[3], level.rooms[5], :vertical)
+      connections << Connection.new(level.rooms[5], level.rooms[9], :vertical)
 
 
-      until level.all_rooms_connected?
-        conn = level.connections.sample
+      until all_connected?(level.rooms, connections)
+        conn = connections.sample
         conn.realized = true
       end
 
@@ -330,7 +336,7 @@ module DungeonGeneration
         level.render_room(room)
       end
 
-      level.connections.each do |conn|
+      connections.each do |conn|
         if conn.realized
           conn.draw(level.dungeon)
         end
@@ -384,6 +390,29 @@ module DungeonGeneration
     end
   end
 
+  def connected_rooms(room, connections)
+    connections.each_with_object([]) do |conn, res|
+      next unless conn.realized
+      if conn.room1 == room || conn.room2 == room
+        res << conn.other_room(room)
+      end
+    end
+  end
+
+  def all_connected?(rooms, connections)
+    visited = []
+
+    visit = -> (r) {
+      return if visited.include?(r)
+      visited << r
+      connected_rooms(r, connections).each do |other|
+        visit.(other)
+      end
+    }
+
+    visit.(rooms[0])
+    return visited.size == rooms.size
+  end
 end
 
 class Level
@@ -393,7 +422,6 @@ class Level
   attr_accessor :party_room
   attr_accessor :rooms
   attr_accessor :tileset
-  attr_accessor :connections
   attr_reader   :dungeon
 
   def initialize(tileset)
@@ -539,40 +567,6 @@ class Level
         yield(x, y)
       end
     end
-  end
-
-  # add potential connection between rooms
-  def add_connection(room1, room2, direction)
-    conn = Connection.new(room1, room2, direction)
-    @connections << conn
-  end
-
-  def connected_rooms(room)
-    @connections.each_with_object([]) do |conn, res|
-      next unless conn.realized
-      if conn.room1 == room || conn.room2 == room
-        res << conn.other_room(room)
-      end
-    end
-  end
-
-  def all_rooms_connected?
-    all_connected?(@rooms)
-  end
-
-  def all_connected?(rooms)
-    visited = []
-
-    visit = -> (r) {
-      return if visited.include?(r)
-      visited << r
-      connected_rooms(r).each do |other|
-        visit.(other)
-      end
-    }
-
-    visit.(rooms[0])
-    return visited.size == rooms.size
   end
 
   def render_room(room)
