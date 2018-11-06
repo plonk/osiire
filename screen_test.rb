@@ -2138,7 +2138,7 @@ EOD
   def try_do_action_on_item(action, item)
     case action
     when "見る"
-      look_in_jar(item)
+      return look_in_jar(item)
     when "入れる"
       try_put_in_jar(item)
     when "出す"
