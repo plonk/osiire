@@ -152,20 +152,20 @@ module DungeonGeneration
     when :bigmaze # 大迷路
       level.rooms = []
       make_maze(level, Room.new(1, 21, 25, 54))
-    when :grid9 # 9分割
+    when :random9 # ランダムっぽいの。
       # 0 1 2
       # 3 4 5
       # 6 7 8
       level.rooms = []
-      [[0, 7, 0, 24],
-       [0, 7, 26, 51],
-       [0, 7, 53, 79],
-       [9, 15, 0, 24],
-       [9, 15, 26, 51],
-       [9, 15, 53, 79],
-       [17, 23, 0, 24],
-       [17, 23, 26, 51],
-       [17, 23, 53, 79],
+      [[0, 7, 10, 28],
+       [0, 7, 30, 48],
+       [0, 7, 50, 68],
+       [9, 15, 10, 28],
+       [9, 15, 30, 48],
+       [9, 15, 50, 68],
+       [17, 23, 10, 28],
+       [17, 23, 30, 48],
+       [17, 23, 50, 68],
       ].each do |top, bottom, left, right|
         level.rooms << Room.new(top, bottom, left, right)
       end
@@ -193,8 +193,13 @@ module DungeonGeneration
         conn.realized = true
       end
 
+      to_degen = level.rooms.sample(rand(1..5))
       level.rooms.each do |room|
-        room.distort!
+        if to_degen.include?(room)
+          room.make_degenerate!
+        else
+          room.distort!
+        end
       end
 
       level.rooms.each do |room|
@@ -256,10 +261,10 @@ module DungeonGeneration
       # 0 1
       # 2 3
       level.rooms = []
-      level.rooms << Room.new(0, 10, 0, 38)
-      level.rooms << Room.new(0, 10, 40, 78)
-      level.rooms << Room.new(12, 22, 0, 38)
-      level.rooms << Room.new(12, 22, 40, 78)
+      level.rooms << Room.new(0, 10, 5, 38)
+      level.rooms << Room.new(0, 10, 40, 73)
+      level.rooms << Room.new(12, 22, 5, 38)
+      level.rooms << Room.new(12, 22, 40, 73)
 
       connections = []
 
@@ -273,7 +278,7 @@ module DungeonGeneration
       end
 
       level.rooms.each do |room|
-        room.distort!(min_width: 30, min_height: 8)
+        room.distort!(min_width: 20, min_height: 7)
       end
 
       level.rooms.each do |room|
@@ -285,25 +290,32 @@ module DungeonGeneration
       end
     when :grid10 # まんなかで通路が交差している10分割
       # 0 1 2 3
-      # 4     5
+      # 4 A B 5
       # 6 7 8 9
       level.rooms = []
-      level.rooms << Room.new(0, 6, 0, 18)
-      level.rooms << Room.new(0, 6, 20, 38)
-      level.rooms << Room.new(0, 6, 40, 58)
-      level.rooms << Room.new(0, 6, 60, 78)
-      level.rooms << Room.new(8, 14, 0, 18)
-      level.rooms << Room.new(8, 14, 60, 78)
-      level.rooms << Room.new(16, 22, 0, 18)
-      level.rooms << Room.new(16, 22, 20, 38)
-      level.rooms << Room.new(16, 22, 40, 58)
-      level.rooms << Room.new(16, 22, 60, 78)
+      level.rooms << Room.new(0, 6, 6, 21)
+      level.rooms << Room.new(0, 6, 23, 38)
+      level.rooms << Room.new(0, 6, 40, 55)
+      level.rooms << Room.new(0, 6, 57, 72)
+      level.rooms << Room.new(8, 14, 6, 21)
+      level.rooms << Room.new(8, 14, 57, 72)
+      level.rooms << Room.new(16, 22, 6, 21)
+      level.rooms << Room.new(16, 22, 23, 38)
+      level.rooms << Room.new(16, 22, 40, 55)
+      level.rooms << Room.new(16, 22, 57, 72)
+
+      level.rooms << Room.new(8, 14, 23, 38).tap { |r| r.make_degenerate! }
+      level.rooms << Room.new(8, 14, 40, 55).tap { |r| r.make_degenerate! }
 
       connections = []
 
-      connections << Connection.new(level.rooms[1], level.rooms[7], :vertical)
-      connections << Connection.new(level.rooms[2], level.rooms[8], :vertical)
-      connections << Connection.new(level.rooms[4], level.rooms[5], :horizontal)
+      connections << Connection.new(level.rooms[1], level.rooms[10], :vertical)
+      connections << Connection.new(level.rooms[10], level.rooms[7], :vertical)
+      connections << Connection.new(level.rooms[4], level.rooms[10], :horizontal)
+      connections << Connection.new(level.rooms[10], level.rooms[11], :horizontal)
+      connections << Connection.new(level.rooms[11], level.rooms[5], :horizontal)
+      connections << Connection.new(level.rooms[2], level.rooms[11], :vertical)
+      connections << Connection.new(level.rooms[11], level.rooms[8], :vertical)
       connections.each do |conn|
         conn.realized = true
       end
@@ -329,8 +341,12 @@ module DungeonGeneration
       end
 
       level.rooms.each do |room|
-        room.distort!(min_width: 5, min_height: 5)
+        if !room.degenerate?
+          room.distort!(min_width: 5, min_height: 5)
+        end
       end
+
+      level.rooms.reject!(&:degenerate?)
 
       level.rooms.each do |room|
         level.render_room(room)

@@ -368,7 +368,7 @@ class Dungeon
   # 指定のマップタイプでMHが配置される確率。
   def party_room_prob(type)
     case type
-    when :grid10, :grid9, :dumbbell
+    when :grid10, :random9, :dumbbell
       0.15
     when :grid4, :grid2
       1.0
@@ -418,7 +418,7 @@ class Dungeon
     fail unless level_number.is_a? Integer and level_number >= 1
 
     type = select [[:bigmaze, 1.0/9],
-                   [:grid10, 4], [:grid9, 4],
+                   [:grid10, 4], [:random9, 4],
                    [:grid4, 1], [:grid2, 1], [:dumbbell, 1]]
 
     level = DungeonGeneration.generate(tileset(level_number), type)
@@ -426,7 +426,8 @@ class Dungeon
     mazes = []
     if maze_possible?(type)
       odd_sized_rooms = level.rooms.select { |r|
-        (r.right - r.left + 1).odd? && (r.top - r.bottom + 1).odd?
+        (r.right - r.left + 1).odd? && (r.top - r.bottom + 1).odd? &&
+          r.width >= 7 && r.height >= 7
       }
       if odd_sized_rooms.any?
         r = odd_sized_rooms.sample

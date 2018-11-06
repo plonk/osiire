@@ -15,12 +15,12 @@ class Room < Struct.new(:top, :bottom, :left, :right)
            y > top  && y < bottom
   end
 
+  # 部屋を小さくする。
   def distort!(opts = {})
+    fail "degenerate room cannot be distorted" if degenerate?
     min_height = opts[:min_height] || 5
     min_width = opts[:min_width] || 5
 
-    width = right - left + 1
-    height = bottom - top + 1
     t = (height - min_height).fdiv(2).ceil
     b = (height - min_height).fdiv(2).floor
     l = (width - min_width).fdiv(2).ceil
@@ -32,12 +32,22 @@ class Room < Struct.new(:top, :bottom, :left, :right)
     self.right  = rand((right-r) .. right)
   end
 
+  def make_degenerate!
+    self.top, self.left = [*(top+1 .. bottom-1)].sample, [*(left+1 .. right-1)].sample
+    # self.top, self.left = (top + bottom)/2, (left + right)/2
+    self.bottom, self.right = [self.top, self.left]
+  end
+
   def width
     right - left + 1
   end
 
   def height
     bottom - top + 1
+  end
+
+  def degenerate?
+    width == 1
   end
 
 end
@@ -67,8 +77,8 @@ class Connection
   def draw(dungeon)
     case direction
     when :horizontal
-      y1 = ((room1.top+1) .. (room1.bottom-1)).select { |y| (y - room1.top).odd? }.sample
-      y2 = ((room2.top+1) .. (room2.bottom-1)).select { |y| (y - room2.top).odd? }.sample
+      y1 = choose_passage_y(room1)
+      y2 = choose_passage_y(room2)
       midway = (room1.right + room2.left).div(2)
       (room1.right .. midway).each do |x|
         dungeon[y1][x] = Cell.new :PASSAGE
@@ -80,8 +90,8 @@ class Connection
         dungeon[y2][x] = Cell.new :PASSAGE
       end
     when :vertical
-      x1 = ((room1.left+1) .. (room1.right-1)).select { |x| (x - room1.left).odd? }.sample
-      x2 = ((room2.left+1) .. (room2.right-1)).select { |x| (x - room2.left).odd? }.sample
+      x1 = choose_passage_x(room1)
+      x2 = choose_passage_x(room2)
       midway = (room1.bottom + room2.top).div(2)
       (room1.bottom .. midway).each do |y|
         dungeon[y][x1] = Cell.new :PASSAGE
@@ -96,5 +106,21 @@ class Connection
       fail
     end
   end
-end
 
+  def choose_passage_x(room)
+    if room.width == 1
+      room.left
+    else
+      ((room.left+1) .. (room.right-1)).select { |x| (x - room.left).odd? }.sample
+    end
+  end
+
+  def choose_passage_y(room)
+    if room.height == 1
+      room.top
+    else
+      ((room.top+1) .. (room.bottom-1)).select { |y| (y - room.top).odd? }.sample
+    end
+  end
+
+end
