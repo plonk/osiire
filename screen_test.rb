@@ -2200,7 +2200,8 @@ EOD
                     title: markup_to_text(display(jar)),
                     sortable: false,
                     selectable: selectable,
-                    min_height: jar.capacity)
+                    min_height: jar.capacity,
+                    empty_message: "何も入っていない")
     begin
       item = action = nil
 
@@ -2261,7 +2262,8 @@ EOD
                     dispfunc: dispfunc,
                     title: "持ち物 [s]ソート",
                     sortable: true,
-                    min_height: 20)
+                    min_height: 20,
+                    empty_message: "何も持っていない")
     begin
       item = action = nil
 

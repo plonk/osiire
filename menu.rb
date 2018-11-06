@@ -18,6 +18,7 @@ class Menu
     winheight = [3, @height + 2].max
     @win = Curses::Window.new(winheight, @cols, @y, @x) # lines, cols, y, x
     @win.keypad(true)
+    @empty_message = opts[:empty_message] || ""
   end
 
   def close
@@ -41,7 +42,7 @@ class Menu
     when 0
       @win.setpos(1, 1)
       @win.attron(Curses::A_BOLD)
-      @win.addstr(" 何も持っていない")
+      @win.addstr(" #{@empty_message}")
       @win.attroff(Curses::A_BOLD)
       @win.setpos(1, 1)
       @win.refresh
