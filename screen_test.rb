@@ -15,6 +15,7 @@ require_relative 'naming_table'
 require_relative 'seal'
 require_relative 'sound'
 require_relative 'synthesis'
+require_relative 'item_naming_screen'
 
 class HeroDied < Exception
 end
@@ -280,7 +281,7 @@ class Program
     }
     herbs_false = ["黒い草", "白い草", "赤い草", "青い草", "黄色い草", "緑色の草",
                    "まだらの草", "スベスベの草", "チクチクの草", "空色の草", "しおれた草",
-                   "くさい草", "茶色い草", "ピンクの草", "オレンジ色の草"]
+                   "くさい草", "茶色い草", "ピンクの草", "オレンジ色の草", "銀色の草"]
     scrolls_false = ["ウナギの絵の巻物", "入道の絵の巻物", "金魚の絵の巻物", "カエルの絵の巻物",
                      "スイカの絵の巻物", "猫の絵の巻物", "火鉢の絵の巻物", "トカゲの絵の巻物",
                      "餓鬼の絵の巻物", "岩の絵の巻物", "滝の絵の巻物", "幽霊の絵の巻物",
@@ -1317,6 +1318,8 @@ class Program
       load(File.dirname(__FILE__) + "/trap.rb")
       load(File.dirname(__FILE__) + "/menu.rb")
       load(File.dirname(__FILE__) + "/hero.rb")
+      load(File.dirname(__FILE__) + "/naming_screen.rb")
+      load(File.dirname(__FILE__) + "/item_naming_screen.rb")
       :nothing
     else
       nil
@@ -2304,7 +2307,7 @@ EOD
     else
       nickname = nil
     end
-    nickname = NamingScreen.run(nickname)
+    nickname = ItemNamingScreen.run(item.type, nickname)
     @naming_table.set_nickname(item.name, nickname)
   end
 
