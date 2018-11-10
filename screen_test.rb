@@ -2108,6 +2108,12 @@ EOD
         wet_character(cell.character)
       end
 
+      trap = cell.trap
+      if trap
+        cell.remove_object(trap)
+        log("#{trap.name}は しけって壊れてしまった。")
+      end
+
       cell.wet = true
     else
       log("ここで 水は出せない。")
