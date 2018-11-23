@@ -57,7 +57,7 @@ class Dungeon
     fail 'empty distribution' if distribution.empty?
 
     denominator = distribution.map(&:last).inject(:+)
-    r = rand(denominator)
+    r = rand * denominator
     selected_monster = distribution.each do |name, prob|
       if r < prob
         return name
