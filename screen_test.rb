@@ -191,6 +191,23 @@ class Program
     @overlayed_tiles = []
   end
 
+  def save_state
+    data = {}
+    [:hero, :default_name, :level_number, :level, :dungeon, :naming_table].each do |field|
+      data[field] = self.instance_variable_get("@#{field}")
+    end
+    File.open("game-state.dat", "wb") do |f|
+      f.write Marshal.dump(data)
+    end
+  end
+
+  def restore_state
+    data = Marshal.load File.read("game-state.dat")
+    data.each_key do |field|
+      self.instance_variable_set("@#{field}", data[field])
+    end
+  end
+
   def hero_pos
     @level.pos_of(@hero)
   end
@@ -1558,7 +1575,7 @@ class Program
   end
 
   def cheat_menu()
-    menu = Menu.new(["アイテム入手", "モンスター発生"],
+    menu = Menu.new(["アイテム入手", "モンスター発生", "あかり", "状態保存", "状態復元"],
                     cols: 20, y: 8, x: 30)
     type, item = menu.choose
     case type
@@ -1569,6 +1586,15 @@ class Program
         return
       when "モンスター発生"
         cheat_spawn_monster()
+        return
+      when "あかり"
+        @level.whole_level_lit = !@level.whole_level_lit
+        return
+      when "状態保存"
+        save_state
+        return
+      when "状態復元"
+        restore_state
         return
       else fail
       end
