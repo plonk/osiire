@@ -3701,7 +3701,7 @@ EOD
       remove_status_effect(@hero, :hallucination)
     when "命の草"
       SoundEffects.heal
-      increase_max_hp(character, 5)
+      increase_max_hp(@hero, 5)
     when "毒けし草"
       unless @hero.strength_maxed?
         recover_strength()
