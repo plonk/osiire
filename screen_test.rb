@@ -5652,7 +5652,7 @@ EOD
     traps_deactivate
     kabe_damage
 
-    if @level.turn % 64 == 0 && @level.monster_count < 25
+    if @level.turn % 30 == 0 && @level.monster_count < 25
       spawn_monster
     end
   end
