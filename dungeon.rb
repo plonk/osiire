@@ -5,6 +5,10 @@ class Dungeon
   # [[Integer, [String,Integer], [String,Integer]...]...]
   ITEM_TABLE = eval(IO.read(File.join(File.dirname(__FILE__), 'item_table.rb')))
 
+  def initialize
+    @random_seeds = 99.times.map { rand }
+  end
+
   # ランキングなどに表示されるダンジョンの名前。
   def name
     "じゃんじょん"
@@ -416,6 +420,8 @@ class Dungeon
 
   def make_level(level_number)
     fail unless level_number.is_a? Integer and level_number >= 1
+
+    srand(@random_seeds[level_number - 1].object_id)
 
     type = select [[:bigmaze, 1.0/9],
                    [:grid10, 4], [:random9, 4],
