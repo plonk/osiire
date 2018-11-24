@@ -1077,8 +1077,16 @@ class Program
       character.hp = 0
       render
       check_monster_dead(character)
-    else
+    when Hero
       take_damage([(character.hp / 2.0).floor, 1.0].max)
+      untoasted = character.inventory.select { |item| item.type == :food && item.name != "こんがりトースト" }
+      if untoasted.any?
+        untoasted.each do |bread|
+          bread.toast!
+        end
+        log(display(character), "の 持っていたパンが 焼けた。")
+      end
+    else fail
     end
   end
 
@@ -4026,6 +4034,13 @@ EOD
       else
         increase_fullness(100.0)
       end
+    when "こんがりトースト"
+      if @hero.full?
+        increase_max_fullness(3.0)
+      else
+        increase_fullness(50.0)
+      end
+      increase_hp(@hero, 30)
     else
       fail "food? #{food}"
     end

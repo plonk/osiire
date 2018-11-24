@@ -152,6 +152,7 @@ class Item
  {:type=>:food, :name=>"パン", :desc=>"満腹度が50%回復する。", :seal=>"飯"},
  {:type=>:food, :name=>"大きなパン", :desc=>"満腹度が100%回復する。", :seal=>"飯"},
  {:type=>:food, :name=>"くさったパン", :desc=>"満腹度100%回復。ダメージを受けてちからが減る。"},
+ {:type=>:food, :name=>"こんがりトースト", :desc=>"満腹度が50%、HPが30回復。"},
  {:type=>:jar, :name=>"保存の壺", :desc=>"アイテムをこれに入れておけば呪われたりしない。", :abbrev=>"ほぞん"},
  {:type=>:jar, :name=>"識別の壺", :desc=>"入れたアイテムが同定される。", :abbrev=>"しきべつ"},
  {:type=>:jar, :name=>"合成の壺", :desc=>"同種のアイテムが合成される。", :abbrev=>"ごうせい"},
@@ -442,6 +443,11 @@ class Item
     else
       :red
     end
+  end
+
+  def toast!
+    fail unless type == :food
+    @name = "こんがりトースト"
   end
 
 end
