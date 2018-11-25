@@ -1402,9 +1402,12 @@ class Program
         :nothing
       end
     when 'a'
-      dir = ask_for_direction
-      if dir
-        @hero.facing = dir
+      Placard.open("振り向く", x: 31, y: 1) do |pla|
+        pla.refresh
+        dir = ask_for_direction
+        if dir
+          @hero.facing = dir
+        end
       end
       :nothing
     when 's'
