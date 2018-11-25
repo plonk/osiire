@@ -138,9 +138,13 @@ TABLE.each.with_index(+1) do |row, lv|
   h = { char: char(lv),
         name: name(lv),
         max_hp: hp,
-        exp: exp,
         strength: strength,
         defense: defense,
+        exp: exp,
+        drop_rate: 0.0,
+        initial_wake_rate: 0.0,
+        entrance_wake_rate: 0.0,
+        proximity_wake_rate: 1.0,
         action_point_recovery_rate: aprr(lv),
       }
   arr.push(h)

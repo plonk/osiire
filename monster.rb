@@ -139,8 +139,8 @@ class Monster < Character
       definition = SPECIES.find { |r| r[:name] == name }
       fail "no such monster: #{name}" unless definition
 
-      asleep_rate = definition[:asleep_rate] || 0.0
-      state = (rand() < asleep_rate) ? :asleep : :awake
+      wake_rate = definition[:initial_wake_rate] || 0.5
+      state = (rand() < wake_rate) ? :awake : :asleep
       facing = [1,1]
       goal = nil
       return Monster.new(definition, state, facing, goal)
@@ -159,6 +159,9 @@ class Monster < Character
   attr_reader :contents
   attr_accessor :capacity
   attr_reader :attrs
+  attr_reader :initial_wake_rate,
+              :proximity_wake_rate,
+              :entrance_wake_rate
 
   def initialize(definition,
                  state, facing, goal)
@@ -170,6 +173,9 @@ class Monster < Character
     @exp      = definition[:exp] || fail
     @drop_rate = definition[:drop_rate] || 0.0
     @attrs    = definition[:attrs] || []
+    @initial_wake_rate = definition[:initial_wake_rate] || 0.5
+    @proximity_wake_rate = definition[:proximity_wake_rate] || 0.5
+    @entrance_wake_rate = definition[:entrance_wake_rate] || 0.5
 
     @state = state
     @facing = facing

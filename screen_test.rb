@@ -4774,10 +4774,11 @@ EOD
     else
       case m.state
       when :asleep
-        # ヒーローがに周囲8マスに居れば1/2の確率で起きる。
+        # ヒーローが周囲8マスに居ればモンスターごとに定義された確率で
+        # 起きる。
         if @hero.ring&.name != "盗賊の指輪" &&
            @level.surroundings(mx, my).include?(*hero_pos)
-          if rand() < 0.5
+          if rand() < m.proximity_wake_rate
             m.state = :awake
           end
         end
@@ -5190,10 +5191,25 @@ EOD
   end
 
   # 部屋の出入りでモンスターが起きる。
-  def wake_monsters_in_room(room, probability)
-    if @hero.ring&.name == "盗賊の指輪"
-      probability = 0.0
+  def wake_monsters_in_room(room)
+    return if @hero.ring&.name == "盗賊の指輪"
+
+    ((room.top+1)..(room.bottom-1)).each do |y|
+      ((room.left+1)..(room.right-1)).each do |x|
+
+        monster = @level.cell(x, y).monster
+        if monster&.state == :asleep
+          if rand() < monster.entrance_wake_rate
+            monster.state = :awake
+            monster.action_point = 0
+          end
+        end
+      end
     end
+  end
+
+  def wake_monsters_in_party_room(room)
+    return if @hero.ring&.name == "盗賊の指輪"
 
     ((room.top+1)..(room.bottom-1)).each do |y|
       ((room.left+1)..(room.right-1)).each do |x|
@@ -5201,16 +5217,13 @@ EOD
         monster = @level.cell(x, y).monster
         if monster
           if monster.state == :asleep
-            if rand() < probability
-              monster.state = :awake
-              monster.action_point = 0
-            end
+            monster.state = :awake
           end
+          monster.on_party_room_intrusion
+          monster.action_point = 0
         end
-
       end
     end
-
   end
 
   # 状態以上が解けた時のメッセージ。
@@ -5522,35 +5535,20 @@ EOD
     SoundEffects.partyroom
     render
 
-    if @hero.ring&.name != "盗賊の指輪"
+    wake_monsters_in_party_room(@level.party_room)
 
-      wake_monsters_in_room(@level.party_room, 1.0)
-
-      room = @level.party_room
-      ((room.top+1)..(room.bottom-1)).each do |y|
-        ((room.left+1)..(room.right-1)).each do |x|
-
-          monster = @level.cell(x, y).monster
-          if monster
-            monster.on_party_room_intrusion
-            monster.action_point = 0
-          end
-        end
-      end
-
-    end
     @level.party_room = nil
   end
 
   def walk_in_or_out_of_room
     if @last_room
-      wake_monsters_in_room(@last_room, 0.5)
+      wake_monsters_in_room(@last_room)
     end
     if current_room
       if current_room == @level.party_room
         intrude_party_room
       else
-        wake_monsters_in_room(current_room, 0.5)
+        wake_monsters_in_room(current_room)
       end
     end
   end
