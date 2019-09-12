@@ -1,6 +1,8 @@
 require_relative 'monster'
 
-class Hero < Struct.new(:x, :y, :hp, :max_hp, :strength, :max_strength, :gold, :exp, :fullness, :max_fullness, :lv)
+class Hero < Struct.new(:x, :y, :hp, :max_hp,
+                        :raw_strength, :raw_max_strength,
+                        :gold, :exp, :fullness, :max_fullness, :lv)
   attr_accessor :inventory
   attr_accessor :weapon, :shield, :ring, :projectile
   attr_accessor :name
@@ -16,6 +18,22 @@ class Hero < Struct.new(:x, :y, :hp, :max_hp, :strength, :max_strength, :gold, :
     @name = "名無しさん"
     @action_point = 0
     @invisible = false
+  end
+
+  def strength
+    if ring&.name == "ちからの指輪"
+      raw_strength + (3 * (ring.cursed ? -1 : +1))
+    else
+      raw_strength
+    end
+  end
+
+  def max_strength
+    if ring&.name == "ちからの指輪"
+      raw_max_strength + (3 * (ring.cursed ? -1 : +1))
+    else
+      raw_max_strength
+    end
   end
 
   def action_point_recovery_rate

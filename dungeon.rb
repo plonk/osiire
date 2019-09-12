@@ -158,7 +158,12 @@ class Dungeon
 
   # モンスターを配置する。通常配置。
   def place_monsters(level, level_number)
-    5.times do
+    if level_number <= 27
+      n = 5 + (5.fdiv(27)*(level_number - 1)).round
+    else
+      n = 10
+    end
+    n.times do
       cell = level.cell(*level.get_random_place(:FLOOR))
       m = make_monster(level_number)
       spawn_monster(m, cell, level)
@@ -372,7 +377,7 @@ class Dungeon
     when 50, 60, 70, 80, 90, 99
       type = :bigmaze
     else
-      type = [*[:grid10, :grid9]*4, :grid4, :grid2].sample
+      type = [*[:grid10, :grid9]*8, :grid4, :grid2].sample
     end
 
     case type
