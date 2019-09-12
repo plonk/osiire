@@ -66,7 +66,7 @@ class Program
 
   def initialize
     @debug = ARGV.include?("-d")
-    @hard_mode = false
+    @hard_mode = true
     @default_name = nil
 
     load_softfonts
