@@ -890,9 +890,6 @@ class Program
       open_inventory
     when '>'
       activate_underfoot
-    when 'q'
-      log("冒険をあきらめるには大文字の Q を押してね。")
-      :nothing
     when 'Q'
       if confirm_give_up?
         give_up_message
@@ -903,14 +900,14 @@ class Program
       end
     when 's'
       main_menu
-    when 't'
+    when 'q'
       if @hero.projectile
         return throw_item(@hero.projectile)
       else
         log("投げ物を装備していない。")
         :nothing
       end
-    when '.', 10 # Enter
+    when '.', 'z', 10 # Enter
       search
     else
       log("[#{c}]なんて 知らない。[?]でヘルプ。")
@@ -981,19 +978,18 @@ class Program
 
 ★ コマンドキー
 
-     [Enter] 決定。周りを調べる。
-     [Shift] ダッシュ。アイテムの上に乗る。
-     s       メニューを開く。
-     i       道具一覧を開く。
-     >       階段を降りる。足元のワナを踏む、
-             アイテムを拾う。
-     ,       足元を調べる。
-     .       周りを調べる。
-     ?       このヘルプを表示。
-     Ctrl+P  メッセージ履歴。
-     t       装備している投げ物を使う。
-     q       キャンセル。
-     Q       冒険をあきらめる。
+     z or Enter 決定。周りを調べる。
+     a          キャンセル。
+     Shift      ダッシュ。アイテムの上に乗る。
+     s          メニューを開く。
+     i          道具一覧を開く。
+     >          階段を降りる。罠を踏む。拾う。
+     ,          足元を調べる。
+     .          周りを調べる。
+     ?          このヘルプを表示。
+     Ctrl+P     メッセージ履歴。
+     t          装備している投げ物を使う。
+     Q          冒険をあきらめる。
 EOD
 
     win = Curses::Window.new(23, 50, 1, 4) # lines, cols, y, x
@@ -1667,7 +1663,7 @@ EOD
       c = win.getch
       if KEY_TO_DIRVEC[c]
         return KEY_TO_DIRVEC[c]
-      elsif c == 'q' # キャンセル
+      elsif c == 'a' # キャンセル
         return nil
       end
     end
@@ -3738,9 +3734,9 @@ EOD
     Curses.stdscr.clear
 
     Curses.stdscr.setpos(Curses.stdscr.maxy-2, 0)
-    Curses.stdscr.addstr("決定: Enter")
+    Curses.stdscr.addstr("決定: z or Enter")
     Curses.stdscr.setpos(Curses.stdscr.maxy-1, 0)
-    Curses.stdscr.addstr("もどる: q")
+    Curses.stdscr.addstr("もどる: a")
 
     Curses.stdscr.refresh
 

@@ -64,9 +64,9 @@ class Menu
           if @sortable
             return [:sort]
           end
-        when 'q'
+        when 'a'
           return [:cancel]
-        when 10
+        when 'z', 10
           return [:chosen, @items[@index]]
         end
       end
