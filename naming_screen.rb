@@ -97,6 +97,8 @@ module NamingScreen
 
   OMAKASE_NAMES = [
     "よてえもん",
+    "アラバマ",
+    "ひめ",
     "ＸＡＸＡ",
     "ヌヌー",
     "ばんたけ",
