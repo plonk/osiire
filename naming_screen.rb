@@ -174,7 +174,7 @@ module NamingScreen
         name = name[0..-2]
       when 'q'
         return nil
-      when 10 # Enter
+      when 'z', 10 # Enter
         if y == 0
           case COMMAND_ROW[x]
           when "かなカナ英数"
